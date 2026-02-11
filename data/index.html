@@ -26,7 +26,6 @@
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
         #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 15px auto 100px auto; height: 68vh; }
         
-        /* 3D FLIP CONTAINER */
         .movie-card { 
             position: absolute; width: 90%; height: 100%; left: 5%; top: 0; 
             perspective: 1000px; 
@@ -40,7 +39,6 @@
             height: 100%;
             transition: transform 0.6s;
             transform-style: preserve-3d;
-            pointer-events: none; /* Allows clicks to pass to the parent .movie-card */
         }
 
         .movie-card.flipped .card-inner {
@@ -92,7 +90,6 @@
         .back-content { overflow-y: auto; flex-grow: 1; margin-bottom: 10px; }
         .back-content p { font-size: 0.95rem; line-height: 1.5; color: #eee; margin: 0; }
 
-        /* Glow Overlays */
         .glow-side { position: absolute; top: 0; width: 40%; height: 100%; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s; }
         #glow-left { left: 0; background: linear-gradient(to right, rgba(211, 47, 47, 0.6), transparent); }
         #glow-right { right: 0; background: linear-gradient(to left, rgba(76, 175, 80, 0.6), transparent); }
@@ -103,7 +100,6 @@
         
         #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-        /* Matches Modal */
         #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 100px; }
         .mini-poster { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; border: 2px solid #333; }
@@ -172,7 +168,7 @@
         let movieStack = [];
         let swipeHistory = [];
         let pollingInterval = null;
-        let globalCurrentX = 0; // Track movement globally to prevent flip during swipe
+        let globalCurrentX = 0;
 
         async function loginWithPlex() {
             const resp = await fetch("/auth/plex-url");
@@ -268,12 +264,12 @@
                 </div>
             `;
 
-            // FLIP HANDLER - Switched to onclick for better mobile reliability
-            c.onclick = () => {
-                if (Math.abs(globalCurrentX) < 10) {
+            // Fixed flip trigger from your local version
+            c.addEventListener('click', () => {
+                if (Math.abs(globalCurrentX) < 5) {
                     c.classList.toggle('flipped');
                 }
-            };
+            });
 
             return c;
         }
@@ -290,7 +286,6 @@
                 const x = e.clientX || (e.touches && e.touches[0].clientX);
                 globalCurrentX = x - startX;
                 
-                // Prevent card movement if flipped
                 if (card.classList.contains('flipped')) return;
 
                 card.style.transition = 'none';
@@ -314,7 +309,7 @@
                 glowRight.style.opacity = 0;
                 
                 if (card.classList.contains('flipped')) {
-                    setTimeout(() => globalCurrentX = 0, 50);
+                    globalCurrentX = 0;
                     return;
                 }
 
@@ -359,7 +354,6 @@
             
             card.onpointerdown = (e) => {
                 if (e.target.tagName === 'BUTTON') return;
-                
                 isDragging = true;
                 startX = e.clientX || (e.touches && e.touches[0].clientX);
                 card.setPointerCapture(e.pointerId);
