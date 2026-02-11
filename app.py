@@ -76,7 +76,16 @@ def create_room():
     pairing_code = str(random.randint(1000, 9999))
     plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
     random_movies = plex.library.section('Movies').search(libtype='movie', sort='random', maxresults=100)
-    movie_list = [{'id': str(m.ratingKey), 'title': m.title, 'summary': m.summary, 'thumb': f"/proxy?path={m.thumb}"} for m in random_movies]
+    
+    # MOVIE LIST UPDATED TO INCLUDE RATING
+    movie_list = [{
+        'id': str(m.ratingKey), 
+        'title': m.title, 
+        'summary': m.summary, 
+        'thumb': f"/proxy?path={m.thumb}",
+        'rating': m.audienceRating or m.rating  # Pulls the score from Plex
+    } for m in random_movies]
+    
     with get_db() as conn:
         conn.execute('INSERT INTO rooms (pairing_code, movie_data, ready) VALUES (?, ?, ?)', (pairing_code, json.dumps(movie_list), 0))
     session['active_room'] = pairing_code
