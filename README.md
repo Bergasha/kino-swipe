@@ -40,10 +40,9 @@ Copy and paste this into your terminal. Replace the variables with your specific
 docker run -d \
   --name kino-swipe \
   -p 5005:5005 \
-  -e PLEX_URL="https://YOUR_PLEX_IP:32400" \
+  -e PLEX_URL="https://YOUR_PLEX_URL" \
   -e PLEX_TOKEN="YOUR_PLEX_TOKEN" \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/static:/app/static \
+  -v kino_data:/app/data \
   --restart unless-stopped \
   bergasha/kino-swipe:latest
 
