@@ -1,0 +1,16 @@
+services:
+  kino-swipe:
+    build: ghcr.io/bergasha/kino-swipe:latest
+    container_name: kino-swipe
+    ports:
+      - "5005:5005"
+    environment:
+      - PLEX_URL=https://your-plex-ip:32400
+      - PLEX_TOKEN=your-plex-token-here
+      - FLASK_SECRET=pick-a-random-string
+    volumes:
+      - ./data:/app/data
+      - ./static:/app/static
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"

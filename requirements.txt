@@ -1,0 +1,4 @@
+flask
+plexapi
+werkzeug
+requests

@@ -1,0 +1,11 @@
+docker run -d \
+  --name kino-swipe \
+  -p 5005:5005 \
+  -e PLEX_URL="https://your-plex-ip:32400" \
+  -e PLEX_TOKEN="your-plex-token" \
+  -e FLASK_SECRET="your-random-secret" \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/static:/app/static \
+  --label=com.centurylinklabs.watchtower.enable="false" \
+  --restart unless-stopped \
+  bergasha/kino-swipe:latest

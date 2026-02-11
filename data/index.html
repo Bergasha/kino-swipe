@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kino-Swipe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#111111">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kino-Swipe">
+    <link rel="apple-touch-icon" href="/static/main.png">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        .hidden { display: none !important; }
+        .plex-yellow { color: #e5a00d; }
+        .menu-btn { background: #e5a00d; border: none; padding: 15px; font-size: 1.2rem; border-radius: 8px; cursor: pointer; margin: 10px; font-weight: bold; width: 220px; color: black; }
+        #main-menu { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; flex-grow: 1; }
+        .main-logo { width: 180px; height: auto; margin-bottom: 10px; }
+        .main-title { font-size: 4.0rem; margin: 0 0 30px 0; font-weight: bold; color: #8a0606; font-family: 'allura', cursive; }
+        #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
+        
+        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 15px auto 100px auto; height: 68vh; }
+        
+        .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; background: #222; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); touch-action: none; z-index: 5; }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .movie-info { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8) 40%, rgba(0,0,0,1)); padding: 30px 15px 15px; text-align: left; box-sizing: border-box; pointer-events: none; }
+        .movie-title { font-size: 1.4rem; font-weight: bold; color: #e5a00d; margin-bottom: 5px; }
+        .movie-synopsis { font-size: 0.85rem; line-height: 1.3; color: #ccc; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        /* Glow Overlays */
+        .glow-side { position: absolute; top: 0; width: 40%; height: 100%; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s; }
+        #glow-left { left: 0; background: linear-gradient(to right, rgba(211, 47, 47, 0.6), transparent); }
+        #glow-right { right: 0; background: linear-gradient(to left, rgba(76, 175, 80, 0.6), transparent); }
+
+        .pill-btn { position: fixed; bottom: 25px; width: 120px; height: 45px; border-radius: 30px; border: none; font-weight: bold; font-size: 0.9rem; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+        #matches-pill { right: 20px; background: #e5a00d; color: black; }
+        #quit-pill { left: 20px; background: #d32f2f; color: black; }
+        
+        #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
+        #undo-btn:active { background: #333; transform: translateX(-50%) scale(0.9); }
+
+        #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 100px; }
+        .mini-poster { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; border: 2px solid #333; }
+        .mini-poster img { width: 100%; height: 100%; object-fit: cover; }
+        #match-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+        .match-logo { width: 150px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <button id="matches-pill" class="pill-btn hidden">Matches</button>
+    <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
+    <button id="undo-btn" class="hidden">Undo</button>
+
+    <div id="login-section">
+        <img src="/static/main.png" class="main-logo" style="margin-top:50px;">
+        <h1 class="main-title plex-yellow">Kino-Swipe</h1>
+        <button id="login-btn" class="menu-btn" onclick="loginWithPlex()">Login with Plex</button>
+    </div>
+
+    <div id="main-menu" class="hidden">
+        <div id="branding">
+            <img src="/static/main.png" class="main-logo">
+            <h1 class="main-title plex-yellow">Kino-Swipe</h1>
+        </div>
+        <div id="controls-area">
+            <button id="host-btn" class="menu-btn">Host Session</button>
+            <div id="session-info" class="hidden">
+                <p>Code: <span id="session-display" class="plex-yellow" style="font-size: 2.5rem;">----</span></p>
+                <p>Waiting for partner...</p>
+            </div>
+            <div style="margin-top:20px;">
+                <hr style="border:0; border-top:1px solid #333; width: 220px; margin: 10px auto;">
+                <input type="text" id="join-code" inputmode="numeric" maxlength="4" placeholder="Enter Code" style="padding:15px; width:180px; text-align:center; border-radius:8px; border:1px solid #444; background:#222; color:white; font-size:1.2rem;">
+                <br>
+                <button id="join-btn" class="menu-btn" onclick="joinRoom()">Join Session</button>
+                <br>
+                <button onclick="localStorage.clear(); location.reload();" style="background:none; border:none; color:#444; text-decoration:underline; cursor:pointer; margin-top:20px;">Logout</button>
+            </div>
+        </div>
+        <div id="game-area" class="hidden">
+            <div id="glow-left" class="glow-side"></div>
+            <div id="glow-right" class="glow-side"></div>
+            <div id="swipe-deck"></div>
+        </div>
+    </div>
+
+    <div id="match-overlay" class="hidden">
+        <img src="/static/logo.png" class="match-logo">
+        <h1 class="plex-yellow" style="font-size: 3.5rem; margin: 0;">MATCH!</h1>
+        <h2 id="matched-movie-title" style="margin: 10px 0 30px; padding:0 20px;"></h2>
+        <button class="menu-btn" onclick="document.getElementById('match-overlay').classList.add('hidden')">Keep Swiping</button>
+    </div>
+
+    <div id="matches-modal" class="hidden">
+        <h1 class="plex-yellow">Your Matches</h1>
+        <div id="matches-list"></div>
+        <button class="menu-btn" style="position: fixed; bottom: 20px; width: 150px; z-index:20001;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register("/sw.js");
+        }
+
+        let movieStack = [];
+        let swipeHistory = [];
+        let pollingInterval = null;
+
+        async function loginWithPlex() {
+            const resp = await fetch("/auth/plex-url");
+            const data = await resp.json();
+            window.location.href = data.auth_url;
+        }
+
+        async function confirmQuit() {
+            if (confirm("End session and delete ALL matches?")) {
+                await fetch('/room/quit', { method: 'POST' });
+                localStorage.removeItem('active_room');
+                location.reload();
+            }
+        }
+
+        const loadMovies = async () => {
+            const res = await fetch('/movies');
+            movieStack = await res.json();
+            document.getElementById('branding').classList.add('hidden');
+            document.getElementById('controls-area').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('matches-pill').classList.remove('hidden');
+            document.getElementById('quit-pill').classList.remove('hidden');
+            document.getElementById('undo-btn').classList.remove('hidden');
+            renderInitialDeck();
+        };
+
+        async function updateMatchesUI() {
+            const res = await fetch('/matches');
+            const data = await res.json();
+            const list = document.getElementById('matches-list');
+            list.innerHTML = data.length ? '' : '<p style="grid-column: span 2;">No matches yet</p>';
+            data.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'mini-poster';
+                div.innerHTML = `<img src="${m.thumb}" alt="${m.title}"><button class="delete-x" style="position:absolute; top:5px; right:5px; background:rgba(229,160,13,0.9); color:black; border:none; width:25px; height:25px; border-radius:50%; font-weight:bold; cursor:pointer;" onclick="deleteMatch(event, '${m.movie_id}')">X</button><div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:10px; padding:4px;">${m.title}</div>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function deleteMatch(event, id) {
+            event.stopPropagation();
+            if (confirm("Delete match for everyone?")) {
+                await fetch("/matches/delete", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ movie_id: id }) });
+                updateMatchesUI();
+            }
+        }
+
+        document.getElementById('undo-btn').onclick = async () => {
+            if (swipeHistory.length === 0) return;
+            const lastMovie = swipeHistory.pop();
+            await fetch('/undo', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ movie_id: lastMovie.id }) });
+            movieStack.unshift(lastMovie);
+            renderInitialDeck();
+        };
+
+        document.getElementById('matches-pill').onclick = () => { 
+            updateMatchesUI(); 
+            document.getElementById('matches-modal').classList.remove('hidden'); 
+        };
+
+        function renderInitialDeck() {
+            const deck = document.getElementById('swipe-deck');
+            deck.innerHTML = '';
+            movieStack.slice(0, 5).reverse().forEach(m => deck.appendChild(createCard(m)));
+            initDrag(deck.lastElementChild);
+        }
+
+        function createCard(m) {
+            const c = document.createElement('div');
+            c.className = 'movie-card';
+            c.dataset.id = m.id;
+            c.dataset.title = m.title;
+            c.dataset.thumb = m.thumb;
+            c.innerHTML = `<img src="${m.thumb}"><div class="movie-info"><div class="movie-title">${m.title}</div><div class="movie-synopsis">${m.summary || ''}</div></div>`;
+            return c;
+        }
+
+        function initDrag(card) {
+            if (!card) return;
+            let startX, currentX = 0, isDragging = false;
+            const glowLeft = document.getElementById('glow-left');
+            const glowRight = document.getElementById('glow-right');
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const x = e.clientX || (e.touches && e.touches[0].clientX);
+                currentX = x - startX;
+                card.style.transition = 'none';
+                card.style.transform = `translate(${currentX}px, ${Math.abs(currentX)/10}px) rotate(${currentX / 10}deg)`;
+
+                // Glow logic
+                if (currentX > 20) { // Swiping Right (Green)
+                    glowRight.style.opacity = Math.min(Math.abs(currentX) / 200, 1);
+                    glowLeft.style.opacity = 0;
+                } else if (currentX < -20) { // Swiping Left (Red)
+                    glowLeft.style.opacity = Math.min(Math.abs(currentX) / 200, 1);
+                    glowRight.style.opacity = 0;
+                } else {
+                    glowLeft.style.opacity = 0;
+                    glowRight.style.opacity = 0;
+                }
+            };
+
+            const onEnd = async () => {
+                if (!isDragging) return; isDragging = false;
+                glowLeft.style.opacity = 0;
+                glowRight.style.opacity = 0;
+                card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
+                
+                if (Math.abs(currentX) > 120) {
+                    const dir = currentX > 0 ? 'right' : 'left';
+                    card.style.transform = `translate(${currentX > 0 ? 1000 : -1000}px, 0px) rotate(${currentX / 5}deg)`;
+                    card.style.opacity = '0';
+                    const movieData = movieStack[0];
+                    swipeHistory.push(movieData);
+                    fetch('/room/swipe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ movie_id: card.dataset.id, title: card.dataset.title, thumb: card.dataset.thumb, direction: dir }) })
+                    .then(r => r.json())
+                    .then(data => { if (data.match) { document.getElementById('matched-movie-title').innerText = data.title; document.getElementById('match-overlay').classList.remove('hidden'); } });
+                    setTimeout(() => { 
+                        card.remove(); 
+                        movieStack.shift(); 
+                        if (movieStack[4]) document.getElementById('swipe-deck').prepend(createCard(movieStack[4])); 
+                        initDrag(document.getElementById('swipe-deck').lastElementChild); 
+                    }, 300);
+                } else { card.style.transform = ''; }
+            };
+            
+            card.onpointerdown = (e) => {
+                isDragging = true;
+                startX = e.clientX || (e.touches && e.touches[0].clientX);
+                card.setPointerCapture(e.pointerId);
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onEnd);
+            };
+        }
+
+        document.getElementById('host-btn').onclick = async () => {
+            const res = await fetch('/room/create', { method: 'POST' });
+            const data = await res.json();
+            localStorage.setItem('active_room', 'hosting'); 
+            document.getElementById('session-display').innerText = data.pairing_code;
+            document.getElementById('host-btn').classList.add('hidden');
+            document.getElementById('session-info').classList.remove('hidden');
+            startPolling();
+        };
+
+        async function joinRoom() {
+            const code = document.getElementById('join-code').value;
+            const res = await fetch('/room/join', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code }) });
+            if (res.ok) {
+                localStorage.setItem('active_room', 'joined');
+                loadMovies();
+            } else {
+                alert("Invalid Code");
+            }
+        }
+
+        const startPolling = () => {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(async () => {
+                const s = await fetch('/room/status');
+                const d = await s.json();
+                if (d.ready) { clearInterval(pollingInterval); loadMovies(); }
+            }, 3000);
+        };
+
+        window.onload = async () => {
+            const pendingPin = await fetch("/auth/check-returned-pin");
+            const result = await pendingPin.json();
+            if (result.authToken) {
+                localStorage.setItem("plex_token", result.authToken);
+            }
+            if (localStorage.getItem('plex_token')) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('main-menu').classList.remove('hidden');
+                if (localStorage.getItem('active_room')) loadMovies();
+            }
+        };
+    </script>
+</body>
+</html>
