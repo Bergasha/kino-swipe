@@ -1,12 +1,14 @@
-from flask import Flask, send_from_directory, jsonify, request, session, Response
+from flask import Flask, send_from_directory, jsonify, request, session, Response, render_template
 from plexapi.server import PlexServer
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3, os, random, requests, json
 
 app = Flask(__name__)
+# Fixes headers for your Synology Reverse Proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 app.secret_key = os.getenv('FLASK_SECRET', 'KinoSwipe_2026_Default_Key')
 
+# Standardized Paths
 DB_PATH = '/app/data/kinoswipe.db'
 PLEX_URL = os.getenv('PLEX_URL', '').rstrip('/')
 ADMIN_TOKEN = os.getenv('PLEX_TOKEN')
@@ -18,26 +20,35 @@ def get_db():
     return conn
 
 def init_db():
+    # Ensure the data directory exists for the DB
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER)')
         conn.execute('CREATE TABLE IF NOT EXISTS swipes (room_code TEXT, movie_id TEXT, user_id TEXT, direction TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS matches (room_code TEXT, movie_id TEXT, title TEXT, thumb TEXT)')
 
+# --- STANDARD ROUTING ---
+
 @app.route('/')
 def index(): 
-    return send_from_directory('data', 'index.html')
+    # Looks in /app/templates/index.html
+    return render_template('index.html')
 
 @app.route('/manifest.json')
 def serve_manifest(): 
-    return send_from_directory('data', 'manifest.json')
+    # Looks in /app/static/manifest.json
+    return send_from_directory('static', 'manifest.json')
 
 @app.route('/sw.js')
 def serve_sw(): 
-    return send_from_directory('data', 'sw.js')
+    # Looks in /app/sw.js (root)
+    return send_from_directory('.', 'sw.js')
 
 @app.route('/static/<path:path>')
 def serve_static(path): 
     return send_from_directory('static', path)
+
+# --- PLEX & ROOM LOGIC ---
 
 @app.route('/auth/plex-url')
 def get_plex_url():
