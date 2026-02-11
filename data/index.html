@@ -13,7 +13,9 @@
     <link rel="apple-touch-icon" href="/static/main.png">
 
     <style>
+        /* Version: 1.0.2 - Updated Tap Logic */
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
+        
         body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         .hidden { display: none !important; }
         .plex-yellow { color: #e5a00d; }
@@ -263,25 +265,27 @@
                     </div>
                 </div>
             `;
-
-            // Fixed flip trigger from your local version
-            c.addEventListener('click', () => {
-                if (Math.abs(globalCurrentX) < 5) {
-                    c.classList.toggle('flipped');
-                }
-            });
-
             return c;
         }
 
         function initDrag(card) {
             if (!card) return;
-            let startX, isDragging = false;
+            let startX, startY, isDragging = false;
+            let startTime;
             globalCurrentX = 0;
             const glowLeft = document.getElementById('glow-left');
             const glowRight = document.getElementById('glow-right');
 
-            const onMove = (e) => {
+            card.onpointerdown = (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                isDragging = true;
+                startTime = Date.now();
+                startX = e.clientX || (e.touches && e.touches[0].clientX);
+                startY = e.clientY || (e.touches && e.touches[0].clientY);
+                card.setPointerCapture(e.pointerId);
+            };
+
+            card.onpointermove = (e) => {
                 if (!isDragging) return;
                 const x = e.clientX || (e.touches && e.touches[0].clientX);
                 globalCurrentX = x - startX;
@@ -297,30 +301,37 @@
                 } else if (globalCurrentX < -20) {
                     glowLeft.style.opacity = Math.min(Math.abs(globalCurrentX) / 200, 1);
                     glowRight.style.opacity = 0;
-                } else {
-                    glowLeft.style.opacity = 0;
-                    glowRight.style.opacity = 0;
                 }
             };
 
-            const onEnd = async () => {
-                if (!isDragging) return; isDragging = false;
+            card.onpointerup = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
                 glowLeft.style.opacity = 0;
                 glowRight.style.opacity = 0;
-                
-                if (card.classList.contains('flipped')) {
+
+                const duration = Date.now() - startTime;
+                const endY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+                const distY = Math.abs(endY - startY);
+
+                // FLIP DETECTION: Brief duration + tiny movement = Tap
+                if (Math.abs(globalCurrentX) < 8 && distY < 8 && duration < 250) {
+                    card.classList.toggle('flipped');
+                    card.style.transform = ''; 
                     globalCurrentX = 0;
                     return;
                 }
 
-                card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
-                
-                if (Math.abs(globalCurrentX) > 120) {
+                // SWIPE DETECTION
+                if (!card.classList.contains('flipped') && Math.abs(globalCurrentX) > 120) {
                     const dir = globalCurrentX > 0 ? 'right' : 'left';
+                    card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
                     card.style.opacity = '0';
+                    
                     const movieData = movieStack[0];
                     swipeHistory.push(movieData);
+                    
                     fetch('/room/swipe', { 
                         method: 'POST', 
                         headers: {'Content-Type': 'application/json'}, 
@@ -347,18 +358,10 @@
                         globalCurrentX = 0;
                     }, 300);
                 } else { 
+                    card.style.transition = 'transform 0.4s ease';
                     card.style.transform = ''; 
                     setTimeout(() => globalCurrentX = 0, 50);
                 }
-            };
-            
-            card.onpointerdown = (e) => {
-                if (e.target.tagName === 'BUTTON') return;
-                isDragging = true;
-                startX = e.clientX || (e.touches && e.touches[0].clientX);
-                card.setPointerCapture(e.pointerId);
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onEnd);
             };
         }
 
