@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="/static/main.png">
 
     <style>
-        /* Version: 1.0.3 - GitHub Structure Sync */
+        /* Version: 1.0.4 - Runtime Update */
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
         
         body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
@@ -257,7 +257,10 @@
                     </div>
                     <div class="card-back">
                         <div class="movie-title">${m.title}</div>
-                        ${m.rating ? `<div class="rating-badge">Rating: ${m.rating}</div>` : ''}
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            ${m.rating ? `<div class="rating-badge">Rating: ${m.rating}</div>` : ''}
+                            ${m.runtime ? `<div class="rating-badge" style="background: #444; color: white;">${m.runtime}</div>` : ''}
+                        </div>
                         <div class="back-content">
                             <p>${m.summary || 'No description available.'}</p>
                         </div>
