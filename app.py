@@ -20,7 +20,6 @@ def get_db():
     return conn
 
 def init_db():
-    # Ensure the data directory exists for the DB
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER)')
@@ -31,17 +30,14 @@ def init_db():
 
 @app.route('/')
 def index(): 
-    # Looks in /app/templates/index.html
     return render_template('index.html')
 
 @app.route('/manifest.json')
 def serve_manifest(): 
-    # Looks in /app/static/manifest.json
     return send_from_directory('static', 'manifest.json')
 
 @app.route('/sw.js')
 def serve_sw(): 
-    # Looks in /app/sw.js (root)
     return send_from_directory('.', 'sw.js')
 
 @app.route('/static/<path:path>')
@@ -77,14 +73,23 @@ def create_room():
     plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
     random_movies = plex.library.section('Movies').search(libtype='movie', sort='random', maxresults=100)
     
-    # MOVIE LIST UPDATED TO INCLUDE RATING
-    movie_list = [{
-        'id': str(m.ratingKey), 
-        'title': m.title, 
-        'summary': m.summary, 
-        'thumb': f"/proxy?path={m.thumb}",
-        'rating': m.audienceRating or m.rating  # Pulls the score from Plex
-    } for m in random_movies]
+    movie_list = []
+    for m in random_movies:
+        # Convert ms to "1h 45m" format
+        runtime_str = ""
+        if m.duration:
+            hrs = m.duration // 3600000
+            mins = (m.duration % 3600000) // 60000
+            runtime_str = f"{hrs}h {mins}m" if hrs > 0 else f"{mins}m"
+
+        movie_list.append({
+            'id': str(m.ratingKey), 
+            'title': m.title, 
+            'summary': m.summary, 
+            'thumb': f"/proxy?path={m.thumb}",
+            'rating': m.audienceRating or m.rating,
+            'runtime': runtime_str
+        })
     
     with get_db() as conn:
         conn.execute('INSERT INTO rooms (pairing_code, movie_data, ready) VALUES (?, ?, ?)', (pairing_code, json.dumps(movie_list), 0))
@@ -157,6 +162,27 @@ def proxy():
     path = request.args.get('path')
     res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True)
     return Response(res.content, content_type=res.headers['Content-Type'])
+
+@app.route('/room/quit', methods=['POST'])
+def quit_room():
+    code = session.get('active_room')
+    if code:
+        with get_db() as conn:
+            conn.execute('DELETE FROM rooms WHERE pairing_code = ?', (code,))
+            conn.execute('DELETE FROM swipes WHERE room_code = ?', (code,))
+            conn.execute('DELETE FROM matches WHERE room_code = ?', (code,))
+        session.clear()
+    return jsonify({'status': 'session_ended'})
+
+@app.route('/undo', methods=['POST'])
+def undo_swipe():
+    code = session.get('active_room')
+    uid = session.get('my_user_id')
+    mid = str(request.json.get('movie_id'))
+    with get_db() as conn:
+        conn.execute('DELETE FROM swipes WHERE room_code = ? AND movie_id = ? AND user_id = ?', (code, mid, uid))
+        conn.execute('DELETE FROM matches WHERE room_code = ? AND movie_id = ?', (code, mid))
+    return jsonify({'status': 'undone'})
 
 if __name__ == "__main__":
     init_db()
