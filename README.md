@@ -6,7 +6,15 @@ Plex card-swiping for people who spend more time picking a movie than watching o
 
 ## Demo
 
-https://github.com/user-attachments/assets/37a2a485-ef1f-4c45-9eea-7a858323e01a
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/37a2a485-ef1f-4c45-9eea-7a858323e01a" 
+    width="750" 
+    autoplay 
+    loop 
+    muted 
+    playsinline>
+  </video>
+</div>
 
 
 
