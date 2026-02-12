@@ -4,18 +4,12 @@ Plex card-swiping for people who spend more time picking a movie than watching o
 
 
 
-## Screenshots
-<p align="center">
-  <img src="screenshots/Screenshot_20260211-144219.png" width="250" alt="Login Screen">
-  <img src="screenshots/Screenshot_20260211-144232.png" width="250" alt="Main login">
-  <img src="screenshots/Screenshot_20260211-144240.png" width="250" alt="Generate Code">
-  <img src="screenshots/Screenshot_20260211-144332.png" width="250" alt="Swiping Interface">
-  <img src="screenshots/Screenshot_20260211-144346.png" width="250" alt="Swiping Interface">
-  <img src="screenshots/Screenshot_20260211-144403.png" width="250" alt="We have a MATCH!!">
-  <img src="screenshots/Screenshot_20260211-144332.png" width="250" alt="Swiping Interface">
-  <img src="screenshots/Screenshot_20260211-144435.png" width="250" alt="Matches List">
-  <img src="screenshots/Screenshot_20260211-144427.png" width="250" alt="Main page">
-</p>
+## Demo
+
+https://github.com/user-attachments/assets/37a2a485-ef1f-4c45-9eea-7a858323e01a
+
+
+
 
 ## Features
 - **Plex Integration:** Connects directly to your server to pull random movies.
