@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="/static/main.png">
 
     <style>
-        /* Version: 1.0.4 - Runtime Update */
+        /* Version: 1.2.0 - Watchlist Integration */
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
         
         body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
@@ -28,67 +28,39 @@
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
         #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 15px auto 100px auto; height: 68vh; }
         
-        .movie-card { 
-            position: absolute; width: 90%; height: 100%; left: 5%; top: 0; 
-            perspective: 1000px; 
-            z-index: 5; 
-            touch-action: none;
+        .movie-card, .mini-poster { perspective: 1000px; }
+        .card-inner, .mini-inner {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.6s; transform-style: preserve-3d;
         }
-
-        .card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
+        .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
+        .card-front, .card-back, .mini-front, .mini-back {
+            position: absolute; width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; backface-visibility: hidden;
+            border-radius: 20px; overflow: hidden;
         }
+        .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
 
-        .movie-card.flipped .card-inner {
-            transform: rotateY(180deg);
-        }
-
-        .card-front, .card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .card-front { background: #222; }
-
-        .card-back {
-            background: #1a1a1a;
-            color: white;
-            transform: rotateY(180deg);
-            display: flex;
-            flex-direction: column;
-            padding: 25px;
-            box-sizing: border-box;
-            border: 2px solid #e5a00d;
-            text-align: left;
-        }
-
+        .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; touch-action: none; z-index: 5; }
         .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
-        
-        .movie-info { 
-            position: absolute; bottom: 0; width: 100%; 
-            background: linear-gradient(transparent, rgba(0,0,0,0.8) 40%, rgba(0,0,0,1)); 
-            padding: 30px 15px 15px; box-sizing: border-box; pointer-events: none; 
-        }
-
+        .movie-info { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8) 40%, rgba(0,0,0,1)); padding: 30px 15px 15px; box-sizing: border-box; pointer-events: none; }
         .movie-title { font-size: 1.4rem; font-weight: bold; color: #e5a00d; margin-bottom: 5px; }
         .movie-synopsis { font-size: 0.85rem; line-height: 1.3; color: #ccc; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-        .rating-badge {
-            background: black; color: #e5a00d; padding: 4px 8px; 
-            border-radius: 5px; font-weight: bold; font-size: 0.8rem;
-            display: inline-block; margin-bottom: 15px; width: fit-content;
-        }
+        #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 100px; }
+        
+        .mini-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; }
+        .mini-front img { width: 100%; height: 100%; object-fit: cover; }
+        .mini-front { border: 2px solid #333; }
+        .mini-back { padding: 10px; border-radius: 10px; }
+        
+        .plex-open-btn { background: #e5a00d; color: black; border: none; padding: 10px 5px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-decoration: none; width: 90%; margin-top: 10px; display: block; text-align: center; }
+        .mini-title-text { font-size: 0.8rem; font-weight: bold; color: white; text-align: center; }
 
+        .stats-row { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .stat-badge { background: black; color: #e5a00d; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; }
+        
         .back-content { overflow-y: auto; flex-grow: 1; margin-bottom: 10px; }
         .back-content p { font-size: 0.95rem; line-height: 1.5; color: #eee; margin: 0; }
 
@@ -100,12 +72,7 @@
         #matches-pill { right: 20px; background: #e5a00d; color: black; }
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         
-        #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
-        
-        #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-        #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 100px; }
-        .mini-poster { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; border: 2px solid #333; }
-        .mini-poster img { width: 100%; height: 100%; object-fit: cover; }
+        #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
         #match-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .match-logo { width: 150px; margin-bottom: 20px; }
@@ -170,7 +137,19 @@
         let movieStack = [];
         let swipeHistory = [];
         let pollingInterval = null;
-        let globalCurrentX = 0; 
+        let globalCurrentX = 0;
+        let plexServerId = null;
+
+        async function fetchPlexServerId() {
+            if (plexServerId) return plexServerId;
+            const response = await fetch('/plex/server-info');
+            if (response.ok) {
+                const data = await response.json();
+                plexServerId = data.machineIdentifier;
+                return plexServerId;
+            }
+            return null;
+        }
 
         async function loginWithPlex() {
             const resp = await fetch("/auth/plex-url");
@@ -183,6 +162,39 @@
                 await fetch('/room/quit', { method: 'POST' });
                 localStorage.removeItem('active_room');
                 location.reload();
+            }
+        }
+
+        async function addToWatchlist(event, id) {
+            event.stopPropagation();
+            const btn = event.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = "ADDING...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch("/watchlist/add", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-Plex-Token": localStorage.getItem('plex_token')
+                    },
+                    body: JSON.stringify({ movie_id: id })
+                });
+
+                if (res.ok) {
+                    btn.innerText = "IN WATCHLIST";
+                    btn.style.borderColor = "#4CAF50";
+                    btn.style.color = "#4CAF50";
+                } else {
+                    btn.innerText = "FAILED";
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            } catch (err) {
+                btn.innerText = "ERROR";
             }
         }
 
@@ -199,15 +211,42 @@
         };
 
         async function updateMatchesUI() {
+            const serverId = await fetchPlexServerId();
+            if (!serverId) {
+                console.error('Could not get Plex server ID');
+                return;
+            }
+            
             const res = await fetch('/matches');
             const data = await res.json();
             const list = document.getElementById('matches-list');
             list.innerHTML = data.length ? '' : '<p style="grid-column: span 2;">No matches yet</p>';
+            
             data.forEach(m => {
-                const div = document.createElement('div');
-                div.className = 'mini-poster';
-                div.innerHTML = `<img src="${m.thumb}" alt="${m.title}"><button class="delete-x" style="position:absolute; top:5px; right:5px; background:rgba(229,160,13,0.9); color:black; border:none; width:25px; height:25px; border-radius:50%; font-weight:bold; cursor:pointer;" onclick="deleteMatch(event, '${m.movie_id}')">X</button><div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:10px; padding:4px;">${m.title}</div>`;
-                list.appendChild(div);
+                const card = document.createElement('div');
+                card.className = 'mini-poster';
+                const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
+
+                card.innerHTML = `
+                    <div class="mini-inner">
+                        <div class="mini-front">
+                            <img src="${m.thumb}" alt="${m.title}">
+                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:10px; padding:4px;">${m.title}</div>
+                        </div>
+                        <div class="mini-back">
+                            <div class="mini-title-text">${m.title}</div>
+                            <a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>
+                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#333; color:#e5a00d; border:1px solid #e5a00d; margin-top:5px;" onclick="addToWatchlist(event, '${m.movie_id}')">+ WATCHLIST</button>
+                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#d32f2f; margin-top:5px; color:black;" onclick="deleteMatch(event, '${m.movie_id}')">DELETE</button>
+                        </div>
+                    </div>
+                `;
+                
+                card.onclick = (e) => {
+                    if (e.target.closest('a') || e.target.closest('button')) return;
+                    card.classList.toggle('flipped');
+                };
+                list.appendChild(card);
             });
         }
 
@@ -257,9 +296,9 @@
                     </div>
                     <div class="card-back">
                         <div class="movie-title">${m.title}</div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            ${m.rating ? `<div class="rating-badge">IMDb ${m.rating}</div>` : ''}
-                            ${m.runtime ? `<div class="rating-badge">${m.runtime}</div>` : ''}
+                        <div class="stats-row">
+                            ${m.rating ? `<span class="stat-badge">IMDb ${m.rating}</span>` : ''}
+                            ${m.runtime ? `<span class="stat-badge">${m.runtime}</span>` : ''}
                         </div>
                         <div class="back-content">
                             <p>${m.summary || 'No description available.'}</p>
