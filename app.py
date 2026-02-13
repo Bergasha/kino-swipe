@@ -1,5 +1,6 @@
 from flask import Flask, send_from_directory, jsonify, request, session, Response, render_template
 from plexapi.server import PlexServer
+from plexapi.myplex import MyPlexAccount
 from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3, os, random, requests, json
 
@@ -66,6 +67,34 @@ def check_pin():
     token = res.get('authToken')
     if token: session.pop('pending_pin_id', None)
     return jsonify({'authToken': token})
+
+@app.route('/watchlist/add', methods=['POST'])
+def add_to_watchlist():
+    data = request.json
+    movie_id = data.get('movie_id')
+    token = request.headers.get('X-Plex-Token')
+    if not token or not movie_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
+        item = plex.fetchItem(int(movie_id))
+        
+        account = MyPlexAccount(token=token)
+        account.addToWatchlist(item)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/plex/server-info')
+def get_server_info():
+    try:
+        plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
+        return jsonify({
+            'machineIdentifier': plex.machineIdentifier,
+            'name': plex.friendlyName
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/room/create', methods=['POST'])
 def create_room():
