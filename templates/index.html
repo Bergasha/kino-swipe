@@ -84,7 +84,7 @@
         .movie-synopsis { font-size: 0.85rem; line-height: 1.3; color: #ccc; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         .rating-badge {
-            background: #e5a00d; color: black; padding: 4px 8px; 
+            background: black; color: #e5a00d; padding: 4px 8px; 
             border-radius: 5px; font-weight: bold; font-size: 0.8rem;
             display: inline-block; margin-bottom: 15px; width: fit-content;
         }
@@ -258,8 +258,8 @@
                     <div class="card-back">
                         <div class="movie-title">${m.title}</div>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            ${m.rating ? `<div class="rating-badge">Rating: ${m.rating}</div>` : ''}
-                            ${m.runtime ? `<div class="rating-badge" style="background: #444; color: white;">${m.runtime}</div>` : ''}
+                            ${m.rating ? `<div class="rating-badge">IMDb ${m.rating}</div>` : ''}
+                            ${m.runtime ? `<div class="rating-badge">${m.runtime}</div>` : ''}
                         </div>
                         <div class="back-content">
                             <p>${m.summary || 'No description available.'}</p>
