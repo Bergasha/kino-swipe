@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="/static/main.png">
 
     <style>
-        /* Version: 1.2.0 - Watchlist Integration */
+        /* Version: 1.2.1 - Matches & Layout Fix */
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
         
         body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
@@ -48,7 +48,7 @@
         .movie-synopsis { font-size: 0.85rem; line-height: 1.3; color: #ccc; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-        #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 100px; }
+        #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 120px; }
         
         .mini-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; }
         .mini-front img { width: 100%; height: 100%; object-fit: cover; }
@@ -76,6 +76,8 @@
         
         #match-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .match-logo { width: 150px; margin-bottom: 20px; }
+
+        .match-instruction { position: fixed; bottom: 85px; color: #888; font-size: 0.9rem; font-style: italic; z-index: 20001; }
     </style>
 </head>
 <body>
@@ -126,6 +128,7 @@
     <div id="matches-modal" class="hidden">
         <h1 class="plex-yellow">Your Matches</h1>
         <div id="matches-list"></div>
+        <div class="match-instruction">Click on each match for more options</div>
         <button class="menu-btn" style="position: fixed; bottom: 20px; width: 150px; z-index:20001;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
     </div>
 
@@ -298,7 +301,7 @@
                         <div class="movie-title">${m.title}</div>
                         <div class="stats-row">
                             ${m.rating ? `<span class="stat-badge">IMDb ${m.rating}</span>` : ''}
-                            ${m.runtime ? `<span class="stat-badge">${m.runtime}</span>` : ''}
+                            ${m.duration ? `<span class="stat-badge">${m.duration}</span>` : ''}
                         </div>
                         <div class="back-content">
                             <p>${m.summary || 'No description available.'}</p>
