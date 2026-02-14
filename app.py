@@ -117,7 +117,7 @@ def create_room():
             'summary': m.summary, 
             'thumb': f"/proxy?path={m.thumb}",
             'rating': m.audienceRating or m.rating,
-            'runtime': runtime_str
+            'duration': runtime_str
         })
     
     with get_db() as conn:
@@ -216,3 +216,4 @@ def undo_swipe():
 if __name__ == "__main__":
     init_db()
     app.run(host='0.0.0.0', port=5005)
+
