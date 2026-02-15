@@ -5,11 +5,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import sqlite3, os, random, requests, json
 
 app = Flask(__name__)
-# Fixes headers for your Synology Reverse Proxy
+
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 app.secret_key = os.getenv('FLASK_SECRET', 'KinoSwipe_2026_Default_Key')
 
-# Standardized Paths
+
 DB_PATH = '/app/data/kinoswipe.db'
 PLEX_URL = os.getenv('PLEX_URL', '').rstrip('/')
 ADMIN_TOKEN = os.getenv('PLEX_TOKEN')
@@ -23,11 +23,49 @@ def get_db():
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER)')
+       
+        conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER, current_genre TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS swipes (room_code TEXT, movie_id TEXT, user_id TEXT, direction TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS matches (room_code TEXT, movie_id TEXT, title TEXT, thumb TEXT)')
+        
+        
+        cursor = conn.execute("PRAGMA table_info(rooms)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'current_genre' not in columns:
+            conn.execute('ALTER TABLE rooms ADD COLUMN current_genre TEXT DEFAULT "All"')
 
-# --- STANDARD ROUTING ---
+def fetch_plex_movies(genre_name=None):
+    plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
+    movie_section = plex.library.section('Movies')
+    do_shuffle = True
+    
+    if genre_name == "Recently Added":
+        movies = movie_section.search(libtype='movie', sort='addedAt:desc', maxresults=100)
+        do_shuffle = False
+    elif genre_name and genre_name != "All":
+        movies = movie_section.search(libtype='movie', genre=genre_name, sort='random', maxresults=100)
+    else:
+        movies = movie_section.search(libtype='movie', sort='random', maxresults=150)
+    
+    movie_list = []
+    for m in movies:
+        runtime_str = ""
+        if m.duration:
+            hrs = m.duration // 3600000
+            mins = (m.duration % 3600000) // 60000
+            runtime_str = f"{hrs}h {mins}m" if hrs > 0 else f"{mins}m"
+        movie_list.append({
+            'id': str(m.ratingKey), 
+            'title': m.title, 
+            'summary': m.summary, 
+            'thumb': f"/proxy?path={m.thumb}",
+            'rating': m.audienceRating or m.rating,
+            'duration': runtime_str
+        })
+    if do_shuffle:
+        random.shuffle(movie_list)
+    return movie_list
+
 
 @app.route('/')
 def index(): 
@@ -45,7 +83,6 @@ def serve_sw():
 def serve_static(path): 
     return send_from_directory('static', path)
 
-# --- PLEX & ROOM LOGIC ---
 
 @app.route('/auth/plex-url')
 def get_plex_url():
@@ -73,55 +110,28 @@ def add_to_watchlist():
     data = request.json
     movie_id = data.get('movie_id')
     token = request.headers.get('X-Plex-Token')
-    if not token or not movie_id:
-        return jsonify({"error": "Unauthorized"}), 401
+    if not token or not movie_id: return jsonify({"error": "Unauthorized"}), 401
     try:
         plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
         item = plex.fetchItem(int(movie_id))
-        
         account = MyPlexAccount(token=token)
         account.addToWatchlist(item)
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route('/plex/server-info')
 def get_server_info():
     try:
         plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
-        return jsonify({
-            'machineIdentifier': plex.machineIdentifier,
-            'name': plex.friendlyName
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'machineIdentifier': plex.machineIdentifier, 'name': plex.friendlyName})
+    except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/room/create', methods=['POST'])
 def create_room():
     pairing_code = str(random.randint(1000, 9999))
-    plex = PlexServer(PLEX_URL, ADMIN_TOKEN)
-    random_movies = plex.library.section('Movies').search(libtype='movie', sort='random', maxresults=100)
-    
-    movie_list = []
-    for m in random_movies:
-        # Convert ms to "1h 45m" format
-        runtime_str = ""
-        if m.duration:
-            hrs = m.duration // 3600000
-            mins = (m.duration % 3600000) // 60000
-            runtime_str = f"{hrs}h {mins}m" if hrs > 0 else f"{mins}m"
-
-        movie_list.append({
-            'id': str(m.ratingKey), 
-            'title': m.title, 
-            'summary': m.summary, 
-            'thumb': f"/proxy?path={m.thumb}",
-            'rating': m.audienceRating or m.rating,
-            'duration': runtime_str
-        })
-    
+    movie_list = fetch_plex_movies()
     with get_db() as conn:
-        conn.execute('INSERT INTO rooms (pairing_code, movie_data, ready) VALUES (?, ?, ?)', (pairing_code, json.dumps(movie_list), 0))
+        conn.execute('INSERT INTO rooms (pairing_code, movie_data, ready, current_genre) VALUES (?, ?, ?, ?)', (pairing_code, json.dumps(movie_list), 0, 'All'))
     session['active_room'] = pairing_code
     session['my_user_id'] = 'host_' + str(random.randint(1, 999))
     return jsonify({'pairing_code': pairing_code})
@@ -141,10 +151,11 @@ def join_room():
 @app.route('/room/status')
 def room_status():
     code = session.get('active_room')
-    if not code: return jsonify({'ready': False})
+    if not code: return jsonify({'ready': False, 'genre': 'All'})
     with get_db() as conn:
-        room = conn.execute('SELECT ready FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
-        return jsonify({'ready': bool(room['ready']) if room else False})
+        room = conn.execute('SELECT ready, current_genre FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
+        if room: return jsonify({'ready': bool(room['ready']), 'genre': room['current_genre']})
+        return jsonify({'ready': False, 'genre': 'All'})
 
 @app.route('/room/swipe', methods=['POST'])
 def swipe():
@@ -182,7 +193,13 @@ def delete_match():
 @app.route('/movies')
 def get_movies():
     code = session.get('active_room')
+    genre = request.args.get('genre')
+    if not code: return jsonify([])
     with get_db() as conn:
+        if genre:
+            new_movie_list = fetch_plex_movies(genre)
+            conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?', (json.dumps(new_movie_list), genre, code))
+            return jsonify(new_movie_list)
         room = conn.execute('SELECT movie_data FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
         return Response(room['movie_data'], mimetype='application/json') if room else jsonify([])
 
@@ -216,4 +233,3 @@ def undo_swipe():
 if __name__ == "__main__":
     init_db()
     app.run(host='0.0.0.0', port=5005)
-
