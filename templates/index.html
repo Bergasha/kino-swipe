@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="/static/main.png">
 
     <style>
-        /* Version: 1.2.1 - Matches & Layout Fix */
+        /* Version: 1.2.9 - Clean Front Posters */
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
         
         body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
@@ -26,7 +26,8 @@
         .main-title { font-size: 4.0rem; margin: 0 0 30px 0; font-weight: bold; color: #8a0606; font-family: 'allura', cursive; }
         
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
-        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 15px auto 100px auto; height: 68vh; }
+        
+        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 60px auto 100px auto; height: 68vh; }
         
         .movie-card, .mini-poster { perspective: 1000px; }
         .card-inner, .mini-inner {
@@ -43,9 +44,6 @@
 
         .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; touch-action: none; z-index: 5; }
         .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
-        .movie-info { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8) 40%, rgba(0,0,0,1)); padding: 30px 15px 15px; box-sizing: border-box; pointer-events: none; }
-        .movie-title { font-size: 1.4rem; font-weight: bold; color: #e5a00d; margin-bottom: 5px; }
-        .movie-synopsis { font-size: 0.85rem; line-height: 1.3; color: #ccc; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 120px; }
@@ -78,6 +76,12 @@
         .match-logo { width: 150px; margin-bottom: 20px; }
 
         .match-instruction { position: fixed; bottom: 85px; color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; }
+
+        #genre-pill { position: fixed; top: 15px; right: 15px; width: 100px; height: 35px; border-radius: 20px; border: 1px solid #e5a00d; background: rgba(0,0,0,0.6); color: #e5a00d; font-weight: bold; font-size: 0.8rem; z-index: 10001; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        #genre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 30000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        .genre-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
+        .genre-item { background: #222; border: 1px solid #333; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; cursor: pointer; }
+        .genre-item.active { border-color: #e5a00d; color: #e5a00d; }
     </style>
 </head>
 <body>
@@ -112,10 +116,26 @@
             </div>
         </div>
         <div id="game-area" class="hidden">
+            <button id="genre-pill" onclick="toggleGenreModal()">Genres ▾</button>
             <div id="glow-left" class="glow-side"></div>
             <div id="glow-right" class="glow-side"></div>
             <div id="swipe-deck"></div>
         </div>
+    </div>
+
+    <div id="genre-modal" class="hidden">
+        <h1 class="plex-yellow">Select Genre</h1>
+        <div class="genre-list">
+            <div class="genre-item active" onclick="selectGenre('All')">All Movies</div>
+            <div class="genre-item" onclick="selectGenre('Recently Added')">Recently Added</div>
+            <div class="genre-item" onclick="selectGenre('Drama')">Drama</div>
+            <div class="genre-item" onclick="selectGenre('Romance')">Romance</div>
+            <div class="genre-item" onclick="selectGenre('Horror')">Horror</div>
+            <div class="genre-item" onclick="selectGenre('Thriller')">Thriller</div>
+            <div class="genre-item" onclick="selectGenre('Crime')">Crime</div>
+            <div class="genre-item" onclick="selectGenre('Comedy')">Comedy</div>
+        </div>
+        <button class="menu-btn" style="margin-top:20px;" onclick="toggleGenreModal()">Cancel</button>
     </div>
 
     <div id="match-overlay" class="hidden">
@@ -142,6 +162,7 @@
         let pollingInterval = null;
         let globalCurrentX = 0;
         let plexServerId = null;
+        let currentGenre = "All";
 
         async function fetchPlexServerId() {
             if (plexServerId) return plexServerId;
@@ -166,6 +187,23 @@
                 localStorage.removeItem('active_room');
                 location.reload();
             }
+        }
+
+        function toggleGenreModal() { document.getElementById('genre-modal').classList.toggle('hidden'); }
+
+        async function selectGenre(genre) {
+            document.querySelectorAll('.genre-item').forEach(el => {
+                if(el.innerText === genre || (genre === 'All' && el.innerText === 'All Movies')) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+            toggleGenreModal();
+            const url = genre === 'All' ? '/movies?genre=All' : `/movies?genre=${encodeURIComponent(genre)}`;
+            const res = await fetch(url);
+            movieStack = await res.json();
+            currentGenre = genre;
+            document.getElementById('genre-pill').innerText = genre === 'All' ? 'Genres ▾' : genre + ' ▾';
+            swipeHistory = [];
+            renderInitialDeck();
         }
 
         async function addToWatchlist(event, id) {
@@ -211,14 +249,12 @@
             document.getElementById('quit-pill').classList.remove('hidden');
             document.getElementById('undo-btn').classList.remove('hidden');
             renderInitialDeck();
+            startPolling();
         };
 
         async function updateMatchesUI() {
             const serverId = await fetchPlexServerId();
-            if (!serverId) {
-                console.error('Could not get Plex server ID');
-                return;
-            }
+            if (!serverId) return;
             
             const res = await fetch('/matches');
             const data = await res.json();
@@ -244,7 +280,6 @@
                         </div>
                     </div>
                 `;
-                
                 card.onclick = (e) => {
                     if (e.target.closest('a') || e.target.closest('button')) return;
                     card.classList.toggle('flipped');
@@ -292,10 +327,6 @@
                 <div class="card-inner">
                     <div class="card-front">
                         <img src="${m.thumb}">
-                        <div class="movie-info">
-                            <div class="movie-title">${m.title}</div>
-                            <div class="movie-synopsis">${m.summary || ''}</div>
-                        </div>
                     </div>
                     <div class="card-back">
                         <div class="movie-title">${m.title}</div>
@@ -434,7 +465,19 @@
             pollingInterval = setInterval(async () => {
                 const s = await fetch('/room/status');
                 const d = await s.json();
-                if (d.ready) { clearInterval(pollingInterval); loadMovies(); }
+                
+                if (d.genre && d.genre !== currentGenre) {
+                    currentGenre = d.genre;
+                    document.getElementById('genre-pill').innerText = currentGenre === 'All' ? 'Genres ▾' : currentGenre + ' ▾';
+                    const movieRes = await fetch('/movies');
+                    movieStack = await movieRes.json();
+                    swipeHistory = [];
+                    renderInitialDeck();
+                }
+
+                if (d.ready && document.getElementById('game-area').classList.contains('hidden')) { 
+                    loadMovies(); 
+                }
             }, 3000);
         };
 
