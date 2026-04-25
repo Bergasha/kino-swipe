@@ -9,12 +9,18 @@ same movie, IT'S A MATCH!! yay.
 
 
 ## Screenshots
-<img width="1059" height="2235" alt="Screenshot_20260425-114451" src="https://github.com/user-attachments/assets/b689d2d0-c274-4fe5-aabc-3269d05b2c4d" />
-<img width="1070" height="2220" alt="Screenshot_20260425-114514" src="https://github.com/user-attachments/assets/3e01810c-7e1c-4f64-ae57-8e85332a6b77" />
-<img width="1066" height="2231" alt="Screenshot_20260425-114531" src="https://github.com/user-attachments/assets/708cd372-1cf2-40ca-b275-f42ffd3b2e03" />
-<img width="1080" height="2231" alt="Screenshot_20260425-114607" src="https://github.com/user-attachments/assets/1e4501d3-02b8-4029-9180-20431850b3e0" />
-<img width="1080" height="2241" alt="Screenshot_20260425-114625" src="https://github.com/user-attachments/assets/b4c08186-6885-43ca-ab05-6a56aead1df6" />
-<img width="1061" height="2239" alt="Screenshot_20260425-114639" src="https://github.com/user-attachments/assets/bdca2e04-f3ae-4fe9-bd3c-d890e49953fa" />
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b689d2d0-c274-4fe5-aabc-3269d05b2c4d" width="32%" />
+  <img src="https://github.com/user-attachments/assets/3e01810c-7e1c-4f64-ae57-8e85332a6b77" width="32%" />
+  <img src="https://github.com/user-attachments/assets/708cd372-1cf2-40ca-b275-f42ffd3b2e03" width="32%" />
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1e4501d3-02b8-4029-9180-20431850b3e0" width="32%" />
+  <img src="https://github.com/user-attachments/assets/b4c08186-6885-43ca-ab05-6a56aead1df6" width="32%" />
+  <img src="https://github.com/user-attachments/assets/bdca2e04-f3ae-4fe9-bd3c-d890e49953fa" width="32%" />
+</p>
 
 
 
