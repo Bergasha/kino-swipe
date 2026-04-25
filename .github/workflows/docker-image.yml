@@ -2,7 +2,6 @@ name: Build and Push to Docker Hub
 
 on:
   push:
-  
     branches: [ "main", "beta" ]
 
 jobs:
@@ -24,9 +23,7 @@ jobs:
         with:
           images: bergasha/kino-swipe
           tags: |
-            # If pushing to main, tag as latest
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            # If pushing to beta, tag as beta
             type=raw,value=beta,enable=${{ github.ref == 'refs/heads/beta' }}
 
       - name: Build and push
@@ -34,5 +31,4 @@ jobs:
         with:
           context: .
           push: true
-        
           tags: ${{ steps.meta.outputs.tags }}
