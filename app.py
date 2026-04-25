@@ -146,7 +146,6 @@ def _jf_headers():
     }
 
 def _jf_movie_library_id():
-    """Return the ItemId of the first Movies library on the Jellyfin server."""
     r = requests.get(f"{JELLYFIN_URL}/Library/VirtualFolders", headers=_jf_headers(), timeout=10)
     r.raise_for_status()
     for folder in r.json():
@@ -236,7 +235,6 @@ def get_jellyfin_item(item_id):
 
 
 def current_backend():
-    """Return the backend stored in the active room, defaulting to session fallback."""
     code = session.get('active_room')
     if code:
         with get_db() as conn:
@@ -256,7 +254,6 @@ def get_genres():
     return get_plex_genres()
 
 def get_item_meta(movie_id, backend_override=None):
-    """Return (title, year) for a movie, used for TMDB lookups."""
     backend = backend_override or current_backend()
     if backend == 'jellyfin':
         item = get_jellyfin_item(movie_id)
@@ -310,7 +307,6 @@ def check_pin():
 
 @app.route('/auth/jellyfin-login', methods=['POST'])
 def jellyfin_login():
-    """Authenticate a Jellyfin user with username + password."""
     if not jellyfin_ready:
         return jsonify({'error': 'Jellyfin not configured on this server'}), 503
     data = request.json or {}
@@ -350,7 +346,6 @@ def jellyfin_login():
 
 @app.route('/auth/available-backends')
 def available_backends():
-    """Tell the frontend which backends are configured."""
     return jsonify({
         'plex': plex_ready,
         'jellyfin': jellyfin_ready,
