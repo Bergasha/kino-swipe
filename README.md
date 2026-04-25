@@ -1,6 +1,7 @@
 # Kino-Swipe 
 [![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe)
 
+# This is a beta branch and may be unstable
 Always trying to decide on a movie to watch together?, This may be the fun solution you've been looking for.
 Dating app style swipe right for like swipe left for nope, If you both swipe right on the 
 same movie, IT'S A MATCH!! yay.
@@ -30,6 +31,7 @@ same movie, IT'S A MATCH!! yay.
 
 ## Features
 - **Plex Integration:** Connects directly to your server to pull random movies.
+- **Jellyfin intergration:** Jellyfin support has been added
 - **Real-Time Sync:** Host a room, share a 4-digit code, and swipe with a partner instantly.
 - **Visual Feedback:** Faint Red/Green "glow" overlays that react as you drag the posters left or right.
 - **Select Genre:** Both sessions will stay in sync while browsing genres.
@@ -42,11 +44,14 @@ same movie, IT'S A MATCH!! yay.
 
 ## Coming Soon
 ~~Match History: Match history folder accessible outside session for easy access.~~   
+- **Jellyfin Support:** This is in Beta
   
 
 ## Requirements
 - **Plex Media Server**
+- **Jellyfin Media Server**
 - **Plex Auth Token**
+- **Jellyfin API key**
 - **TMDB key for trailers** (Not required but trailers will not work on the back of the posters)
 - **HTTPS/Reverse Proxy:** To "Install" the app as a PWA on your phone so it looks like an app, you must access it over an HTTPS connection. If you access it over local ip, it will work in the browser but when added to homescreen it will just act as a shortcut not like an app.
 
@@ -98,34 +103,38 @@ Copy and paste this into your terminal. Replace the variables with your specific
 ```bash
 services:
   kino-swipe:
-    image: bergasha/kino-swipe:latest
+    image: bergasha/kino-swipe:beta
     container_name: kino-swipe
+    restart: unless-stopped
     ports:
       - "5005:5005"
     environment:
-      - PLEX_URL=https://YOUR_PLEX_IP:32400
+      - PLEX_URL=http://YOUR_PLEX_IP:32400
       - PLEX_TOKEN=YOUR_PLEX_TOKEN
-      - FLASK_SECRET=SomeRandomString
-      - TMDB_API_KEY=your_copied_tmdb_key_here
+      - TMDB_API_KEY=YOUR_TMDB_API_KEY
+      - FLASK_SECRET=ENTER_RANDOM_SECRET_KEY
+      - JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096
+      - JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY
     volumes:
-      - ./data:/app/data
-      - ./static:/app/static
-    restart: unless-stopped
+      - /path/to/your/config:/app/data
 ```
 
 **Option 2 — Docker Run**
 ```bash
+docker pull bergasha/kino-swipe:beta
+
 docker run -d \
   --name kino-swipe \
   -p 5005:5005 \
-  -e PLEX_URL=https://YOUR_PLEX_IP:32400 \
-  -e PLEX_TOKEN=YOUR_PLEX_TOKEN \
-  -e FLASK_SECRET=SomeRandomString \
-  -e TMDB_API_KEY=your_copied_tmdb_key_here \
-  -v ./data:/app/data \
-  -v ./static:/app/static \
+  -e PLEX_URL="http://YOUR_PLEX_IP:32400" \
+  -e PLEX_TOKEN="YOUR_PLEX_TOKEN" \
+  -e TMDB_API_KEY="YOUR_TMDB_API_KEY" \
+  -e FLASK_SECRET="ENTER_RANDOM_SECRET_KEY" \
+  -e JELLYFIN_URL="http://YOUR_JELLYFIN_IP:8096" \
+  -e JELLYFIN_API_KEY="YOUR_JELLYFIN_API_KEY" \
+  -v /path/to/your/config:/app/data \
   --restart unless-stopped \
-  bergasha/kino-swipe:latest
+  bergasha/kino-swipe:beta
 ```
 
 <img src="https://github.com/user-attachments/assets/97e2c08b-5421-4f16-a798-acca2bb76a60" width="100"/>
