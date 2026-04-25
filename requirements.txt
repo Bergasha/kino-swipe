@@ -1,4 +1,5 @@
 flask
 plexapi
-werkzeug
 requests
+werkzeug
+gunicorn
