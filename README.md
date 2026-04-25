@@ -8,22 +8,18 @@ same movie, IT'S A MATCH!!
 
 
 ## Screenshots
-<img width="320" height="640" alt="1" src="https://github.com/user-attachments/assets/4517d22b-aba7-419f-8fc1-19cf5b93af8d" />
-<img width="320" height="640" alt="2" src="https://github.com/user-attachments/assets/d23fad4e-6f39-4ba8-9840-d1c8b745cd38" />
-<img width="320" height="640" alt="3" src="https://github.com/user-attachments/assets/f95ae259-8a1d-4021-a344-ea0dc288f905" />
-<img width="320" height="640" alt="4" src="https://github.com/user-attachments/assets/3dea1bdc-3bb4-43aa-879d-ae5b6b85b6ef" />
-<img width="320" height="640" alt="5" src="https://github.com/user-attachments/assets/3f1199eb-c21e-405c-8b27-7323585efe5c" />
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/ef3a2ca6-f034-42d3-823b-80b45512a0de" width="32%" />
+  <img src="https://github.com/user-attachments/assets/042c9d4f-5d5e-4815-852f-07d929e2ef8e" width="32%" />
+  <img src="https://github.com/user-attachments/assets/f9615279-eac3-490c-88a6-9609cf19bcb8" width="32%" />
+</p>
 
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/37a2a485-ef1f-4c45-9eea-7a858323e01a" 
-    width="750" 
-    autoplay 
-    loop 
-    muted 
-    playsinline>
-  </video>
-</div>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/76a68e48-dc70-43a9-b637-f74287fbddce" width="32%" />
+  <img src="https://github.com/user-attachments/assets/83d12539-4264-4206-990c-7c2b8cbf2406" width="32%" />
+  <img src="https://github.com/user-attachments/assets/d0e1d768-a1d2-4d32-a76a-ac3fd0ec74ca" width="32%" />
+</p>
 
 
 
