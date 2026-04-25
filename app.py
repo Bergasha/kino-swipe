@@ -217,15 +217,21 @@ def fetch_jellyfin_movies(genre_name=None):
     return movie_list
 
 def get_jellyfin_item(item_id):
-    """Fetch a single Jellyfin movie item by Id."""
     r = requests.get(
-        f"{JELLYFIN_URL}/Items/{item_id}",
+        f"{JELLYFIN_URL}/Items",
         headers=_jf_headers(),
-        params={'Fields': 'Overview,Genres,RunTimeTicks,CommunityRating,ProductionYear'},
+        params={
+            'Ids': item_id,
+            'Fields': 'Overview,Genres,RunTimeTicks,CommunityRating,ProductionYear',
+            'Recursive': 'true',
+        },
         timeout=10,
     )
     r.raise_for_status()
-    return r.json()
+    items = r.json().get('Items', [])
+    if not items:
+        raise ValueError(f"Item {item_id} not found in Jellyfin")
+    return items[0]
 
 
 
@@ -432,8 +438,11 @@ def tmdb_search(title, year):
 def get_trailer(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
+        print(f"[trailer] movie_id={movie_id} backend_override={backend_override} session_backend={session.get('backend')} active_room={session.get('active_room')}", flush=True)
         title, year = get_item_meta(movie_id, backend_override)
+        print(f"[trailer] title={title!r} year={year!r}", flush=True)
         tmdb_id = tmdb_search(title, year)
+        print(f"[trailer] tmdb_id={tmdb_id}", flush=True)
         if tmdb_id:
             v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}").json()
             trailers = [v for v in v_res.get('results', []) if v['site'] == 'YouTube' and v['type'] == 'Trailer']
@@ -441,6 +450,7 @@ def get_trailer(movie_id):
                 return jsonify({'youtube_key': trailers[0]['key']})
         return jsonify({'error': 'Not found'}), 404
     except Exception as e:
+        print(f"[trailer] EXCEPTION: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/cast/<movie_id>')
