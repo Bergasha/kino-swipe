@@ -417,17 +417,25 @@ def plex_server_info_compat():
 
 
 
+def tmdb_search(title, year):
+    base = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(title)}"
+    if year:
+        r = requests.get(f"{base}&year={year}").json()
+        if r.get('results'):
+            return r['results'][0]['id']
+    r = requests.get(base).json()
+    if r.get('results'):
+        return r['results'][0]['id']
+    return None
+
 @app.route('/get-trailer/<movie_id>')
 def get_trailer(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
         title, year = get_item_meta(movie_id, backend_override)
-        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={title}&year={year}"
-        r = requests.get(search_url).json()
-        if r.get('results'):
-            tmdb_id = r['results'][0]['id']
-            v_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}"
-            v_res = requests.get(v_url).json()
+        tmdb_id = tmdb_search(title, year)
+        if tmdb_id:
+            v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}").json()
             trailers = [v for v in v_res.get('results', []) if v['site'] == 'YouTube' and v['type'] == 'Trailer']
             if trailers:
                 return jsonify({'youtube_key': trailers[0]['key']})
@@ -440,12 +448,9 @@ def get_cast(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
         title, year = get_item_meta(movie_id, backend_override)
-        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={title}&year={year}"
-        r = requests.get(search_url).json()
-        if r.get('results'):
-            tmdb_id = r['results'][0]['id']
-            credits_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-            c_res = requests.get(credits_url).json()
+        tmdb_id = tmdb_search(title, year)
+        if tmdb_id:
+            c_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}").json()
             cast = []
             for actor in c_res.get('cast', [])[:8]:
                 cast.append({
