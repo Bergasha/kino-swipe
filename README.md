@@ -9,11 +9,13 @@ same movie, IT'S A MATCH!! yay.
 
 
 ## Screenshots
-<img width="320" height="640" alt="1" src="https://github.com/user-attachments/assets/4517d22b-aba7-419f-8fc1-19cf5b93af8d" />
-<img width="320" height="640" alt="2" src="https://github.com/user-attachments/assets/d23fad4e-6f39-4ba8-9840-d1c8b745cd38" />
-<img width="320" height="640" alt="3" src="https://github.com/user-attachments/assets/f95ae259-8a1d-4021-a344-ea0dc288f905" />
-<img width="320" height="640" alt="4" src="https://github.com/user-attachments/assets/3dea1bdc-3bb4-43aa-879d-ae5b6b85b6ef" />
-<img width="320" height="640" alt="5" src="https://github.com/user-attachments/assets/3f1199eb-c21e-405c-8b27-7323585efe5c" />
+<img width="1059" height="2235" alt="Screenshot_20260425-114451" src="https://github.com/user-attachments/assets/b689d2d0-c274-4fe5-aabc-3269d05b2c4d" />
+<img width="1070" height="2220" alt="Screenshot_20260425-114514" src="https://github.com/user-attachments/assets/3e01810c-7e1c-4f64-ae57-8e85332a6b77" />
+<img width="1066" height="2231" alt="Screenshot_20260425-114531" src="https://github.com/user-attachments/assets/708cd372-1cf2-40ca-b275-f42ffd3b2e03" />
+<img width="1080" height="2231" alt="Screenshot_20260425-114607" src="https://github.com/user-attachments/assets/1e4501d3-02b8-4029-9180-20431850b3e0" />
+<img width="1080" height="2241" alt="Screenshot_20260425-114625" src="https://github.com/user-attachments/assets/b4c08186-6885-43ca-ab05-6a56aead1df6" />
+<img width="1061" height="2239" alt="Screenshot_20260425-114639" src="https://github.com/user-attachments/assets/bdca2e04-f3ae-4fe9-bd3c-d890e49953fa" />
+
 
 
 <div align="center">
