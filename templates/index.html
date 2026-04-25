@@ -359,8 +359,7 @@
             if (response.ok) {
                 const data = await response.json();
                 serverMachineId = data.backend === 'plex' ? data.machineIdentifier : data.name;
-                localStorage.setItem('backend', data.backend);
-                updateUIColors(data.backend);
+                updateUIColors(getBackend());
                 return serverMachineId;
             }
             return null;
