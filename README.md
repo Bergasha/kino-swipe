@@ -38,7 +38,7 @@ same movie, IT'S A MATCH!!
 
 ## Coming Soon
 ~~Match History: Match history folder accessible outside session for easy access.~~   
-  
+- **Jellyfin:** Jellyfin supported in Beta branch
 
 ## Requirements
 - **Plex Media Server**
