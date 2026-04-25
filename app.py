@@ -28,6 +28,7 @@ if not plex_ready and not jellyfin_ready:
     raise RuntimeError("Must set either (PLEX_URL + PLEX_TOKEN) or (JELLYFIN_URL + JELLYFIN_API_KEY)")
 
 
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -66,6 +67,7 @@ def init_db():
             conn.execute('ALTER TABLE rooms ADD COLUMN backend TEXT DEFAULT "plex"')
 
         conn.execute('DELETE FROM swipes WHERE room_code NOT IN (SELECT pairing_code FROM rooms)')
+
 
 
 _plex_genre_cache = None
@@ -134,6 +136,7 @@ def fetch_plex_movies(genre_name=None):
     return movie_list
 
 
+
 _jellyfin_genre_cache = None
 
 def _jf_headers():
@@ -143,6 +146,7 @@ def _jf_headers():
     }
 
 def _jf_movie_library_id():
+    """Return the ItemId of the first Movies library on the Jellyfin server."""
     r = requests.get(f"{JELLYFIN_URL}/Library/VirtualFolders", headers=_jf_headers(), timeout=10)
     r.raise_for_status()
     for folder in r.json():
@@ -213,6 +217,7 @@ def fetch_jellyfin_movies(genre_name=None):
     return movie_list
 
 def get_jellyfin_item(item_id):
+    """Fetch a single Jellyfin movie item by Id."""
     r = requests.get(
         f"{JELLYFIN_URL}/Items/{item_id}",
         headers=_jf_headers(),
@@ -223,7 +228,9 @@ def get_jellyfin_item(item_id):
     return r.json()
 
 
+
 def current_backend():
+    """Return the backend stored in the active room, defaulting to session fallback."""
     code = session.get('active_room')
     if code:
         with get_db() as conn:
@@ -242,8 +249,10 @@ def get_genres():
         return get_jellyfin_genres()
     return get_plex_genres()
 
-def get_item_meta(movie_id):
-    if current_backend() == 'jellyfin':
+def get_item_meta(movie_id, backend_override=None):
+    """Return (title, year) for a movie, used for TMDB lookups."""
+    backend = backend_override or current_backend()
+    if backend == 'jellyfin':
         item = get_jellyfin_item(movie_id)
         return item.get('Name', ''), item.get('ProductionYear')
     else:
@@ -256,9 +265,11 @@ def get_item_meta(movie_id):
         return item.title, item.year
 
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 
 @app.route('/auth/plex-url')
@@ -293,6 +304,7 @@ def check_pin():
 
 @app.route('/auth/jellyfin-login', methods=['POST'])
 def jellyfin_login():
+    """Authenticate a Jellyfin user with username + password."""
     if not jellyfin_ready:
         return jsonify({'error': 'Jellyfin not configured on this server'}), 503
     data = request.json or {}
@@ -332,6 +344,7 @@ def jellyfin_login():
 
 @app.route('/auth/available-backends')
 def available_backends():
+    """Tell the frontend which backends are configured."""
     return jsonify({
         'plex': plex_ready,
         'jellyfin': jellyfin_ready,
@@ -346,7 +359,6 @@ def add_to_watchlist():
     backend = current_backend()
 
     if backend == 'jellyfin':
-        # Jellyfin
         user_token = request.headers.get('X-Jellyfin-Token')
         user_id = request.headers.get('X-Jellyfin-User-ID')
         if not user_token or not user_id:
@@ -362,7 +374,6 @@ def add_to_watchlist():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     else:
-        # Plex
         try:
             user_token = request.headers.get('X-Plex-Token')
             if not user_token:
@@ -378,6 +389,7 @@ def add_to_watchlist():
             return jsonify({'status': 'success'})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/server-info')
@@ -399,16 +411,17 @@ def get_server_info():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/plex/server-info')
 def plex_server_info_compat():
     return get_server_info()
 
 
+
 @app.route('/get-trailer/<movie_id>')
 def get_trailer(movie_id):
     try:
-        title, year = get_item_meta(movie_id)
+        backend_override = request.headers.get('X-Backend')
+        title, year = get_item_meta(movie_id, backend_override)
         search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={title}&year={year}"
         r = requests.get(search_url).json()
         if r.get('results'):
@@ -425,7 +438,8 @@ def get_trailer(movie_id):
 @app.route('/cast/<movie_id>')
 def get_cast(movie_id):
     try:
-        title, year = get_item_meta(movie_id)
+        backend_override = request.headers.get('X-Backend')
+        title, year = get_item_meta(movie_id, backend_override)
         search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={title}&year={year}"
         r = requests.get(search_url).json()
         if r.get('results'):
@@ -613,6 +627,7 @@ def room_stream():
 
     return Response(generate(), mimetype='text/event-stream',
                     headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
 
 
 @app.route('/movies')
