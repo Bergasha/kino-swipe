@@ -41,7 +41,6 @@
 
         .hidden { display: none !important; }
         .plex-yellow { color: #e5a00d; }
-        .jellyfin-blue { color: #00a4dc; }
         
         .menu-btn { 
             position: relative;
@@ -157,10 +156,10 @@
         #quit-confirm-btn:hover { box-shadow: 0 0 20px rgba(211,47,47,0.7); }
         #quit-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: border-color 0.3s, color 0.3s; width: 200px; }
         #quit-cancel-btn:hover { border-color: #888; color: white; }
-        #delete-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 49999; }
         #delete-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border: 1px solid #333; border-radius: 16px; z-index: 50000; padding: 30px 25px; width: 280px; box-shadow: 0 8px 40px rgba(0,0,0,0.8); text-align: center; }
         #delete-modal h3 { font-size: 1.2rem; color: #ff3131; margin: 0 0 8px; }
         #delete-modal p { color: #888; font-size: 0.85rem; margin: 0 0 25px; line-height: 1.4; }
+        #delete-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 49999; }
         .delete-btn-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #delete-confirm-btn { background: #d32f2f; color: white; border: none; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
         #delete-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
@@ -199,36 +198,21 @@
             pointer-events: none;
             z-index: 2;
         }
-
-        #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .login-form { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; }
-        .login-form input { padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 1rem; }
     </style>
 </head>
 <body>
     <button id="matches-pill" class="pill-btn hidden">Shortlist</button>
     <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
     <button id="undo-btn" class="hidden">Undo</button>
-    
+
     <div id="login-section">
         <h1 class="main-title">Kino-Swipe</h1>
         <button id="login-btn" class="menu-btn" onclick="loginWithPlex()">Login with Plex</button>
-        <button id="jf-login-btn" class="menu-btn" style="background: #00a4dc; margin-top: 0;" onclick="toggleJfModal()">Login with Jellyfin</button>
         <p style="position:relative; z-index:2; margin: 12px 0 0 0; font-size: 0.75rem; color: #888; font-style: italic;">Then</p>
         <div style="position:relative; z-index:2; margin: 8px auto 0 auto; text-align: center; width: 220px; line-height: 2;">
             <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">1. Host a session &amp; share code</p>
             <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">2. Swipe right to match</p>
             <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">3. Or Host & enable Solo Mode</p>
-        </div>
-    </div>
-
-    <div id="jellyfin-modal" class="hidden">
-        <h2 class="jellyfin-blue">Jellyfin Login</h2>
-        <div class="login-form">
-            <input type="text" id="jf-username" placeholder="Username" autocomplete="username">
-            <input type="password" id="jf-password" placeholder="Password" autocomplete="current-password">
-            <button class="menu-btn" style="background: #00a4dc; width: 100%; margin: 10px 0;" onclick="loginWithJellyfin()">Login</button>
-            <button class="menu-btn" style="background: #333; color: white; width: 100%; margin: 0;" onclick="toggleJfModal()">Cancel</button>
         </div>
     </div>
 
@@ -280,7 +264,7 @@
     <div class="signature">Shayno</div>
 
     <div id="genre-modal" class="hidden">
-        <h1 class="plex-yellow" id="genre-title">Select Genre</h1>
+        <h1 class="plex-yellow">Select Genre</h1>
         <div class="genre-list" id="genre-list">
             <div class="genre-item active" onclick="selectGenre('All')">All Movies</div>
             <div class="genre-item" onclick="selectGenre('Recently Added')">Recently Added</div>
@@ -332,15 +316,11 @@
         let movieStack = [];
         let swipeHistory = [];
         let globalCurrentX = 0;
-        let serverMachineId = null;
+        let plexServerId = null;
         let currentGenre = "All";
         let isHistoryView = false;
         let isSoloMode = false;
         let lastSeenMatchTs = null;
-
-        function getBackend() { return localStorage.getItem('backend') || 'plex'; }
-        function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
-        function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
 
         async function fetchAndStorePlexId() {
             const token = localStorage.getItem('plex_token');
@@ -352,55 +332,21 @@
             } catch (e) { console.error("Could not fetch Plex ID"); }
         }
 
-        async function fetchServerInfo() {
-            if (serverMachineId) return serverMachineId;
-            const response = await fetch('/server-info');
+        async function fetchPlexServerId() {
+            if (plexServerId) return plexServerId;
+            const response = await fetch('/plex/server-info');
             if (response.ok) {
                 const data = await response.json();
-                serverMachineId = data.backend === 'plex' ? data.machineIdentifier : data.name;
-                localStorage.setItem('backend', data.backend);
-                updateUIColors(data.backend);
-                return serverMachineId;
+                plexServerId = data.machineIdentifier;
+                return plexServerId;
             }
             return null;
-        }
-
-        function updateUIColors(backend) {
-            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
-            document.querySelectorAll('.plex-yellow').forEach(el => {
-                el.style.color = color;
-                if (el.id === 'genre-title') el.classList.replace('plex-yellow', 'jellyfin-blue');
-            });
-            document.querySelectorAll('.menu-btn').forEach(el => {
-                if (el.id !== 'jf-login-btn' && !el.style.background.includes('rgb')) el.style.background = color;
-            });
-            const pill = document.getElementById('matches-pill');
-            if (pill) pill.style.background = color;
         }
 
         async function loginWithPlex() {
             const resp = await fetch("/auth/plex-url");
             const data = await resp.json();
             window.location.href = data.auth_url;
-        }
-
-        function toggleJfModal() { document.getElementById('jellyfin-modal').classList.toggle('hidden'); }
-
-        async function loginWithJellyfin() {
-            const username = document.getElementById('jf-username').value;
-            const password = document.getElementById('jf-password').value;
-            const res = await fetch('/auth/jellyfin-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('jf_token', data.accessToken);
-                localStorage.setItem('jf_user_id', data.userId);
-                localStorage.setItem('backend', 'jellyfin');
-                location.reload();
-            } else alert(data.error || "Login failed");
         }
 
         function confirmQuit() {
@@ -438,23 +384,14 @@
             const originalText = btn.innerText;
             btn.innerText = "ADDING...";
             btn.disabled = true;
-            
-            const headers = { "Content-Type": "application/json" };
-            if (getBackend() === 'jellyfin') {
-                headers["X-Jellyfin-Token"] = getAuthToken();
-                headers["X-Jellyfin-User-ID"] = getUserId();
-            } else {
-                headers["X-Plex-Token"] = getAuthToken();
-            }
-
             try {
                 const res = await fetch("/watchlist/add", {
                     method: "POST",
-                    headers: headers,
+                    headers: { "Content-Type": "application/json", "X-Plex-Token": localStorage.getItem('plex_token') },
                     body: JSON.stringify({ movie_id: id })
                 });
                 if (res.ok) {
-                    btn.innerText = "ADDED";
+                    btn.innerText = "IN WATCHLIST";
                     btn.style.borderColor = "#4CAF50"; btn.style.color = "#4CAF50";
                 } else {
                     btn.innerText = "FAILED";
@@ -474,9 +411,8 @@
         async function handleSoloToggle(checkbox) {
             const track = document.getElementById('solo-toggle-track');
             const thumb = document.getElementById('solo-toggle-thumb');
-            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
             if (checkbox.checked) {
-                track.style.background = color;
+                track.style.background = '#e5a00d';
                 thumb.style.transform = 'translateX(18px)';
                 thumb.style.background = '#000';
                 await activateSoloMode();
@@ -513,53 +449,37 @@
 
         async function openMatches(asHistory) {
             isHistoryView = asHistory;
-            const serverId = await fetchServerInfo();
+            const serverId = await fetchPlexServerId();
             if (!serverId) return;
             const label = isSoloMode && !asHistory ? "Your Shortlist" : asHistory ? "Match History" : "Your Matches";
             document.getElementById('modal-title').innerText = label;
-            
-            const headers = {};
-            const backend = getBackend();
-            if (backend === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-            else headers['X-Plex-User-ID'] = getUserId();
-
             const url = asHistory ? '/matches?view=history' : '/matches';
-            const res = await fetch(url, { headers: headers });
+            const res = await fetch(url, { headers: { 'X-Plex-User-ID': localStorage.getItem('plex_id') } });
             const data = await res.json();
             const list = document.getElementById('matches-list');
             const emptyLabel = asHistory ? 'history' : isSoloMode ? 'shortlist' : 'matches';
             list.innerHTML = data.length ? '' : `<p style="grid-column: span 2; color:#666;">No ${emptyLabel} yet</p>`;
-            
-            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
-
             data.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'mini-poster';
-                let openBtn;
-                if (backend === 'plex') {
-                    const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
-                    openBtn = `<a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>`;
-                } else {
-                    openBtn = `<button class="plex-open-btn" style="background:#00a4dc" onclick="window.open('/proxy?backend=jellyfin&item_id=${m.movie_id}', '_blank')">VIEW POSTER</button>`;
-                }
-
+                const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
                 card.innerHTML = `
                     <div class="mini-inner">
                         <div class="mini-front">
                             <img src="${m.thumb}" alt="${m.title}">
-                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:12px; padding:8px 4px; font-weight:bold; color:${color};">
+                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:12px; padding:8px 4px; font-weight:bold; color:#e5a00d;">
                                ${m.title}
                            </div>
                         </div>
-                        <div class="mini-back" style="border-color:${color}">
-                            <div class="mini-title-text" style="color:${color}">${m.title}</div>
+                        <div class="mini-back">
+                            <div class="mini-title-text">${m.title}</div>
                             <div class="stats-row" style="justify-content:center;">
-                                ${m.rating ? `<span class="stat-badge" style="color:${color}">IMDb ${m.rating}</span>` : ''}
-                                ${m.duration ? `<span class="stat-badge" style="color:${color}">${m.duration}</span>` : ''}
-                                ${m.year ? `<span class="stat-badge" style="color:${color}">${m.year}</span>` : ''}
+                                ${m.rating ? `<span class="stat-badge">IMDb ${m.rating}</span>` : ''}
+                                ${m.duration ? `<span class="stat-badge">${m.duration}</span>` : ''}
+                                ${m.year ? `<span class="stat-badge">${m.year}</span>` : ''}
                             </div>
-                            ${openBtn}
-                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#333; color:${color}; border:1px solid ${color}; margin-top:5px;" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
+                            <a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>
+                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#333; color:#e5a00d; border:1px solid #e5a00d; margin-top:5px;" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
                             <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#d32f2f; margin-top:5px; color:black;" onclick="deleteMatch(event, '${m.movie_id}')">DELETE</button>
                         </div>
                     </div>
@@ -584,13 +504,9 @@
             document.getElementById('delete-modal-overlay').classList.remove('hidden');
             document.getElementById('delete-modal').classList.remove('hidden');
             document.getElementById('delete-confirm-btn').onclick = async () => {
-                const headers = {"Content-Type": "application/json"};
-                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-                else headers['X-Plex-User-ID'] = getUserId();
-
                 await fetch("/matches/delete", { 
                     method: "POST", 
-                    headers: headers, 
+                    headers: {"Content-Type": "application/json", 'X-Plex-User-ID': localStorage.getItem('plex_id')}, 
                     body: JSON.stringify({ movie_id: pendingDeleteId }) 
                 });
                 closeDeleteModal();
@@ -603,13 +519,9 @@
             if (undoBtn) undoBtn.onclick = async () => {
                 if (swipeHistory.length === 0) return;
                 const lastMovie = swipeHistory.pop();
-                const headers = {'Content-Type': 'application/json'};
-                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-                else headers['X-Plex-User-ID'] = getUserId();
-
                 await fetch('/undo', { 
                     method: 'POST', 
-                    headers: headers, 
+                    headers: {'Content-Type': 'application/json', 'X-Plex-User-ID': localStorage.getItem('plex_id')}, 
                     body: JSON.stringify({ movie_id: lastMovie.id }) 
                 });
                 movieStack.unshift(lastMovie);
@@ -629,23 +541,22 @@
         function createCard(m) {
             const c = document.createElement('div');
             c.className = 'movie-card';
-            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
             c.dataset.id = m.id; c.dataset.title = m.title; c.dataset.thumb = m.thumb;
             c.innerHTML = `
                 <div class="card-inner">
                     <div class="card-front"><img src="${m.thumb}"></div>
-                    <div class="card-back" style="border-color:${color}">
-                        <div class="movie-title" style="color:${color}">${m.title}</div>
+                    <div class="card-back">
+                        <div class="movie-title">${m.title}</div>
                         <div class="stats-row">
-                            ${m.rating ? `<span class="stat-badge" style="color:${color}">IMDb ${m.rating}</span>` : ''}
-                            ${m.duration ? `<span class="stat-badge" style="color:${color}">${m.duration}</span>` : ''}
-                            ${m.year ? `<span class="stat-badge" style="color:${color}">${m.year}</span>` : ''}
+                            ${m.rating ? `<span class="stat-badge">IMDb ${m.rating}</span>` : ''}
+                            ${m.duration ? `<span class="stat-badge">${m.duration}</span>` : ''}
+                            ${m.year ? `<span class="stat-badge">${m.year}</span>` : ''}
                         </div>
                         <div id="vid-${m.id}" class="trailer-box"></div>
-                        <button class="trailer-btn" style="background:${color}" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
+                        <button class="trailer-btn" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
                         <div class="back-content"><p>${m.summary || 'No description available.'}</p></div>
                         <div id="cast-${m.id}" class="cast-row"></div>
-                        <div style="font-size:0.75rem; color:${color}; text-align:center; margin-top: auto; padding-bottom:10px;">Tap to flip back</div>
+                        <div style="font-size:0.75rem; color:#e5a00d; text-align:center; margin-top: auto; padding-bottom:10px;">Tap to flip back</div>
                     </div>
                 </div>
             `;
@@ -658,13 +569,13 @@
                             castEl.dataset.loaded = 'true';
                             castEl.innerHTML = '<span style="font-size:0.7rem;color:#666;">Loading cast...</span>';
                             try {
-                                const res = await fetch(`/cast/${m.id}`);
+                                const res = await fetch(`/cast/${m.id}`, { headers: { 'X-Backend': getBackend() } });
                                 const data = await res.json();
                                 if (data.cast && data.cast.length > 0) {
                                     castEl.innerHTML = data.cast.map(actor => `
                                         <div class="cast-member">
                                             ${actor.profile_path
-                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy" style="border-color:${color}">`
+                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy">`
                                                 : `<div class="no-photo">🎬</div>`}
                                             <span>${actor.name}</span>
                                         </div>
@@ -691,7 +602,7 @@
                 backContent.style.display = '';
             } else {
                 btn.innerText = 'LOADING...';
-                const res = await fetch(`/get-trailer/${id}`);
+                const res = await fetch(`/get-trailer/${id}`, { headers: { 'X-Backend': getBackend() } });
                 const data = await res.json();
                 if (data.youtube_key) {
                     backContent.style.display = 'none';
@@ -733,7 +644,7 @@
                         headers: {'Content-Type': 'application/json'}, 
                         body: JSON.stringify({ 
                             movie_id: card.dataset.id, title: card.dataset.title, thumb: card.dataset.thumb, direction: dir,
-                            plex_id: getUserId()
+                            plex_id: localStorage.getItem('plex_id')
                         }) 
                     })
                     .then(r => r.json()).then(data => { 
@@ -776,11 +687,7 @@
         async function joinRoom() {
             const code = document.getElementById('join-code').value;
             const res = await fetch('/room/join', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code }) });
-            if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); } 
-            else {
-                const data = await res.json();
-                alert(data.error || "Invalid Code");
-            }
+            if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); } else alert("Invalid Code");
         }
 
         async function loadGenres() {
@@ -837,26 +744,17 @@
 
         window.onload = async () => {
             _bindStaticHandlers();
-            
-            // Check for return from Plex Auth
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
-            if (pinId) {
-                const pendingPin = await fetch(`/auth/check-returned-pin?pin_id=${pinId}`);
-                const result = await pendingPin.json();
-                if (result.authToken) {
-                    localStorage.setItem("plex_token", result.authToken);
-                    localStorage.setItem("backend", "plex");
-                    window.history.replaceState({}, '', '/');
-                }
+            const pinUrl = pinId ? `/auth/check-returned-pin?pin_id=${pinId}` : '/auth/check-returned-pin';
+            const pendingPin = await fetch(pinUrl);
+            const result = await pendingPin.json();
+            if (result.authToken) {
+                localStorage.setItem("plex_token", result.authToken);
+                window.history.replaceState({}, '', '/');
             }
-
-            const backend = getBackend();
-            const token = getAuthToken();
-
-            if (token) {
-                if (backend === 'plex') await fetchAndStorePlexId();
-                await fetchServerInfo(); // This handles UI color updates
+            if (localStorage.getItem('plex_token')) {
+                await fetchAndStorePlexId();
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
