@@ -2,7 +2,7 @@ name: Build and Push to Docker Hub
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "beta" ]
 
 jobs:
   build:
@@ -17,9 +17,20 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: bergasha/kino-swipe
+          tags: |
+            # If pushing to main, tag as latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # If pushing to beta, tag as beta
+            type=raw,value=beta,enable=${{ github.ref == 'refs/heads/beta' }}
+
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: bergasha/kino-swipe:latest
+          tags: ${{ steps.meta.outputs.tags }}
