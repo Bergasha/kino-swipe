@@ -235,6 +235,10 @@ def get_jellyfin_item(item_id):
 
 
 def current_backend():
+    header_backend = request.headers.get('X-Backend')
+    if header_backend in ('plex', 'jellyfin'):
+        session['backend'] = header_backend 
+        return header_backend
     code = session.get('active_room')
     if code:
         with get_db() as conn:
