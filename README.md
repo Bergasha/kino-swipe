@@ -45,10 +45,9 @@ same movie, IT'S A MATCH!! yay.
   
 
 ## Requirements
-- **Plex Media Server**
-- **Jellyfin Media Server**
-- **Plex Auth Token**
-- **Jellyfin API key**
+**One of the following media servers:**
+- Plex Media Server + Auth Token
+- Jellyfin Media Server + API Key
 - **TMDB key for trailers** (Not required but trailers will not work on the back of the posters)
 - **HTTPS/Reverse Proxy:** To "Install" the app as a PWA on your phone so it looks like an app, you must access it over an HTTPS connection. If you access it over local ip, it will work in the browser but when added to homescreen it will just act as a shortcut not like an app.
 
