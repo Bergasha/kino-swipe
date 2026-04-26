@@ -355,7 +355,9 @@
 
         async function fetchServerInfo() {
             if (serverMachineId) return serverMachineId;
-            const response = await fetch('/server-info');
+            const response = await fetch('/server-info', {
+                headers: { 'X-Backend': getBackend() }
+            });
             if (response.ok) {
                 const data = await response.json();
                 serverMachineId = data.backend === 'plex' ? data.machineIdentifier : data.name;
@@ -764,7 +766,10 @@
         }
 
         document.getElementById('host-btn').onclick = async () => {
-            const res = await fetch('/room/create', { method: 'POST' });
+            const res = await fetch('/room/create', { 
+                method: 'POST',
+                headers: { 'X-Backend': getBackend() }
+            });
             const data = await res.json();
             localStorage.setItem('active_room', 'hosting'); 
             document.getElementById('session-display').innerText = data.pairing_code;
@@ -785,7 +790,9 @@
 
         async function loadGenres() {
             try {
-                const res = await fetch('/genres');
+                const res = await fetch('/genres', {
+                    headers: { 'X-Backend': getBackend() }
+                });
                 const genres = await res.json();
                 const list = document.getElementById('genre-list');
                 list.querySelectorAll('.genre-dynamic').forEach(el => el.remove());
