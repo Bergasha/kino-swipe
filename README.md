@@ -14,14 +14,14 @@ Dating app style — swipe right to like, swipe left to pass. If you both swipe 
 <br>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/ef3a2ca6-f034-42d3-823b-80b45512a0de" width="32%" />
+  <img src="https://github.com/user-attachments/assets/1c5eb50e-a488-4a05-8c6a-5659cf783aba" width="32%" />
   <img src="https://github.com/user-attachments/assets/042c9d4f-5d5e-4815-852f-07d929e2ef8e" width="32%" />
-  <img src="https://github.com/user-attachments/assets/f9615279-eac3-490c-88a6-9609cf19bcb8" width="32%" />
+  <img src="https://github.com/user-attachments/assets/87f64b9e-919b-47ec-b6e4-495e587af732" width="32%" />
 </p>
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/76a68e48-dc70-43a9-b637-f74287fbddce" width="32%" />
-  <img src="https://github.com/user-attachments/assets/83d12539-4264-4206-990c-7c2b8cbf2406" width="32%" />
+  <img src="https://github.com/user-attachments/assets/dedd8c0a-3941-401f-9177-a385660b9689" width="32%" />
   <img src="https://github.com/user-attachments/assets/d0e1d768-a1d2-4d32-a76a-ac3fd0ec74ca" width="32%" />
 </p>
 
