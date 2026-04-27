@@ -1,13 +1,17 @@
 # Kino-Swipe 
 [![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe)
 
-Always trying to decide on a movie to watch together?, This may be the fun solution you've been looking for.
-Dating app style swipe right for like swipe left for nope, If you both swipe right on the 
-same movie, IT'S A MATCH!!
+Always trying to decide on a movie to watch together? This may be the fun solution you've been looking for.
+Dating app style — swipe right to like, swipe left to pass. If you both swipe right on the same movie, **IT'S A MATCH!!**
 
-
+---
 
 ## Screenshots
+
+<details>
+<summary>Click to view screenshots</summary>
+
+<br>
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/ef3a2ca6-f034-42d3-823b-80b45512a0de" width="32%" />
@@ -21,77 +25,72 @@ same movie, IT'S A MATCH!!
   <img src="https://github.com/user-attachments/assets/d0e1d768-a1d2-4d32-a76a-ac3fd0ec74ca" width="32%" />
 </p>
 
+</details>
 
-
+---
 
 ## Features
-- **Plex Integration:** Connects directly to your server to pull random movies.
+- **Plex & Jellyfin Integration:** Connects directly to your Plex or Jellyfin server to pull movies.
+- **Coloured sessions:** Plex Yellow lets you know you're in a Plex session and Jellyfin Blue for Jellyfin.
 - **Real-Time Sync:** Host a room, share a 4-digit code, and swipe with a partner instantly.
-- **Visual Feedback:** Faint Red/Green "glow" overlays that react as you drag the posters left or right.
-- **Select Genre:** Both sessions will stay in sync while browsing genres.
-- **Add to watchlist:** Tap on each match and either open in Plex or add to watchlist for later.
-- **Watch trailer** Tap on the main poster in swipedeck for full synopsis and even watch the trailer. 
-- **PWA Support:** Add it to your Home Screen for a native app feel.
+- **Visual Feedback:** Faint Red/Green glow overlays that react as you drag posters left or right.
+- **Select Genre:** Both sessions stay in sync while browsing genres.
+- **Add to Watchlist:** Tap a match to open in Plex or save to watchlist/favourites for later.
+- **Watch Trailer:** Tap the poster for full synopsis, cast, and trailer via TMDB.
+- **PWA Support:** Add to your Home Screen for a native app feel.
 - **Match Notifications:** Instant alerts when you both swipe right on the same movie.
-- **Match History** All matches now live in Match History until you're ready to delete them.
-- **Solo Mode** Flying solo? no worries, just host session and flick the solo toggle. (Every right swipe saves to Match History) 
+- **Match History:** All matches saved to history until you're ready to delete them.
+- **Solo Mode:** Flying solo? Host a session and flick the solo toggle — every right swipe saves to your Match History.
 
-## Coming Soon
-~~Match History: Match history folder accessible outside session for easy access.~~   
-- **Jellyfin:** Jellyfin supported in Beta branch
+---
 
 ## Requirements
-- **Plex Media Server**
-- **Plex Auth Token**
-- **TMDB key for trailers** (Not required but trailers will not work on the back of the posters)
-- **HTTPS/Reverse Proxy:** To "Install" the app as a PWA on your phone so it looks like an app, you must access it over an HTTPS connection. If you access it over local ip, it will work in the browser but when added to homescreen it will just act as a shortcut not like an app.
 
-## TMDB API instructions
-Only required if you want trailers to work on the rear of the movie posters.
+**Plex**
+- Plex Media Server
+- Plex Auth Token
 
-1. Create a free TMDB Account
-If you don't already have one, you need to register on the TMDB website:
+**Jellyfin**
+- Jellyfin Media Server
+- Jellyfin API Key
 
-Go to themoviedb.org/signup.
+**Both**
+- TMDB API Key *(optional — required for trailers and cast)*
+- HTTPS/Reverse Proxy *(required to install as a PWA on your phone)*
 
-Verify your email address to activate the account.
+> You only need one media server configured. Both can run side by side on the same instance — users pick which one to log into at the login screen.
 
-2. Access the API Settings
-Once logged in:
+---
 
-Click on your Profile Icon in the top right corner of the screen.
+## TMDB API Setup
+Only required if you want trailers and cast to work on the rear of the movie posters.
 
-Select Settings from the dropdown menu.
+<details>
+<summary>Click to expand TMDB setup instructions</summary>
 
-On the left-hand sidebar, click on API.
+<br>
 
-3. Create an API Key
-Under the "Request an API Key" section, click on the link for Create.
+1. **Create a free TMDB account** at [themoviedb.org/signup](https://www.themoviedb.org/signup) and verify your email.
 
-You will be asked to choose a type of API key. Select Developer.
+2. **Access API settings** — click your profile icon → Settings → API.
 
-Accept the Terms of Use.
+3. **Create an API Key** — click Create, select Developer, accept the Terms of Use, and fill out the form:
+   - Type of Use: Personal/Educational
+   - Application Name: Kino-Swipe
+   - Application URL: your server IP or localhost
+   - Summary: "A Tinder-style movie picker for Plex/Jellyfin."
 
-Fill out the form: * Type of Use: Personal/Educational.
+4. **Copy your API Key (v3 auth)** — the long string of numbers and letters.
 
-Application Name: Kino-Swipe.
+</details>
 
-Application URL: (You can put localhost or your server's IP).
-
-Application Summary: "An app to help find movies to watch from my Plex library with a Tinder-style swipe interface."
-
-Submit the form.
-
-4. Copy your API Key
-You will now see two different keys. For Kino-Swipe, you need the API Key (v3 auth). It is a long string of numbers and letters.
 ---
 
 ## Deployment
 
-### Option 1: Docker (Recommended)
-Copy and paste this into your terminal. Replace the variables with your specific setup.
+### Option 1: Docker Compose
 
-```bash
+```yaml
 services:
   kino-swipe:
     image: bergasha/kino-swipe:latest
@@ -99,31 +98,40 @@ services:
     ports:
       - "5005:5005"
     environment:
-      - PLEX_URL=https://YOUR_PLEX_IP:32400
-      - PLEX_TOKEN=YOUR_PLEX_TOKEN
+      - PLEX_URL=https://YOUR_PLEX_IP:32400        # Optional
+      - PLEX_TOKEN=YOUR_PLEX_TOKEN                  # Optional
+      - JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096   # Optional
+      - JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY      # Optional
       - FLASK_SECRET=SomeRandomString
-      - TMDB_API_KEY=your_copied_tmdb_key_here
+      - TMDB_API_KEY=your_tmdb_key_here
     volumes:
       - ./data:/app/data
       - ./static:/app/static
     restart: unless-stopped
 ```
 
-**Option 2 — Docker Run**
+### Option 2: Docker Run
+
 ```bash
 docker run -d \
   --name kino-swipe \
   -p 5005:5005 \
   -e PLEX_URL=https://YOUR_PLEX_IP:32400 \
   -e PLEX_TOKEN=YOUR_PLEX_TOKEN \
+  -e JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096 \
+  -e JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY \
   -e FLASK_SECRET=SomeRandomString \
-  -e TMDB_API_KEY=your_copied_tmdb_key_here \
+  -e TMDB_API_KEY=your_tmdb_key_here \
   -v ./data:/app/data \
   -v ./static:/app/static \
   --restart unless-stopped \
   bergasha/kino-swipe:latest
 ```
 
+> At least Plex or Jellyfin must be configured. Both can be also set at the same time.
+
+---
+
 <img src="https://github.com/user-attachments/assets/97e2c08b-5421-4f16-a798-acca2bb76a60" width="100"/>
 
-"This product uses the TMDB API but is not endorsed or certified by TMDB."
+*This product uses the TMDB API but is not endorsed or certified by TMDB.*
