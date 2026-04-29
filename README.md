@@ -1,5 +1,5 @@
 # Kino-Swipe 
-[![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe)
+[![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe) [![GitHub Stars](https://img.shields.io/github/stars/bergasha/kino-swipe?style=social)](https://github.com/bergasha/kino-swipe/stargazers)
 
 Always trying to decide on a movie to watch together? This may be the fun solution you've been looking for.
 Dating app style — swipe right to like, swipe left to pass. If you both swipe right on the same movie, **IT'S A MATCH!!**
@@ -116,10 +116,10 @@ services:
 docker run -d \
   --name kino-swipe \
   -p 5005:5005 \
-  -e PLEX_URL=https://YOUR_PLEX_IP:32400 \
-  -e PLEX_TOKEN=YOUR_PLEX_TOKEN \
-  -e JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096 \
-  -e JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY \
+  -e PLEX_URL=https://YOUR_PLEX_IP:32400 \          # Optional
+  -e PLEX_TOKEN=YOUR_PLEX_TOKEN \                   # Optional
+  -e JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096 \    # Optional
+  -e JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY \       # Optional
   -e FLASK_SECRET=SomeRandomString \
   -e TMDB_API_KEY=your_tmdb_key_here \
   -v ./data:/app/data \
