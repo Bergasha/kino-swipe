@@ -1,6 +1,6 @@
 # Kino-Swipe 
 [![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe) 
-[![](https://img.shields.io/github/stars/Bergasha/kino-swipe?style=social)](https://github.com/Bergasha/kino-swipe/stargazers)
+
 
 Always trying to decide on a movie to watch together? This may be the fun solution you've been looking for.
 Dating app style — swipe right to like, swipe left to pass. If you both swipe right on the same movie, **IT'S A MATCH!!**
