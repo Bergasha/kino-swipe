@@ -14,17 +14,6 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
-
-        /* ── Reset & safe-area support ───────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; }
-
-        :root {
-            --safe-top:    env(safe-area-inset-top,    0px);
-            --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --safe-left:   env(safe-area-inset-left,   0px);
-            --safe-right:  env(safe-area-inset-right,  0px);
-            --pill-zone:   calc(80px + var(--safe-bottom));
-        }
         
         body { 
             background-color: #111;
@@ -36,13 +25,9 @@
             text-align: center; 
             margin: 0; 
             overflow: hidden; 
-            height: 100vh;
-            height: 100dvh;
+            height: 100vh; 
             display: flex; 
-            flex-direction: column;
-            padding-top:    var(--safe-top);
-            padding-left:   var(--safe-left);
-            padding-right:  var(--safe-right);
+            flex-direction: column; 
         }
 
         body::before {
@@ -113,412 +98,112 @@
                 color: #330000;
             }
         }
-
-        #game-area {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #111;
-            z-index: 100;
-            /* Account for safe areas inside game area */
-            padding-top:    var(--safe-top);
-            padding-left:   var(--safe-left);
-            padding-right:  var(--safe-right);
-            padding-bottom: var(--safe-bottom);
-        }
-
-        #swipe-deck {
-            position: relative;
-            width: 100%;
-            max-width: 420px;
-            margin: 0 auto;
-            margin-top: calc(var(--safe-top) + 55px);
-            margin-bottom: var(--pill-zone);
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: visible;
-        }
+        
+        #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
+        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 60px auto 100px auto; height: 68vh; }
         
         .movie-card, .mini-poster { perspective: 1000px; }
-        .card-inner, .mini-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
-        }
+        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
-
-        .card-front, .card-back, .mini-front, .mini-back {
-            position: absolute;
-            width: 100%; height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            border-radius: 20px;
-            overflow: hidden;
-        }
-
-        .card-back, .mini-back {
-            transform: rotateY(180deg);
-            background: #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            box-sizing: border-box;
-            border: 2px solid #e5a00d;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 12px;
-        }
-
-        .movie-card {
-            position: absolute;
-            width: 88%;
-            height: 100%;
-            left: 6%;
-            top: 0;
-            touch-action: none;
-            z-index: 5;
-        }
-
-        .movie-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            pointer-events: none;
-            border-radius: 20px;
-        }
-
-        .card-front {
-            position: relative;
-        }
-        .card-front-title {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 28px 12px 10px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.85) 60%);
-            border-radius: 0 0 20px 20px;
-            font-size: clamp(0.85rem, 3.5vw, 1.1rem);
-            font-weight: bold;
-            color: #e5a00d;
-            line-height: 1.2;
-            text-align: left;
-            word-break: break-word;
-        }
-
-        .movie-title {
-            margin: 10px 0 6px;
-            font-weight: bold;
-            font-size: clamp(1rem, 5vw, 1.6rem);
-            color: #e5a00d;
-            padding: 0 10px;
-            line-height: 1.1;
-            flex-shrink: 0;
-        }
-        .trailer-btn {
-            background: #e5a00d;
-            color: black;
-            border: none;
-            padding: 10px;
-            width: 90%;
-            font-weight: bold;
-            border-radius: 8px;
-            margin: 5px 0;
-            cursor: pointer;
-            font-size: 0.8rem;
-            z-index: 200;
-            flex-shrink: 0;
-        }
-        .trailer-box {
-            width: 90%;
-            aspect-ratio: 16/9;
-            background: #000;
-            margin: 5px 0;
-            border-radius: 8px;
-            display: none;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
+        .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
+        .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
+        .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; touch-action: none; z-index: 5; }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
+        .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
+        .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
         .trailer-box iframe { width: 100%; height: 100%; border: none; }
-
-
-        #matches-modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98);
-            z-index: 20000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            padding-top:    calc(20px + var(--safe-top));
-            padding-bottom: calc(20px + var(--safe-bottom));
-            box-sizing: border-box;
-        }
-        #matches-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            width: 100%;
-            max-width: 500px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: calc(120px + var(--safe-bottom));
-        }
+        #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 120px; }
         .mini-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; }
-        .mini-front img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
-        .mini-front { border: 2px solid #333; border-radius: 10px; overflow: hidden; position: relative; }
-        .mini-back { padding: 10px; border-radius: 10px; overflow-y: auto; }
-        .plex-open-btn {
-            background: #e5a00d; color: black; border: none; padding: 10px 5px;
-            border-radius: 4px; font-weight: bold; font-size: 0.75rem; cursor: pointer;
-            text-decoration: none; width: 90%; margin-top: 10px; display: block; text-align: center;
-        }
-        .mini-title-text {
-            font-size: clamp(0.85rem, 3.5vw, 1.1rem);
-            font-weight: bold; color: #e5a00d; text-align: center;
-            margin-bottom: 5px; line-height: 1.1;
-        }
-        .stats-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
-        .stat-badge {
-            background: black; color: #e5a00d; padding: 3px 7px;
-            border-radius: 5px; font-weight: bold; font-size: 0.75rem;
-        }
-        .back-content {
-            overflow-y: auto;
-            flex: 1 1 auto;
-            min-height: 0;
-            margin-bottom: 6px;
-            padding: 0 10px;
-        }
-        .back-content p { font-size: 0.9rem; line-height: 1.4; color: #eee; margin: 0; text-align: left; }
-
-     
-        .glow-side {
-            position: absolute;
-            top: 0; width: 40%; height: 100%;
-            pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s;
-        }
-        #glow-left  { left:  0; background: linear-gradient(to right, rgba(211,47,47,0.8), transparent); }
-        #glow-right { right: 0; background: linear-gradient(to left, rgba(76,175,80,0.8), transparent); }
-
-
-        .pill-btn {
-            position: fixed;
-            bottom: calc(25px + var(--safe-bottom));
-            width: 120px; height: 45px;
-            border-radius: 30px; border: none;
-            font-weight: bold; font-size: 0.9rem;
-            z-index: 9999; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            display: flex; align-items: center; justify-content: center;
-        }
+        .mini-front img { width: 100%; height: 100%; object-fit: cover; }
+        .mini-front { border: 2px solid #333; }
+        .mini-back { padding: 10px; border-radius: 10px; }
+        .plex-open-btn { background: #e5a00d; color: black; border: none; padding: 10px 5px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-decoration: none; width: 90%; margin-top: 10px; display: block; text-align: center; }
+        .mini-title-text { font-size: 1.1rem; font-weight: bold; color: #e5a00d; text-align: center; margin-bottom: 5px; line-height: 1.1; }
+        .stats-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .stat-badge { background: black; color: #e5a00d; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; }
+        .back-content { overflow-y: auto; flex-grow: 1; margin-bottom: 10px; padding: 0 15px; }
+        .back-content p { font-size: 0.95rem; line-height: 1.4; color: #eee; margin: 0; text-align: left; }
+        .glow-side { position: absolute; top: 0; width: 40%; height: 100%; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s; }
+        #glow-left { left: 0; background: linear-gradient(to right, rgba(211, 47, 47, 0.8), transparent); }
+        #glow-right { right: 0; background: linear-gradient(to left, rgba(76, 175, 80, 0.8), transparent); }
+        .pill-btn { position: fixed; bottom: 25px; width: 120px; height: 45px; border-radius: 30px; border: none; font-weight: bold; font-size: 0.9rem; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
         #matches-pill { right: 20px; background: #e5a00d; color: black; }
-        #quit-pill    { left:  20px; background: #d32f2f; color: black; }
-
-        #undo-btn {
-            position: fixed;
-            bottom: calc(90px + var(--safe-bottom));
-            left: 50%; transform: translateX(-50%);
-            background: #222; color: #a64703;
-            width: 65px; height: 65px;
-            border-radius: 50%; border: 3px solid #a64703;
-            font-size: 1.0rem; z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-        }
-
-        #match-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 15000;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            backdrop-filter: blur(6px);
-            padding: calc(20px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
-        }
-        .match-card-popup {
-            background: #1a1a1a; width: 85%; max-width: 320px;
-            border-radius: 20px; border: 2px solid #e5a00d;
-            padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 0 30px rgba(229,160,13,0.4);
-            animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
+        #quit-pill { left: 20px; background: #d32f2f; color: black; }
+        #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
+        #match-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+        .match-card-popup { background: #1a1a1a; width: 85%; max-width: 320px; border-radius: 20px; border: 2px solid #e5a00d; padding: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 30px rgba(229, 160, 13, 0.4); animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popupIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .match-poster-preview {
-            width: 140px; height: 210px;
-            border-radius: 10px; object-fit: cover;
-            border: 2px solid #333; margin-bottom: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        }
+        .match-poster-preview { width: 140px; height: 210px; border-radius: 10px; object-fit: cover; border: 2px solid #333; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .match-logo { width: 100px; margin-bottom: 10px; }
-        .match-instruction {
-            color: #ffffff; font-size: 0.9rem;
-            font-style: italic; z-index: 20001; pointer-events: none;
-        }
-        #game-instruction {
-            position: fixed;
-            bottom: calc(75px + var(--safe-bottom));
-            left: 50%; transform: translateX(-50%);
-            width: 100%;
-        }
-        #modal-instruction { position: fixed; bottom: calc(85px + var(--safe-bottom)); }
-
-        #genre-pill {
-            position: fixed;
-            top: calc(15px + var(--safe-top));
-            right: 15px;
-            width: 100px; height: 35px; border-radius: 20px;
-            border: 1px solid #e5a00d; background: rgba(0,0,0,0.6);
-            color: #e5a00d; font-weight: bold; font-size: 0.8rem;
-            z-index: 10001; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-
-        #genre-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 30000;
-            display: flex; flex-direction: column; align-items: center;
-            padding: calc(20px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
-            box-sizing: border-box; overflow: hidden;
-        }
+        .match-instruction { color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; pointer-events: none; }
+        #game-instruction { position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); width: 100%; }
+        #modal-instruction { position: fixed; bottom: 85px; }
+        #genre-pill { position: fixed; top: 15px; right: 15px; width: 100px; height: 35px; border-radius: 20px; border: 1px solid #e5a00d; background: rgba(0,0,0,0.6); color: #e5a00d; font-weight: bold; font-size: 0.8rem; z-index: 10001; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        #genre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 30000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow: hidden; }
         #genre-modal h1 { flex-shrink: 0; margin: 20px 0 15px; }
         #genre-modal .menu-btn { flex-shrink: 0; margin: 15px 0 10px; }
-        .genre-list {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            width: 100%; max-width: 400px;
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
-            padding-bottom: 5px;
-        }
-        .genre-item {
-            background: #222; border: 1px solid #333; color: white;
-            padding: 15px; border-radius: 10px;
-            text-align: center; font-weight: bold; cursor: pointer;
-            /* ensure tappable on small phones */
-            min-height: 44px; display: flex; align-items: center; justify-content: center;
-        }
+        .genre-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+        .genre-item { background: #222; border: 1px solid #333; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; cursor: pointer; }
         .genre-item.active { border-color: #e5a00d; color: #e5a00d; }
-
-        #solo-badge {
-            position: fixed;
-            top: calc(15px + var(--safe-top));
-            left: 15px;
-            background: rgba(0,0,0,0.6); border: 1px solid #666; color: #aaa;
-            font-size: 0.75rem; font-weight: bold; padding: 6px 12px;
-            border-radius: 20px; z-index: 10001;
-            backdrop-filter: blur(5px); letter-spacing: 0.05em;
-        }
-        #match-solo-label {
-            font-size: 0.85rem; color: #aaa; font-style: italic;
-            margin-top: -15px; margin-bottom: 20px;
-        }
-
-        #quit-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.92); z-index: 40000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px);
-            padding: var(--safe-top) 20px var(--safe-bottom);
-        }
+        #solo-badge { position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid #666; color: #aaa; font-size: 0.75rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; z-index: 10001; backdrop-filter: blur(5px); letter-spacing: 0.05em; }
+        #match-solo-label { font-size: 0.85rem; color: #aaa; font-style: italic; margin-top: -15px; margin-bottom: 20px; }
+        #quit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 40000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         #quit-modal h2 { font-size: 1.8rem; color: #ff3131; margin: 0 0 10px; text-shadow: 0 0 10px #ff3131; }
-        #quit-modal p  { color: #888; font-size: 0.95rem; margin: 0 0 35px; padding: 0 30px; line-height: 1.5; }
-        .quit-btn-row  { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        #quit-confirm-btn {
-            background: #d32f2f; color: white; border: none;
-            padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold;
-            cursor: pointer; transition: box-shadow 0.3s; width: 200px;
-        }
+        #quit-modal p { color: #888; font-size: 0.95rem; margin: 0 0 35px; padding: 0 30px; line-height: 1.5; }
+        .quit-btn-row { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        #quit-confirm-btn { background: #d32f2f; color: white; border: none; padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: box-shadow 0.3s; width: 200px; }
         #quit-confirm-btn:hover { box-shadow: 0 0 20px rgba(211,47,47,0.7); }
-        #quit-cancel-btn {
-            background: #222; color: #aaa; border: 1px solid #444;
-            padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold;
-            cursor: pointer; transition: border-color 0.3s, color 0.3s; width: 200px;
-        }
+        #quit-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: border-color 0.3s, color 0.3s; width: 200px; }
         #quit-cancel-btn:hover { border-color: #888; color: white; }
-
-        #delete-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 49999;
-        }
-        #delete-modal {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #1a1a1a; border: 1px solid #333; border-radius: 16px;
-            z-index: 50000; padding: 30px 25px; width: 280px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.8); text-align: center;
-        }
+        #delete-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 49999; }
+        #delete-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border: 1px solid #333; border-radius: 16px; z-index: 50000; padding: 30px 25px; width: 280px; box-shadow: 0 8px 40px rgba(0,0,0,0.8); text-align: center; }
         #delete-modal h3 { font-size: 1.2rem; color: #ff3131; margin: 0 0 8px; }
-        #delete-modal p  { color: #888; font-size: 0.85rem; margin: 0 0 25px; line-height: 1.4; }
+        #delete-modal p { color: #888; font-size: 0.85rem; margin: 0 0 25px; line-height: 1.4; }
         .delete-btn-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        #delete-confirm-btn {
-            background: #d32f2f; color: white; border: none;
-            padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold;
-            cursor: pointer; width: 100%;
-        }
-        #delete-cancel-btn {
-            background: #222; color: #aaa; border: 1px solid #444;
-            padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold;
-            cursor: pointer; width: 100%;
-        }
-
-        .cast-row {
-            display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-            padding: 6px 8px 0; width: 100%; box-sizing: border-box; flex-shrink: 0;
-        }
+        #delete-confirm-btn { background: #d32f2f; color: white; border: none; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
+        #delete-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
+        .cast-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 6px 8px 0; width: 100%; box-sizing: border-box; }
         .cast-member { display: flex; flex-direction: column; align-items: center; width: 56px; flex-shrink: 0; }
-        .cast-member img {
-            width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
-            border: 2px solid #e5a00d; background: #333;
-        }
-        .cast-member .no-photo {
-            width: 52px; height: 52px; border-radius: 50%; background: #333;
-            border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
-        }
+        .cast-member img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #e5a00d; background: #333; }
+        .cast-member .no-photo { width: 52px; height: 52px; border-radius: 50%; background: #333; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
         .cast-member span { font-size: 0.58rem; color: #ccc; text-align: center; margin-top: 4px; line-height: 1.2; word-break: break-word; }
-
-        .logout-btn {
-            background: none; border: 1px solid #444; color: #666;
-            padding: 8px 20px; border-radius: 20px; text-decoration: none;
-            cursor: pointer; margin-top: 40px; font-size: 0.95rem; font-weight: bold;
+        
+        .logout-btn { 
+            background: none; 
+            border: 1px solid #444; 
+            color: #666; 
+            padding: 8px 20px;
+            border-radius: 20px;
+            text-decoration: none; 
+            cursor: pointer; 
+            margin-top: 40px; 
+            font-size: 0.95rem; 
+            font-weight: bold;
             transition: all 0.3s ease;
         }
-        .logout-btn:hover { color: #ccc; border-color: #888; background: rgba(255,255,255,0.05); }
+        .logout-btn:hover {
+            color: #ccc;
+            border-color: #888;
+            background: rgba(255,255,255,0.05);
+        }
 
         .signature {
             position: fixed;
-            bottom: calc(10px + var(--safe-bottom));
+            bottom: 10px;
             width: 100%;
             font-family: 'allura', cursive;
-            color: rgba(79,5,5,0.9);
+            color: rgba(79, 5, 5, 0.9);
             font-size: 1.8rem;
             pointer-events: none;
             z-index: 2;
         }
 
-        #jellyfin-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 60000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px);
-            padding: var(--safe-top) 20px var(--safe-bottom);
-        }
+      
+        #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .login-form { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; }
-        .login-form input {
-            padding: 15px; border-radius: 8px; border: 1px solid #444;
-            background: #222; color: white; font-size: 1rem;
-        }
-
-        @media (max-height: 600px) {
-            .main-title { font-size: clamp(3rem, 14vw, 5rem); margin-bottom: 20px; }
-            #login-section, #main-menu { padding: 30px 20px; }
-        }
+        .login-form input { padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -620,7 +305,7 @@
         <h1 id="modal-title" class="plex-yellow">Your Matches</h1>
         <div id="matches-list"></div>
         <div id="modal-instruction" class="match-instruction">Tap on match for more options</div>
-        <button class="menu-btn" style="position: fixed; bottom: calc(20px + var(--safe-bottom)); width: 150px; z-index:20001;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
+        <button class="menu-btn" style="position: fixed; bottom: 20px; width: 150px; z-index:20001;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
     </div>
 
     <div id="quit-modal" class="hidden">
@@ -865,7 +550,7 @@
                     <div class="mini-inner">
                         <div class="mini-front">
                             <img src="${m.thumb}" alt="${m.title}">
-                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:clamp(0.65rem,2.5vw,0.75rem); padding:20px 4px 6px; font-weight:bold; color:${color}; word-break:break-word; line-height:1.2;">
+                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:12px; padding:8px 4px; font-weight:bold; color:${color};">
                                ${m.title}
                            </div>
                         </div>
@@ -951,10 +636,7 @@
             c.dataset.id = m.id; c.dataset.title = m.title; c.dataset.thumb = m.thumb;
             c.innerHTML = `
                 <div class="card-inner">
-                    <div class="card-front">
-                        <img src="${m.thumb}" alt="${m.title}">
-                        <div class="card-front-title" style="color:${color}">${m.title}</div>
-                    </div>
+                    <div class="card-front"><img src="${m.thumb}"></div>
                     <div class="card-back" style="border-color:${color}">
                         <div class="movie-title" style="color:${color}">${m.title}</div>
                         <div class="stats-row">
@@ -966,7 +648,7 @@
                         <button class="trailer-btn" style="background:${color}" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
                         <div class="back-content"><p>${m.summary || 'No description available.'}</p></div>
                         <div id="cast-${m.id}" class="cast-row"></div>
-                        <div style="font-size:0.75rem; color:${color}; text-align:center; padding:8px 0 2px; flex-shrink:0;">Tap to flip back</div>
+                        <div style="font-size:0.75rem; color:${color}; text-align:center; margin-top: auto; padding-bottom:10px;">Tap to flip back</div>
                     </div>
                 </div>
             `;
@@ -1164,6 +846,7 @@
         window.onload = async () => {
             _bindStaticHandlers();
             
+            // Check for return from Plex Auth
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
             if (pinId) {
@@ -1181,7 +864,7 @@
 
             if (token) {
                 if (backend === 'plex') await fetchAndStorePlexId();
-                await fetchServerInfo();
+                await fetchServerInfo(); // This handles UI color updates
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
