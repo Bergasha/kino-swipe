@@ -100,15 +100,15 @@
         }
         
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
-        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 60px auto 100px auto; height: 68vh; }
+        #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 60px auto 100px auto; max-height: calc(100vh - 180px); }
         
         .movie-card, .mini-poster { perspective: 1000px; }
         .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
-        .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; touch-action: none; z-index: 5; }
-        .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; }
+        .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
