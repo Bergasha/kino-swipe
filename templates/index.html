@@ -309,7 +309,7 @@
     </div>
 
     <div id="quit-modal" class="hidden">
-        <img src="/static/sad.png" style="width:80px; margin-bottom:20px; opacity:0.6;">
+        <img src="/static/sad.png" style="width:100px; margin-bottom:20px; opacity:1.0;">
         <h2>End Session?</h2>
         <p>Your matches will be saved to<br>Match History.</p>
         <div class="quit-btn-row">
@@ -842,6 +842,91 @@
                 }
             };
         };
+
+        document.addEventListener('keydown', async (e) => {
+            const card = document.querySelector('.movie-card:last-child');
+            if (!card) return;
+
+            // DOWN = Flip Card
+            if (e.key === 'ArrowDown') {
+                card.classList.toggle('flipped');
+                return;
+            }
+
+            // UP = Undo
+            if (e.key === 'ArrowUp') {
+                if (swipeHistory.length === 0) return;
+                const lastMovie = swipeHistory.pop();
+                const headers = { 'Content-Type': 'application/json' };
+                if (getBackend() === 'jellyfin') {
+                    headers['X-Jellyfin-User-ID'] = getUserId();
+                } else {
+                    headers['X-Plex-User-ID'] = getUserId();
+                }
+                await fetch('/undo', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ movie_id: lastMovie.id })
+                });
+                movieStack.unshift(lastMovie);
+                renderInitialDeck();
+                return;
+            }
+
+            // LEFT / RIGHT = Swipe
+            let dir = null;
+            if (e.key === 'ArrowRight') dir = 'right';
+            if (e.key === 'ArrowLeft') dir = 'left';
+            if (!dir) return;
+
+            if (card.classList.contains('flipped')) return;
+
+            const moveX = dir === 'right' ? 1000 : -1000;
+            card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
+            card.style.transform = `translate(${moveX}px, 0px) rotate(${dir === 'right' ? 20 : -20}deg)`;
+            card.style.opacity = '0';
+
+            const movieData = movieStack[0];
+            swipeHistory.push(movieData);
+
+            fetch('/room/swipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    movie_id: card.dataset.id,
+                    title: card.dataset.title,
+                    thumb: card.dataset.thumb,
+                    direction: dir,
+                    plex_id: getUserId()
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.match) {
+                    document.getElementById('matched-movie-title').innerText = data.title;
+                    document.getElementById('match-popup-poster').src = data.thumb || '';
+                    const heading = document.getElementById('match-heading');
+                    const soloLabel = document.getElementById('match-solo-label');
+                    if (data.solo) {
+                        heading.innerText = 'NICE ONE!';
+                        soloLabel.classList.remove('hidden');
+                    } else {
+                        heading.innerText = "IT'S A MATCH!";
+                        soloLabel.classList.add('hidden');
+                    }
+                    document.getElementById('match-overlay').classList.remove('hidden');
+                }
+            });
+
+            setTimeout(() => {
+                card.remove();
+                movieStack.shift();
+                if (movieStack[4]) {
+                    document.getElementById('swipe-deck').prepend(createCard(movieStack[4]));
+                }
+                initDrag(document.getElementById('swipe-deck').lastElementChild);
+            }, 300);
+        });
 
         window.onload = async () => {
             _bindStaticHandlers();
