@@ -100,15 +100,15 @@
         }
         
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
-        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 60px auto 100px auto; height: 68vh; }
+        #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 60px auto 100px auto; max-height: calc(100vh - 180px); }
         
         .movie-card, .mini-poster { perspective: 1000px; }
         .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
-        .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; touch-action: none; z-index: 5; }
-        .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; }
+        .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
@@ -309,7 +309,7 @@
     </div>
 
     <div id="quit-modal" class="hidden">
-        <img src="/static/sad.png" style="width:80px; margin-bottom:20px; opacity:0.6;">
+        <img src="/static/sad.png" style="width:100px; margin-bottom:20px; opacity:1.0;">
         <h2>End Session?</h2>
         <p>Your matches will be saved to<br>Match History.</p>
         <div class="quit-btn-row">
@@ -843,10 +843,95 @@
             };
         };
 
+        document.addEventListener('keydown', async (e) => {
+            const card = document.querySelector('.movie-card:last-child');
+            if (!card) return;
+
+     
+            if (e.key === 'ArrowDown') {
+                card.classList.toggle('flipped');
+                return;
+            }
+
+         
+            if (e.key === 'ArrowUp') {
+                if (swipeHistory.length === 0) return;
+                const lastMovie = swipeHistory.pop();
+                const headers = { 'Content-Type': 'application/json' };
+                if (getBackend() === 'jellyfin') {
+                    headers['X-Jellyfin-User-ID'] = getUserId();
+                } else {
+                    headers['X-Plex-User-ID'] = getUserId();
+                }
+                await fetch('/undo', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ movie_id: lastMovie.id })
+                });
+                movieStack.unshift(lastMovie);
+                renderInitialDeck();
+                return;
+            }
+
+           
+            let dir = null;
+            if (e.key === 'ArrowRight') dir = 'right';
+            if (e.key === 'ArrowLeft') dir = 'left';
+            if (!dir) return;
+
+            if (card.classList.contains('flipped')) return;
+
+            const moveX = dir === 'right' ? 1000 : -1000;
+            card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
+            card.style.transform = `translate(${moveX}px, 0px) rotate(${dir === 'right' ? 20 : -20}deg)`;
+            card.style.opacity = '0';
+
+            const movieData = movieStack[0];
+            swipeHistory.push(movieData);
+
+            fetch('/room/swipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    movie_id: card.dataset.id,
+                    title: card.dataset.title,
+                    thumb: card.dataset.thumb,
+                    direction: dir,
+                    plex_id: getUserId()
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.match) {
+                    document.getElementById('matched-movie-title').innerText = data.title;
+                    document.getElementById('match-popup-poster').src = data.thumb || '';
+                    const heading = document.getElementById('match-heading');
+                    const soloLabel = document.getElementById('match-solo-label');
+                    if (data.solo) {
+                        heading.innerText = 'NICE ONE!';
+                        soloLabel.classList.remove('hidden');
+                    } else {
+                        heading.innerText = "IT'S A MATCH!";
+                        soloLabel.classList.add('hidden');
+                    }
+                    document.getElementById('match-overlay').classList.remove('hidden');
+                }
+            });
+
+            setTimeout(() => {
+                card.remove();
+                movieStack.shift();
+                if (movieStack[4]) {
+                    document.getElementById('swipe-deck').prepend(createCard(movieStack[4]));
+                }
+                initDrag(document.getElementById('swipe-deck').lastElementChild);
+            }, 300);
+        });
+
         window.onload = async () => {
             _bindStaticHandlers();
             
-            // Check for return from Plex Auth
+           
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
             if (pinId) {
@@ -864,7 +949,7 @@
 
             if (token) {
                 if (backend === 'plex') await fetchAndStorePlexId();
-                await fetchServerInfo(); // This handles UI color updates
+                await fetchServerInfo(); 
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
