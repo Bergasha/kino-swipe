@@ -714,7 +714,7 @@ def proxy():
         path = request.args.get('path')
         if not path or not path.startswith("/library/metadata/"):
             abort(403)
-        res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True)
+        res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
         return Response(res.content, content_type=res.headers['Content-Type'])
 
 
@@ -725,7 +725,7 @@ def serve_manifest():
 
 @app.route('/sw.js')
 def serve_sw():
-    return send_from_directory('.', 'sw.js')
+    return send_from_directory('data', 'sw.js')
 
 @app.route('/static/<path:path>')
 def serve_static(path):
