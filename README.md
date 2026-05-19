@@ -1,4 +1,7 @@
-# Kino-Swipe 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/5da7b0f0-d6a9-4aa6-8542-ae14455d4643" alt="Kino-Swipe Banner" width="600">
+</p>
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe) 
 [![GitHub Stars](https://img.shields.io/github/stars/Bergasha/kino-swipe?style=flat-square&logo=github&color=yellow)](https://github.com/Bergasha/kino-swipe/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
