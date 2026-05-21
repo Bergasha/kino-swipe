@@ -110,31 +110,20 @@
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
-        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; will-change: transform, opacity; }
-        .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
-        
-        .movie-card.deck-shuffle-0 { animation: shuffle-cut-left 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
-        .movie-card.deck-shuffle-1 { animation: shuffle-cut-right 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
-        .movie-card.deck-shuffle-2 { animation: shuffle-cut-left 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
-        .movie-card.deck-shuffle-3 { animation: shuffle-cut-right 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
-        .movie-card.deck-shuffle-4 { animation: shuffle-cut-center 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
-
-        @keyframes shuffle-cut-left {
-            0% { transform: translate(0, 0); opacity: 0; }
-            40% { transform: translate(-160px, 0) scale(0.95); z-index: 10; opacity: 1; }
-            100% { transform: translate(0, 0); }
+        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; }
+        .movie-card img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            display: block; 
+            background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+            animation: skeleton-glow 1.5s infinite linear;
         }
-        @keyframes shuffle-cut-right {
-            0% { transform: translate(0, 0); opacity: 0; }
-            40% { transform: translate(160px, 0) scale(0.95); z-index: 10; opacity: 1; }
-            100% { transform: translate(0, 0); }
+        @keyframes skeleton-glow {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
-        @keyframes shuffle-cut-center {
-            0% { transform: translate(0, 0); opacity: 0; }
-            40% { transform: translate(0, -30px) scale(1.02); z-index: 15; opacity: 1; }
-            100% { transform: translate(0, 0); }
-        }
-
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
@@ -458,7 +447,7 @@
             currentGenre = genre;
             document.getElementById('genre-pill').innerText = genre === 'All' ? 'Genres ▾' : genre + ' ▾';
             swipeHistory = [];
-            renderInitialDeck(true);
+            renderInitialDeck();
         }
 
         async function addToWatchlist(event, id) {
@@ -536,7 +525,7 @@
                 document.getElementById('solo-badge').classList.add('hidden');
             }
 
-            renderInitialDeck(true);
+            renderInitialDeck();
             startPolling();
         };
 
@@ -642,24 +631,16 @@
                     body: JSON.stringify({ movie_id: lastMovie.id }) 
                 });
                 movieStack.unshift(lastMovie);
-                renderInitialDeck(false);
+                renderInitialDeck();
             };
             const matchesPill = document.getElementById('matches-pill');
             if (matchesPill) matchesPill.onclick = () => openMatches(false);
         }
 
-        function renderInitialDeck(triggerShuffleAnimation = false) {
+        function renderInitialDeck() {
             const deck = document.getElementById('swipe-deck');
             deck.innerHTML = '';
-            const sliceOfCards = movieStack.slice(0, 5).reverse();
-            sliceOfCards.forEach((m, index) => {
-                const cardElement = createCard(m);
-                if (triggerShuffleAnimation) {
-                    const stackPositionIndex = sliceOfCards.length - 1 - index;
-                    cardElement.classList.add(`deck-shuffle-${stackPositionIndex}`);
-                }
-                deck.appendChild(cardElement);
-            });
+            movieStack.slice(0, 5).reverse().forEach(m => deck.appendChild(createCard(m)));
             initDrag(deck.lastElementChild);
         }
 
@@ -754,13 +735,28 @@
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
                 glowRight.style.opacity = globalCurrentX > 20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
                 glowLeft.style.opacity = globalCurrentX < -20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
+
+                const opacityProgress = Math.min(Math.abs(globalCurrentX) / 150, 1);
+                const lowerCard = card.previousElementSibling;
+                if (lowerCard) {
+                    lowerCard.style.transform = `scale(${0.95 + (opacityProgress * 0.05)})`;
+                    lowerCard.style.filter = `blur(${2 - (opacityProgress * 2)}px)`;
+                }
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
                 glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
                 if (card.classList.contains('flipped')) { globalCurrentX = 0; return; }
                 card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
+
+                const lowerCard = card.previousElementSibling;
+                if (lowerCard) {
+                    lowerCard.style.transform = '';
+                    lowerCard.style.filter = '';
+                }
+
                 if (Math.abs(globalCurrentX) > 120) {
+                    if (navigator.vibrate) navigator.vibrate(15);
                     const dir = globalCurrentX > 0 ? 'right' : 'left';
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
                     card.style.opacity = '0';
@@ -775,6 +771,7 @@
                     })
                     .then(r => r.json()).then(data => { 
                         if (data.match) { 
+                            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                             document.getElementById('matched-movie-title').innerText = data.title;
                             document.getElementById('match-popup-poster').src = data.thumb || '';
                             const heading = document.getElementById('match-heading');
@@ -858,7 +855,7 @@
                     currentGenre = d.genre;
                     document.getElementById('genre-pill').innerText = currentGenre === 'All' ? 'Genres ▾' : currentGenre + ' ▾';
                     const movieRes = await fetch('/movies');
-                    movieStack = await movieRes.json(); swipeHistory = []; renderInitialDeck(true);
+                    movieStack = await movieRes.json(); swipeHistory = []; renderInitialDeck();
                 }
                 if (d.ready && document.getElementById('game-area').classList.contains('hidden')) {
                     loadMovies(d.solo || false);
@@ -867,6 +864,7 @@
                     const matchTs = d.last_match.ts;
                     if (matchTs > lastSeenMatchTs) {
                         lastSeenMatchTs = matchTs;
+                        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                         document.getElementById('matched-movie-title').innerText = d.last_match.title;
                         document.getElementById('match-popup-poster').src = d.last_match.thumb || '';
                         document.getElementById('match-heading').innerText = "IT'S A MATCH!";
@@ -901,7 +899,7 @@
                     body: JSON.stringify({ movie_id: lastMovie.id })
                 });
                 movieStack.unshift(lastMovie);
-                renderInitialDeck(false);
+                renderInitialDeck();
                 return;
             }
 
@@ -934,6 +932,7 @@
             .then(r => r.json())
             .then(data => {
                 if (data.match) {
+                    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                     document.getElementById('matched-movie-title').innerText = data.title;
                     document.getElementById('match-popup-poster').src = data.thumb || '';
                     const heading = document.getElementById('match-heading');
