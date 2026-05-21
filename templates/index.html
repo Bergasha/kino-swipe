@@ -756,7 +756,6 @@
                 }
 
                 if (Math.abs(globalCurrentX) > 120) {
-                    if (navigator.vibrate) navigator.vibrate(15);
                     const dir = globalCurrentX > 0 ? 'right' : 'left';
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
                     card.style.opacity = '0';
