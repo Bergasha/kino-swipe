@@ -111,7 +111,19 @@
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
         .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; }
-        .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+        .movie-card img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            display: block; 
+            background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+            animation: skeleton-glow 1.5s infinite linear;
+        }
+        @keyframes skeleton-glow {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
@@ -723,12 +735,26 @@
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
                 glowRight.style.opacity = globalCurrentX > 20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
                 glowLeft.style.opacity = globalCurrentX < -20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
+
+                const opacityProgress = Math.min(Math.abs(globalCurrentX) / 150, 1);
+                const lowerCard = card.previousElementSibling;
+                if (lowerCard) {
+                    lowerCard.style.transform = `scale(${0.95 + (opacityProgress * 0.05)})`;
+                    lowerCard.style.filter = `blur(${2 - (opacityProgress * 2)}px)`;
+                }
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
                 glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
                 if (card.classList.contains('flipped')) { globalCurrentX = 0; return; }
                 card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
+
+                const lowerCard = card.previousElementSibling;
+                if (lowerCard) {
+                    lowerCard.style.transform = '';
+                    lowerCard.style.filter = '';
+                }
+
                 if (Math.abs(globalCurrentX) > 120) {
                     const dir = globalCurrentX > 0 ? 'right' : 'left';
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
@@ -744,6 +770,7 @@
                     })
                     .then(r => r.json()).then(data => { 
                         if (data.match) { 
+                            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                             document.getElementById('matched-movie-title').innerText = data.title;
                             document.getElementById('match-popup-poster').src = data.thumb || '';
                             const heading = document.getElementById('match-heading');
@@ -836,6 +863,7 @@
                     const matchTs = d.last_match.ts;
                     if (matchTs > lastSeenMatchTs) {
                         lastSeenMatchTs = matchTs;
+                        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                         document.getElementById('matched-movie-title').innerText = d.last_match.title;
                         document.getElementById('match-popup-poster').src = d.last_match.thumb || '';
                         document.getElementById('match-heading').innerText = "IT'S A MATCH!";
@@ -850,13 +878,11 @@
             const card = document.querySelector('.movie-card:last-child');
             if (!card) return;
 
-     
             if (e.key === 'ArrowDown') {
                 card.classList.toggle('flipped');
                 return;
             }
 
-         
             if (e.key === 'ArrowUp') {
                 if (swipeHistory.length === 0) return;
                 const lastMovie = swipeHistory.pop();
@@ -876,7 +902,6 @@
                 return;
             }
 
-           
             let dir = null;
             if (e.key === 'ArrowRight') dir = 'right';
             if (e.key === 'ArrowLeft') dir = 'left';
@@ -906,6 +931,7 @@
             .then(r => r.json())
             .then(data => {
                 if (data.match) {
+                    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                     document.getElementById('matched-movie-title').innerText = data.title;
                     document.getElementById('match-popup-poster').src = data.thumb || '';
                     const heading = document.getElementById('match-heading');
@@ -934,7 +960,6 @@
         window.onload = async () => {
             _bindStaticHandlers();
             
-           
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
             if (pinId) {
