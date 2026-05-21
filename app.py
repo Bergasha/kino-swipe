@@ -2,7 +2,8 @@ from flask import Flask, send_from_directory, jsonify, request, session, Respons
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount
 from werkzeug.middleware.proxy_fix import ProxyFix
-import sqlite3, os, random, requests, json, secrets, time
+from contextlib import contextmanager
+import sqlite3, os, random, requests, json, secrets, time, threading
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
@@ -17,6 +18,8 @@ CLIENT_ID = 'KinoSwipe-Bergasha-2026'
 JELLYFIN_URL = os.getenv('JELLYFIN_URL', '').rstrip('/')
 JELLYFIN_API_KEY = os.getenv('JELLYFIN_API_KEY', '')
 
+CACHE_TTL = 86400
+
 if not os.getenv('FLASK_SECRET'):
     raise RuntimeError("Missing env var: FLASK_SECRET")
 if not os.getenv('TMDB_API_KEY'):
@@ -28,6 +31,18 @@ if not plex_ready and not jellyfin_ready:
     raise RuntimeError("Must set either (PLEX_URL + PLEX_TOKEN) or (JELLYFIN_URL + JELLYFIN_API_KEY)")
 
 
+@contextmanager
+def db_session():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -43,6 +58,10 @@ def init_db():
             room_code TEXT, movie_id TEXT, title TEXT, thumb TEXT,
             status TEXT DEFAULT "active", plex_id TEXT,
             UNIQUE(room_code, movie_id, plex_id)
+        )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS library_cache (
+            backend TEXT, genre TEXT, movie_data TEXT, updated_at REAL,
+            PRIMARY KEY (backend, genre)
         )''')
 
         cursor = conn.execute("PRAGMA table_info(matches)")
@@ -106,18 +125,16 @@ def fetch_plex_movies(genre_name=None):
         reset_plex()
         plex = get_plex()
         movie_section = plex.library.section('Movies')
-    do_shuffle = True
     search_genre = "Science Fiction" if genre_name == "Sci-Fi" else genre_name
 
     if genre_name == "Recently Added":
         movies = movie_section.search(libtype='movie', sort='addedAt:desc', maxresults=100)
-        do_shuffle = False
     elif search_genre and search_genre != "All":
-        movies = movie_section.search(libtype='movie', genre=search_genre, sort='random', maxresults=100)
+        movies = movie_section.search(libtype='movie', genre=search_genre, maxresults=2000)
         if not movies and search_genre != genre_name:
-            movies = movie_section.search(libtype='movie', genre=genre_name, sort='random', maxresults=100)
+            movies = movie_section.search(libtype='movie', genre=genre_name, maxresults=2000)
     else:
-        movies = movie_section.search(libtype='movie', sort='random', maxresults=150)
+        movies = movie_section.search(libtype='movie', maxresults=2000)
 
     movie_list = []
     for m in movies:
@@ -131,8 +148,6 @@ def fetch_plex_movies(genre_name=None):
             'thumb': f"/proxy?backend=plex&path={m.thumb}",
             'rating': m.audienceRating or m.rating, 'duration': runtime_str, 'year': m.year
         })
-    if do_shuffle:
-        random.shuffle(movie_list)
     return movie_list
 
 
@@ -177,7 +192,7 @@ def fetch_jellyfin_movies(genre_name=None):
         'Recursive': 'true',
         'Fields': 'Overview,Genres,RunTimeTicks,CommunityRating,ProductionYear',
         'EnableImages': 'true',
-        'Limit': 150,
+        'Limit': 2000,
     }
 
     if genre_name == "Recently Added":
@@ -186,10 +201,6 @@ def fetch_jellyfin_movies(genre_name=None):
         params['Limit'] = 100
     elif genre_name and genre_name != "All":
         params['Genres'] = genre_name
-        params['SortBy'] = 'Random'
-        params['Limit'] = 100
-    else:
-        params['SortBy'] = 'Random'
 
     r = requests.get(f"{JELLYFIN_URL}/Items", headers=_jf_headers(), params=params, timeout=15)
     r.raise_for_status()
@@ -210,9 +221,6 @@ def fetch_jellyfin_movies(genre_name=None):
             'duration': runtime_str,
             'year': m.get('ProductionYear'),
         })
-
-    if genre_name != "Recently Added":
-        random.shuffle(movie_list)
     return movie_list
 
 def get_jellyfin_item(item_id):
@@ -248,9 +256,46 @@ def current_backend():
     return session.get('backend', 'plex')
 
 def fetch_movies(genre_name=None):
-    if current_backend() == 'jellyfin':
-        return fetch_jellyfin_movies(genre_name)
-    return fetch_plex_movies(genre_name)
+    backend = current_backend()
+    genre_name = genre_name or "All"
+    
+    with db_session() as conn:
+        cache = conn.execute(
+            'SELECT movie_data, updated_at FROM library_cache WHERE backend = ? AND genre = ?',
+            (backend, genre_name)
+        ).fetchone()
+
+    now = time.time()
+
+    if not cache:
+        movie_list = build_and_cache_library(backend, genre_name)
+    else:
+        movie_list = json.loads(cache['movie_data'])
+        if now - cache['updated_at'] > CACHE_TTL:
+            threading.Thread(target=build_and_cache_library, args=(backend, genre_name), daemon=True).start()
+
+    if genre_name != "Recently Added":
+        random.shuffle(movie_list)
+    return movie_list
+
+def build_and_cache_library(backend, genre_name):
+    try:
+        if backend == 'jellyfin':
+            movies = fetch_jellyfin_movies(genre_name)
+        else:
+            movies = fetch_plex_movies(genre_name)
+            
+        if not movies:
+            return []
+
+        with db_session() as conn:
+            conn.execute('''
+                INSERT OR REPLACE INTO library_cache (backend, genre, movie_data, updated_at)
+                VALUES (?, ?, ?, ?)
+            ''', (backend, genre_name, json.dumps(movies), time.time()))
+        return movies
+    except Exception:
+        return []
 
 def get_genres():
     if current_backend() == 'jellyfin':
@@ -714,7 +759,7 @@ def proxy():
         path = request.args.get('path')
         if not path or not path.startswith("/library/metadata/"):
             abort(403)
-        res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True)
+        res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
         return Response(res.content, content_type=res.headers['Content-Type'])
 
 
@@ -725,7 +770,7 @@ def serve_manifest():
 
 @app.route('/sw.js')
 def serve_sw():
-    return send_from_directory('.', 'sw.js')
+    return send_from_directory('data', 'sw.js')
 
 @app.route('/static/<path:path>')
 def serve_static(path):
