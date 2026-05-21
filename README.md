@@ -34,7 +34,15 @@ Dating app style — swipe right to like, swipe left to pass. If you both swipe 
 </details>
 
 ---
+## Performance Note (First-Time Run)
 
+When you click **Host Session** or select a new genre for the absolute first time, **Kino-Swipe** caches your media library locally in a SQLite database to ensure instant loading speeds later. 
+
+* **First run / New genre:** May take **5–15 seconds** depending on the size of your Plex or Jellyfin library while it builds the initial local dataset.
+* **Subsequent runs:** **Instantaneous.** The app shuffles and serves cards out of the local cache immediately.
+* **Automatic Updates:** The cache automatically and silently updates in a background thread every 24 hours, meaning you will never experience that initial setup delay again after the first run.
+
+---  
 ## Features
 - **Plex & Jellyfin Integration:** Connects directly to your Plex or Jellyfin server to pull movies.
 - **Coloured sessions:** Plex Yellow lets you know you're in a Plex session and Jellyfin Blue for Jellyfin.
