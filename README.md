@@ -10,17 +10,26 @@ same movie, IT'S A MATCH!! yay.
 
 ## Screenshots
 
+<details>
+<summary>Click to view screenshots</summary>
+
+<br>
+
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b689d2d0-c274-4fe5-aabc-3269d05b2c4d" width="32%" />
-  <img src="https://github.com/user-attachments/assets/3e01810c-7e1c-4f64-ae57-8e85332a6b77" width="32%" />
-  <img src="https://github.com/user-attachments/assets/708cd372-1cf2-40ca-b275-f42ffd3b2e03" width="32%" />
+  <img src="https://github.com/user-attachments/assets/1c5eb50e-a488-4a05-8c6a-5659cf783aba" width="32%" />
+  <img src="https://github.com/user-attachments/assets/042c9d4f-5d5e-4815-852f-07d929e2ef8e" width="32%" />
+  <img src="https://github.com/user-attachments/assets/87f64b9e-919b-47ec-b6e4-495e587af732" width="32%" />
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1e4501d3-02b8-4029-9180-20431850b3e0" width="32%" />
-  <img src="https://github.com/user-attachments/assets/b4c08186-6885-43ca-ab05-6a56aead1df6" width="32%" />
-  <img src="https://github.com/user-attachments/assets/bdca2e04-f3ae-4fe9-bd3c-d890e49953fa" width="32%" />
+  <img src="https://github.com/user-attachments/assets/76a68e48-dc70-43a9-b637-f74287fbddce" width="32%" />
+  <img src="https://github.com/user-attachments/assets/dedd8c0a-3941-401f-9177-a385660b9689" width="32%" />
+  <img src="https://github.com/user-attachments/assets/d0e1d768-a1d2-4d32-a76a-ac3fd0ec74ca" width="32%" />
 </p>
+
+</details>
+
+---
 
 
 
@@ -39,9 +48,15 @@ same movie, IT'S A MATCH!! yay.
 - **Match History** All matches now live in Match History until you're ready to delete them.
 - **Solo Mode** Flying solo? no worries, just host session and flick the solo toggle. (Every right swipe saves to Match History) 
 
-## Coming Soon
-~~Match History: Match history folder accessible outside session for easy access.~~   
-- **Jellyfin Support:** This is in Beta
+
+## Performance Note (First-Time Run)
+
+When you click **Host Session** or select a new genre for the absolute first time, **Kino-Swipe** caches your media library locally in a SQLite database to ensure instant loading speeds later. 
+
+* **First run / New genre:** May take **5–15 seconds** depending on the size of your Plex or Jellyfin library while it builds the initial local dataset.
+* **Subsequent runs:** **Instantaneous.** The app shuffles and serves cards out of the local cache immediately.
+* **Automatic Updates:** The cache automatically and silently updates in a background thread every 24 hours, meaning you will never experience that initial setup delay again after the first run.
+
   
 
 ## Requirements
