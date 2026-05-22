@@ -106,11 +106,11 @@
         #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 60px auto 100px auto; max-height: calc(100vh - 180px); }
         
         .movie-card, .mini-poster { perspective: 1000px; }
-        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s, box-shadow 0.3s ease; transform-style: preserve-3d; }
+        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s, box-shadow 0.3s ease; transform-style: preserve-3d; border-radius: 20px; }
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
-        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; }
+        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; }
         .movie-card img { 
             width: 100%; 
             height: 100%; 
