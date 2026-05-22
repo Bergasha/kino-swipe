@@ -106,7 +106,7 @@
         #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 60px auto 100px auto; max-height: calc(100vh - 180px); }
         
         .movie-card, .mini-poster { perspective: 1000px; }
-        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s, box-shadow 0.3s ease; transform-style: preserve-3d; }
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
@@ -736,25 +736,26 @@
                 glowRight.style.opacity = globalCurrentX > 20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
                 glowLeft.style.opacity = globalCurrentX < -20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
 
-                const opacityProgress = Math.min(Math.abs(globalCurrentX) / 150, 1);
-                const lowerCard = card.previousElementSibling;
-                if (lowerCard) {
-                    lowerCard.style.transform = `scale(${0.95 + (opacityProgress * 0.05)})`;
-                    lowerCard.style.filter = `blur(${2 - (opacityProgress * 2)}px)`;
+                const cardInner = card.querySelector('.card-inner');
+                if (cardInner) {
+                    if (globalCurrentX > 10) {
+                        cardInner.style.boxShadow = `0 0 ${Math.min(globalCurrentX / 2, 40)}px rgba(76, 175, 80, ${Math.min(globalCurrentX / 100, 0.9)})`;
+                    } else if (globalCurrentX < -10) {
+                        cardInner.style.boxShadow = `0 0 ${Math.min(Math.abs(globalCurrentX) / 2, 40)}px rgba(211, 47, 47, ${Math.min(Math.abs(globalCurrentX) / 100, 0.9)})`;
+                    } else {
+                        cardInner.style.boxShadow = '';
+                    }
                 }
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
                 glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
+                
+                const cardInner = card.querySelector('.card-inner');
+                if (cardInner) cardInner.style.boxShadow = '';
+
                 if (card.classList.contains('flipped')) { globalCurrentX = 0; return; }
                 card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
-
-                const lowerCard = card.previousElementSibling;
-                if (lowerCard) {
-                    lowerCard.style.transform = '';
-                    lowerCard.style.filter = '';
-                }
-
                 if (Math.abs(globalCurrentX) > 120) {
                     const dir = globalCurrentX > 0 ? 'right' : 'left';
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
