@@ -217,7 +217,7 @@ def fetch_jellyfin_movies(genre_name=None):
             'title': m.get('Name', ''),
             'summary': m.get('Overview', ''),
             'thumb': f"/proxy?backend=jellyfin&item_id={m['Id']}",
-            'rating': m.get('CommunityRating'),
+            'rating': round(m.get('CommunityRating'), 1) if m.get('CommunityRating') is not None else None,
             'duration': runtime_str,
             'year': m.get('ProductionYear'),
         })
