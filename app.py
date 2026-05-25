@@ -40,7 +40,7 @@ def get_db():
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER, current_genre TEXT, solo_mode INTEGER DEFAULT 0, backend TEXT DEFAULT "plex")')
+        conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER, current_genre TEXT, solo_mode INTEGER DEFAULT 0, backend TEXT DEFAULT "plex", status TEXT DEFAULT "active", last_match_data TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS swipes (room_code TEXT, movie_id TEXT, user_id TEXT, direction TEXT, plex_id TEXT)')
         conn.execute('''CREATE TABLE IF NOT EXISTS matches (
             room_code TEXT, movie_id TEXT, title TEXT, thumb TEXT,
@@ -72,9 +72,10 @@ def init_db():
             conn.execute('ALTER TABLE rooms ADD COLUMN last_match_data TEXT')
         if 'backend' not in room_cols:
             conn.execute('ALTER TABLE rooms ADD COLUMN backend TEXT DEFAULT "plex"')
+        if 'status' not in room_cols:
+            conn.execute('ALTER TABLE rooms ADD COLUMN status TEXT DEFAULT "active"')
 
         conn.execute('DELETE FROM swipes WHERE room_code NOT IN (SELECT pairing_code FROM rooms)')
-
 
 
 _plex_genre_cache = None
@@ -137,7 +138,6 @@ def fetch_plex_movies(genre_name=None):
             'rating': m.audienceRating or m.rating, 'duration': runtime_str, 'year': m.year
         })
     return movie_list
-
 
 
 _jellyfin_genre_cache = None
@@ -229,7 +229,6 @@ def get_jellyfin_item(item_id):
     return items[0]
 
 
-
 def current_backend():
     header_backend = request.headers.get('X-Backend')
     if header_backend in ('plex', 'jellyfin'):
@@ -306,11 +305,9 @@ def get_item_meta(movie_id, backend_override=None):
         return item.title, item.year
 
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 
 @app.route('/auth/plex-url')
@@ -345,8 +342,6 @@ def check_pin():
 
 @app.route('/auth/jellyfin-login', methods=['POST'])
 def jellyfin_login():
-    if not jellyfin_ready:
-        return jsonify({'error': 'Jellyfin not configured on this server'}), 503
     data = request.json or {}
     username = data.get('username', '').strip()
     password = data.get('password', '')
@@ -381,14 +376,6 @@ def jellyfin_login():
         return jsonify({'error': str(e)}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/auth/available-backends')
-def available_backends():
-    return jsonify({
-        'plex': plex_ready,
-        'jellyfin': jellyfin_ready,
-    })
-
 
 
 @app.route('/watchlist/add', methods=['POST'])
@@ -430,7 +417,6 @@ def add_to_watchlist():
             return jsonify({'error': str(e)}), 500
 
 
-
 @app.route('/server-info')
 def get_server_info():
     backend = current_backend()
@@ -450,11 +436,6 @@ def get_server_info():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/plex/server-info')
-def plex_server_info_compat():
-    return get_server_info()
-
-
 
 def tmdb_search(title, year):
     base = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(title)}"
@@ -471,11 +452,8 @@ def tmdb_search(title, year):
 def get_trailer(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
-        print(f"[trailer] movie_id={movie_id} backend_override={backend_override} session_backend={session.get('backend')} active_room={session.get('active_room')}", flush=True)
         title, year = get_item_meta(movie_id, backend_override)
-        print(f"[trailer] title={title!r} year={year!r}", flush=True)
         tmdb_id = tmdb_search(title, year)
-        print(f"[trailer] tmdb_id={tmdb_id}", flush=True)
         if tmdb_id:
             v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}").json()
             trailers = [v for v in v_res.get('results', []) if v['site'] == 'YouTube' and v['type'] == 'Trailer']
@@ -483,7 +461,6 @@ def get_trailer(movie_id):
                 return jsonify({'youtube_key': trailers[0]['key']})
         return jsonify({'error': 'Not found'}), 404
     except Exception as e:
-        print(f"[trailer] EXCEPTION: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/cast/<movie_id>')
@@ -507,7 +484,6 @@ def get_cast(movie_id):
         return jsonify({'error': str(e), 'cast': []}), 500
 
 
-
 @app.route('/room/create', methods=['POST'])
 def create_room():
     backend = session.get('backend', 'plex')
@@ -515,7 +491,7 @@ def create_room():
     movie_list = fetch_movies()
     with get_db() as conn:
         conn.execute(
-            'INSERT INTO rooms (pairing_code, movie_data, ready, current_genre, solo_mode, backend) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO rooms (pairing_code, movie_data, ready, current_genre, solo_mode, backend, status) VALUES (?, ?, ?, ?, ?, ?, "active")',
             (pairing_code, json.dumps(movie_list), 0, 'All', 0, backend)
         )
     session['active_room'] = pairing_code
@@ -538,7 +514,7 @@ def join_room():
     code = request.json.get('code')
     joiner_backend = session.get('backend', 'plex')
     with get_db() as conn:
-        room = conn.execute('SELECT * FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
+        room = conn.execute('SELECT * FROM rooms WHERE pairing_code = ? AND status = "active"', (code,)).fetchone()
         if room:
             if room['backend'] != joiner_backend:
                 return jsonify({
@@ -602,8 +578,10 @@ def room_status():
     if not code:
         return jsonify({'ready': False})
     with get_db() as conn:
-        room = conn.execute('SELECT ready, current_genre, solo_mode, last_match_data, backend FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
+        room = conn.execute('SELECT ready, current_genre, solo_mode, last_match_data, backend, status FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
         if room:
+            if room['status'] == 'closed':
+                return jsonify({'ready': False, 'closed': True})
             last_match = json.loads(room['last_match_data']) if room['last_match_data'] else None
             return jsonify({
                 'ready': bool(room['ready']),
@@ -619,8 +597,7 @@ def quit_room():
     code = session.get('active_room')
     if code:
         with get_db() as conn:
-            conn.execute('DELETE FROM rooms WHERE pairing_code = ?', (code,))
-            conn.execute('DELETE FROM swipes WHERE room_code = ?', (code,))
+            conn.execute('UPDATE rooms SET status = "closed" WHERE pairing_code = ?', (code,))
             conn.execute('UPDATE matches SET status = "archived", room_code = "HISTORY" WHERE room_code = ? AND status = "active"', (code,))
         session.pop('active_room', None)
         session.pop('solo_mode', None)
@@ -643,11 +620,18 @@ def room_stream():
             try:
                 with get_db() as conn:
                     row = conn.execute(
-                        'SELECT ready, current_genre, solo_mode, last_match_data FROM rooms WHERE pairing_code = ?',
+                        'SELECT ready, current_genre, solo_mode, last_match_data, status FROM rooms WHERE pairing_code = ?',
                         (code,)
                     ).fetchone()
-                if row is None:
+                if row is None or row['status'] == 'closed':
                     yield f"data: {json.dumps({'closed': True})}\n\n"
+                    if row is not None:
+                        try:
+                            with get_db() as cleanup_conn:
+                                cleanup_conn.execute('DELETE FROM rooms WHERE pairing_code = ?', (code,))
+                                cleanup_conn.execute('DELETE FROM swipes WHERE room_code = ?', (code,))
+                        except Exception:
+                            pass
                     return
                 ready = bool(row['ready'])
                 genre = row['current_genre']
@@ -677,7 +661,6 @@ def room_stream():
                     headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
 
-
 @app.route('/movies')
 def get_movies():
     code = session.get('active_room')
@@ -696,7 +679,6 @@ def get_movies():
 @app.route('/genres')
 def genres_route():
     return jsonify(get_genres())
-
 
 
 @app.route('/matches')
@@ -731,7 +713,6 @@ def undo_swipe():
     return jsonify({'status': 'undone'})
 
 
-
 @app.route('/proxy')
 def proxy():
     backend = request.args.get('backend', 'plex')
@@ -750,7 +731,6 @@ def proxy():
             abort(403)
         res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
         return Response(res.content, content_type=res.headers['Content-Type'])
-
 
 
 @app.route('/manifest.json')
