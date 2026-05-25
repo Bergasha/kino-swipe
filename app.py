@@ -377,6 +377,13 @@ def jellyfin_login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/auth/available-backends')
+def available_backends():
+    return jsonify({
+        'plex': bool(PLEX_URL and ADMIN_TOKEN),
+        'jellyfin': bool(JELLYFIN_URL and JELLYFIN_API_KEY),
+    })
+
 
 @app.route('/watchlist/add', methods=['POST'])
 def add_to_watchlist():
