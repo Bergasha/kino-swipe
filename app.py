@@ -18,18 +18,6 @@ CLIENT_ID = 'KinoSwipe-Bergasha-2026'
 JELLYFIN_URL = os.getenv('JELLYFIN_URL', '').rstrip('/')
 JELLYFIN_API_KEY = os.getenv('JELLYFIN_API_KEY', '')
 
-CACHE_TTL = 86400
-
-if not os.getenv('FLASK_SECRET'):
-    raise RuntimeError("Missing env var: FLASK_SECRET")
-if not os.getenv('TMDB_API_KEY'):
-    raise RuntimeError("Missing env var: TMDB_API_KEY")
-
-plex_ready = bool(PLEX_URL and ADMIN_TOKEN)
-jellyfin_ready = bool(JELLYFIN_URL and JELLYFIN_API_KEY)
-if not plex_ready and not jellyfin_ready:
-    raise RuntimeError("Must set either (PLEX_URL + PLEX_TOKEN) or (JELLYFIN_URL + JELLYFIN_API_KEY)")
-
 
 @contextmanager
 def db_session():
@@ -266,12 +254,13 @@ def fetch_movies(genre_name=None):
         ).fetchone()
 
     now = time.time()
+    ttl = 1800 if genre_name == "Recently Added" else 43200
 
     if not cache:
         movie_list = build_and_cache_library(backend, genre_name)
     else:
         movie_list = json.loads(cache['movie_data'])
-        if now - cache['updated_at'] > CACHE_TTL:
+        if now - cache['updated_at'] > ttl:
             threading.Thread(target=build_and_cache_library, args=(backend, genre_name), daemon=True).start()
 
     if genre_name != "Recently Added":
