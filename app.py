@@ -238,7 +238,10 @@ def get_jellyfin_item(item_id):
     items = r.json().get('Items', [])
     if not items:
         raise ValueError(f"Item {item_id} not found in Jellyfin")
-    return items[0]
+    item = items[0]
+    if item.get('CommunityRating') is not None:
+        item['CommunityRating'] = round(item['CommunityRating'], 1)
+    return item
 
 
 
