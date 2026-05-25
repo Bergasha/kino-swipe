@@ -520,7 +520,6 @@
             }
 
             renderInitialDeck();
-            startPolling();
         };
 
         async function openMatches(asHistory) {
@@ -985,7 +984,7 @@
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
-                if (localStorage.getItem('active_room')) loadMovies();
+                if (localStorage.getItem('active_room')) startPolling();
             }
         };
     </script>
