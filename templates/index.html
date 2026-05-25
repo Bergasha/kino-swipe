@@ -116,7 +116,13 @@
             height: 100%; 
             object-fit: contain; 
             display: block; 
-            background: #1a1a1a;
+            background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+            animation: skeleton-glow 1.5s infinite linear;
+        }
+        @keyframes skeleton-glow {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
@@ -520,6 +526,7 @@
             }
 
             renderInitialDeck();
+            startPolling();
         };
 
         async function openMatches(asHistory) {
@@ -719,10 +726,9 @@
             globalCurrentX = 0;
             const glowLeft = document.getElementById('glow-left');
             const glowRight = document.getElementById('glow-right');
-            
             const onMove = (e) => {
                 if (!isDragging) return;
-                const x = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+                const x = e.clientX || (e.touches && e.touches[0].clientX);
                 globalCurrentX = x - startX;
                 if (card.classList.contains('flipped')) return;
                 card.style.transition = 'none';
@@ -741,14 +747,9 @@
                     }
                 }
             };
-            
-            const onEnd = async (e) => {
-                if (!isDragging) return; 
-                isDragging = false;
+            const onEnd = async () => {
+                if (!isDragging) return; isDragging = false;
                 glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
-                
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onEnd);
                 
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) cardInner.style.boxShadow = '';
@@ -788,14 +789,11 @@
                     setTimeout(() => { card.remove(); movieStack.shift(); if (movieStack[4]) document.getElementById('swipe-deck').prepend(createCard(movieStack[4])); initDrag(document.getElementById('swipe-deck').lastElementChild); globalCurrentX = 0; }, 300);
                 } else { card.style.transform = ''; setTimeout(() => globalCurrentX = 0, 50); }
             };
-            
             card.onpointerdown = (e) => {
                 if (e.target.tagName === 'BUTTON') return;
-                isDragging = true; 
-                startX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+                isDragging = true; startX = e.clientX || (e.touches && e.touches[0].clientX);
                 card.setPointerCapture(e.pointerId);
-                window.addEventListener('pointermove', onMove); 
-                window.addEventListener('pointerup', onEnd);
+                window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onEnd);
             };
         }
 
@@ -984,7 +982,7 @@
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
-                if (localStorage.getItem('active_room')) startPolling();
+                if (localStorage.getItem('active_room')) loadMovies();
             }
         };
     </script>
