@@ -116,13 +116,7 @@
             height: 100%; 
             object-fit: contain; 
             display: block; 
-            background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%);
-            background-size: 200% 100%;
-            animation: skeleton-glow 1.5s infinite linear;
-        }
-        @keyframes skeleton-glow {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            background: #1a1a1a;
         }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
@@ -526,7 +520,6 @@
             }
 
             renderInitialDeck();
-            startPolling();
         };
 
         async function openMatches(asHistory) {
@@ -750,6 +743,9 @@
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
                 glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
+                
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onEnd);
                 
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) cardInner.style.boxShadow = '';
@@ -982,7 +978,7 @@
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
-                if (localStorage.getItem('active_room')) loadMovies();
+                if (localStorage.getItem('active_room')) startPolling();
             }
         };
     </script>
