@@ -113,6 +113,11 @@ def reset_plex():
     _plex_instance = None
 
 def get_plex_movie_section(plex):
+    """Return the Plex movie library section for the configured APP_LOCALE.
+
+    Tries the locale-specific library name first (e.g. Movies / Filme),
+    then other known locale names, then the first movie-type library.
+    """
     library_name = PLEX_LIBRARY_BY_LOCALE.get(APP_LOCALE, PLEX_LIBRARY_BY_LOCALE['en'])
     try:
         return plex.library.section(library_name)
