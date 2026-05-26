@@ -18,7 +18,8 @@ CLIENT_ID = 'KinoSwipe-Bergasha-2026'
 JELLYFIN_URL = os.getenv('JELLYFIN_URL', '').rstrip('/')
 JELLYFIN_API_KEY = os.getenv('JELLYFIN_API_KEY', '')
 
-CACHE_TTL = 86400
+CACHE_TTL = 43200        
+CACHE_TTL_RECENT = 1800  
 
 if not os.getenv('FLASK_SECRET'):
     raise RuntimeError("Missing env var: FLASK_SECRET")
@@ -130,11 +131,11 @@ def fetch_plex_movies(genre_name=None):
     if genre_name == "Recently Added":
         movies = movie_section.search(libtype='movie', sort='addedAt:desc', maxresults=100)
     elif search_genre and search_genre != "All":
-        movies = movie_section.search(libtype='movie', genre=search_genre, maxresults=2000)
+        movies = movie_section.search(libtype='movie', genre=search_genre)
         if not movies and search_genre != genre_name:
-            movies = movie_section.search(libtype='movie', genre=genre_name, maxresults=2000)
+            movies = movie_section.search(libtype='movie', genre=genre_name)
     else:
-        movies = movie_section.search(libtype='movie', maxresults=2000)
+        movies = movie_section.search(libtype='movie')
 
     movie_list = []
     for m in movies:
@@ -217,7 +218,7 @@ def fetch_jellyfin_movies(genre_name=None):
             'title': m.get('Name', ''),
             'summary': m.get('Overview', ''),
             'thumb': f"/proxy?backend=jellyfin&item_id={m['Id']}",
-            'rating': m.get('CommunityRating'),
+            'rating': round(m.get('CommunityRating'), 1) if m.get('CommunityRating') is not None else None,
             'duration': runtime_str,
             'year': m.get('ProductionYear'),
         })
@@ -238,7 +239,10 @@ def get_jellyfin_item(item_id):
     items = r.json().get('Items', [])
     if not items:
         raise ValueError(f"Item {item_id} not found in Jellyfin")
-    return items[0]
+    item = items[0]
+    if item.get('CommunityRating') is not None:
+        item['CommunityRating'] = round(item['CommunityRating'], 1)
+    return item
 
 
 
@@ -266,12 +270,13 @@ def fetch_movies(genre_name=None):
         ).fetchone()
 
     now = time.time()
+    ttl = CACHE_TTL_RECENT if genre_name == "Recently Added" else CACHE_TTL
 
     if not cache:
         movie_list = build_and_cache_library(backend, genre_name)
     else:
         movie_list = json.loads(cache['movie_data'])
-        if now - cache['updated_at'] > CACHE_TTL:
+        if now - cache['updated_at'] > ttl:
             threading.Thread(target=build_and_cache_library, args=(backend, genre_name), daemon=True).start()
 
     if genre_name != "Recently Added":
@@ -647,7 +652,7 @@ def room_stream():
         last_genre = None
         last_ready = None
         last_match_ts = None
-        POLL = 1.5
+        POLL = 0.5
         TIMEOUT = 3600
         deadline = time.time() + TIMEOUT
         while time.time() < deadline:
