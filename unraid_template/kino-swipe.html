@@ -10,11 +10,11 @@
   <Support>https://github.com/Bergasha/kino-swipe/issues</Support>
   <Project>https://github.com/Bergasha/kino-swipe</Project>
   <Overview>
-Swipe and match movies for Plex
+Swipe and match movies for Plex and Jellyfin.
 
 Tired of trying to pick a movie to watch together? Kino Swipe can turn this into a fun game. Basic dating app rules: swipe left if it is a no and swipe right if it is a yes. Two right swipes and it's a match. All matches are stored in your match history for later viewing.
   </Overview>
-  <Category>MediaApp</Category>
+  <Category>MediaApp:Photos MediaApp:Video Status:Stable</Category>
   <WebUI>http://[IP]:[PORT:5005]</WebUI>
   <Icon>https://i.imgur.com/vmt9pbN.png</Icon>
   <ExtraParams/>
@@ -23,50 +23,14 @@ Tired of trying to pick a movie to watch together? Kino Swipe can turn this into
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Description>Swipe and match movies for Plex</Description>
-  <Networking>
-    <Mode>bridge</Mode>
-    <Publish>
-      <Port>
-        <HostPort>5005</HostPort>
-        <ContainerPort>5005</ContainerPort>
-        <Protocol>tcp</Protocol>
-      </Port>
-    </Publish>
-  </Networking>
-  <Environment>
-    <Variable>
-      <Name>PLEX_URL</Name>
-      <Value>https://YOUR_PLEX_URL</Value>
-      <Mode/>
-    </Variable>
-    <Variable>
-      <Name>PLEX_TOKEN</Name>
-      <Value>YOUR_PLEX_TOKEN</Value>
-      <Mode>password</Mode>
-    </Variable>
-    <Variable>
-      <Name>TMDB_API_KEY</Name>
-      <Value>YOUR_TMDB_API_KEY</Value>
-      <Mode>password</Mode>
-    </Variable>
-    <Variable>
-      <Name>FLASK_SECRET</Name>
-      <Value>Enter_random_string</Value>
-      <Mode>password</Mode>
-    </Variable>
-  </Environment>
-  <Data>
-    <Volume>
-      <HostDir>/mnt/user/appdata/kino-swipe/data</HostDir>
-      <ContainerDir>/app/data</ContainerDir>
-      <Mode>rw</Mode>
-    </Volume>
-  </Data>
+  <Description>Swipe and match movies for Plex and Jellyfin</Description>
   <Config Name="WebUI Port" Target="5005" Default="5005" Mode="tcp" Description="Port used to access Kino Swipe" Type="Port" Display="always" Required="true" Mask="false">5005</Config>
-  <Config Name="PLEX_URL" Target="PLEX_URL" Default="https://YOUR_PLEX_URL" Mode="" Description="URL of your Plex server" Type="Variable" Display="always" Required="true" Mask="false"/>
-  <Config Name="PLEX_TOKEN" Target="PLEX_TOKEN" Default="" Mode="" Description="Your Plex token" Type="Variable" Display="always" Required="true" Mask="true"/>
-  <Config Name="TMDB_API_KEY" Target="TMDB_API_KEY" Default="" Mode="" Description="TMDB API key for Trailers to work" Type="Variable" Display="always" Required="true" Mask="true"/>
-  <Config Name="FLASK_SECRET" Target="FLASK_SECRET" Default="" Mode="" Description="Random secret string for session security" Type="Variable" Display="always" Required="true" Mask="true"/>
-  <Config Name="AppData Config Path" Target="/app/data" Default="/mnt/user/appdata/kino-swipe/data" Mode="rw" Description="Persistent storage for Kino Swipe data" Type="Path" Display="always" Required="true" Mask="false"/>
+  <Config Name="PLEX_URL" Target="PLEX_URL" Default="" Description="URL of your Plex server (Optional)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="PLEX_TOKEN" Target="PLEX_TOKEN" Default="" Description="Your Plex token (Optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="JELLYFIN_URL" Target="JELLYFIN_URL" Default="" Description="URL of your Jellyfin server (Optional)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="JELLYFIN_API_KEY" Target="JELLYFIN_API_KEY" Default="" Description="Your Jellyfin API Key (Optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="TMDB_API_KEY" Target="TMDB_API_KEY" Default="" Description="TMDB API key for trailers and metadata to work" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="FLASK_SECRET" Target="FLASK_SECRET" Default="" Description="Random secret string for session security" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="AppData Config Path" Target="/app/data" Default="/mnt/user/appdata/kino-swipe/data" Mode="rw" Description="Persistent storage for Kino Swipe data" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/kino-swipe/data</Config>
+  <Config Name="Static Content Path" Target="/app/static" Default="/mnt/user/appdata/kino-swipe/static" Mode="rw" Description="Persistent storage for local static files" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/kino-swipe/static</Config>
 </Container>
