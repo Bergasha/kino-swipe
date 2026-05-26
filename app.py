@@ -1,6 +1,7 @@
 from flask import Flask, send_from_directory, jsonify, request, session, Response, render_template, abort
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount
+from plexapi.exceptions import NotFound
 from werkzeug.middleware.proxy_fix import ProxyFix
 from contextlib import contextmanager
 import sqlite3, os, random, requests, json, secrets, time, threading
@@ -17,6 +18,13 @@ CLIENT_ID = 'KinoSwipe-Bergasha-2026'
 
 JELLYFIN_URL = os.getenv('JELLYFIN_URL', '').rstrip('/')
 JELLYFIN_API_KEY = os.getenv('JELLYFIN_API_KEY', '')
+
+APP_LOCALE = os.getenv('APP_LOCALE', 'en').lower()
+
+PLEX_LIBRARY_BY_LOCALE = {
+    'en': 'Movies',
+    'de': 'Filme',
+}
 
 CACHE_TTL = 43200        
 CACHE_TTL_RECENT = 1800  
@@ -104,13 +112,37 @@ def reset_plex():
     global _plex_instance
     _plex_instance = None
 
+def get_plex_movie_section(plex):
+    """Return the Plex movie library section for the configured APP_LOCALE.
+
+    Tries the locale-specific library name first (e.g. Movies / Filme),
+    then other known locale names, then the first movie-type library.
+    """
+    library_name = PLEX_LIBRARY_BY_LOCALE.get(APP_LOCALE, PLEX_LIBRARY_BY_LOCALE['en'])
+    try:
+        return plex.library.section(library_name)
+    except NotFound:
+        pass
+
+    for name in PLEX_LIBRARY_BY_LOCALE.values():
+        try:
+            return plex.library.section(name)
+        except NotFound:
+            continue
+
+    for section in plex.library.sections():
+        if section.type == 'movie':
+            return section
+
+    raise NotFound('No Plex movie library found')
+
 def get_plex_genres():
     global _plex_genre_cache
     if _plex_genre_cache is not None:
         return _plex_genre_cache
     try:
         plex = get_plex()
-        section = plex.library.section('Movies')
+        section = get_plex_movie_section(plex)
         genres = sorted({g.title for g in section.listFilterChoices(field='genre')})
         display = ["Sci-Fi" if g == "Science Fiction" else g for g in genres]
         _plex_genre_cache = display
@@ -121,11 +153,11 @@ def get_plex_genres():
 def fetch_plex_movies(genre_name=None):
     try:
         plex = get_plex()
-        movie_section = plex.library.section('Movies')
+        movie_section = get_plex_movie_section(plex)
     except Exception:
         reset_plex()
         plex = get_plex()
-        movie_section = plex.library.section('Movies')
+        movie_section = get_plex_movie_section(plex)
     search_genre = "Science Fiction" if genre_name == "Sci-Fi" else genre_name
 
     if genre_name == "Recently Added":
