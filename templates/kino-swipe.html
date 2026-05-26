@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Container version="2">
   <Name>Kino Swipe</Name>
   <Repository>bergasha/kino-swipe:latest</Repository>
@@ -7,23 +6,39 @@
   <MyIP/>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Bergasha/kino-swipe/issues</Support>
-  <Project>https://github.com/Bergasha/kino-swipe</Project>
-  <Overview>
-Swipe and match movies for Plex and Jellyfin.
-
-Tired of trying to pick a movie to watch together? Kino Swipe can turn this into a fun game. Basic dating app rules: swipe left if it is a no and swipe right if it is a yes. Two right swipes and it's a match. All matches are stored in your match history for later viewing.
-  </Overview>
-  <Category>MediaApp:Photos MediaApp:Video Status:Stable</Category>
+  
   <WebUI>http://[IP]:[PORT:5005]</WebUI>
-  <Icon>https://i.imgur.com/vmt9pbN.png</Icon>
-  <ExtraParams/>
-  <PostArgs/>
-  <CPUset/>
-  <DateInstalled/>
-  <DonateText/>
-  <DonateLink/>
+
+  <Overview>Swipe and match movies for Plex and Jellyfin. Basic dating app rules: swipe left if it is a no and swipe right if it is a yes. Two right swipes and it's a match. All matches are stored in your match history for later viewing.</Overview>
+
+  <Support>https://github.com/Bergasha/kino-swipe/issues</Support>
+  
+  <Project>https://github.com/Bergasha/kino-swipe</Project>
+
+  <ReadMe>https://raw.githubusercontent.com/Bergasha/kino-swipe/main/README.md</ReadMe>
+
+  <Discord/>
+  
+  <Category>MediaApp:Video MediaApp:Other</Category>
+  
+  <Beta>false</Beta>
+
+  <MinVer>6.9.0</MinVer>
+  <MaxVer/>
+
+  <Deprecated>false</Deprecated>
+
+  <DeprecatedMaxVer/>
+
+  <License>MIT</License>
+
+  <Screenshot/>
+  
+  <Video/>
+
+  <Icon>https://github.com/Bergasha/kino-swipe/blob/main/static/main.png?raw=true</Icon>
   <Description>Swipe and match movies for Plex and Jellyfin</Description>
+
   <Config Name="WebUI Port" Target="5005" Default="5005" Mode="tcp" Description="Port used to access Kino Swipe" Type="Port" Display="always" Required="true" Mask="false">5005</Config>
   <Config Name="PLEX_URL" Target="PLEX_URL" Default="" Description="URL of your Plex server (Optional)" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="PLEX_TOKEN" Target="PLEX_TOKEN" Default="" Description="Your Plex token (Optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
