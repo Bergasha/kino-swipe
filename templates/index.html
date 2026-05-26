@@ -436,7 +436,7 @@
                 localStorage.setItem('jf_user_id', data.userId);
                 localStorage.setItem('backend', 'jellyfin');
                 location.reload();
-            } else alert(data.error || "Login failed");
+            } else showToast(data.error || "Wrong username or password");
         }
 
         function confirmQuit() {
