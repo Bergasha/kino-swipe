@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Maintainer>
+  <Icon>https://i.imgur.com/v8tTj81.png</Icon>
+  <Profile>Official Unraid templates for Bergasha's applications, including Kino Swipe.</Profile>
+  <DonateText>Support the development of Kino Swipe!</DonateText>
+  <DonateLink>https://github.com/Bergasha/kino-swipe</DonateLink>
+  <WebPage>https://github.com/Bergasha/kino-swipe</WebPage>
+</Maintainer>
