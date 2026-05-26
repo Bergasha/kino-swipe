@@ -213,9 +213,26 @@
         #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .login-form { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; }
         .login-form input { padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 1rem; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            15% { transform: translateX(calc(-50% - 6px)) rotate(-4deg); }
+            30% { transform: translateX(calc(-50% + 6px)) rotate(4deg); }
+            45% { transform: translateX(calc(-50% - 4px)) rotate(-3deg); }
+            60% { transform: translateX(calc(-50% + 4px)) rotate(3deg); }
+            75% { transform: translateX(calc(-50% - 2px)) rotate(-1deg); }
+        }
+        .undo-shake { animation: shake 0.4s ease; }
+
+        #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #d32f2f; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; z-index: 99999; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+        #toast.show { opacity: 1; }
+
+        .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: black; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+    <div id="toast"></div>
     <button id="matches-pill" class="pill-btn hidden">Shortlist</button>
     <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
     <button id="undo-btn" class="hidden">Undo</button>
@@ -229,7 +246,7 @@
         <div style="position:relative; z-index:2; margin: 8px auto 0 auto; text-align: center; width: 220px; line-height: 2;">
             <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">1. Host a session &amp; share code</p>
             <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">2. Swipe right to match</p>
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">3. Or Host & enable Solo Mode</p>
+            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">3. OR, Press Host & enable Solo Mode</p>
         </div>
     </div>
 
@@ -349,6 +366,13 @@
         let isSoloMode = false;
         let lastSeenMatchTs = null;
 
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
         function getBackend() { return localStorage.getItem('backend') || 'plex'; }
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
@@ -412,7 +436,7 @@
                 localStorage.setItem('jf_user_id', data.userId);
                 localStorage.setItem('backend', 'jellyfin');
                 location.reload();
-            } else alert(data.error || "Login failed");
+            } else showToast(data.error || "Wrong username or password");
         }
 
         function confirmQuit() {
@@ -613,7 +637,13 @@
         function _bindStaticHandlers() {
             const undoBtn = document.getElementById('undo-btn');
             if (undoBtn) undoBtn.onclick = async () => {
-                if (swipeHistory.length === 0) return;
+                if (swipeHistory.length === 0) {
+                    undoBtn.classList.remove('undo-shake');
+                    void undoBtn.offsetWidth;
+                    undoBtn.classList.add('undo-shake');
+                    setTimeout(() => undoBtn.classList.remove('undo-shake'), 400);
+                    return;
+                }
                 const lastMovie = swipeHistory.pop();
                 const headers = {'Content-Type': 'application/json'};
                 if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
@@ -795,25 +825,35 @@
         }
 
         document.getElementById('host-btn').onclick = async () => {
-            const res = await fetch('/room/create', { 
+            const btn = document.getElementById('host-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>Creating...';
+            const res = await fetch('/room/create', {
                 method: 'POST',
                 headers: { 'X-Backend': getBackend() }
             });
             const data = await res.json();
-            localStorage.setItem('active_room', 'hosting'); 
+            localStorage.setItem('active_room', 'hosting');
             document.getElementById('session-display').innerText = data.pairing_code;
-            document.getElementById('host-btn').classList.add('hidden');
+            btn.classList.add('hidden');
+            btn.disabled = false;
+            btn.innerHTML = 'Host Session';
             document.getElementById('session-info').classList.remove('hidden');
             startPolling();
         };
 
         async function joinRoom() {
             const code = document.getElementById('join-code').value;
+            const btn = document.getElementById('join-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>Joining...';
             const res = await fetch('/room/join', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code }) });
-            if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); } 
+            if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); }
             else {
                 const data = await res.json();
-                alert(data.error || "Invalid Code");
+                showToast(data.error || "Invalid Code");
+                btn.disabled = false;
+                btn.innerHTML = 'Join Session';
             }
         }
 
