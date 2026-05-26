@@ -116,6 +116,7 @@ services:
       - PLEX_TOKEN=YOUR_PLEX_TOKEN                  # Optional
       - JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096   # Optional
       - JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY      # Optional
+      - APP_LOCALE=en                               # Optional: use de for Plex library "Filme"
       - FLASK_SECRET=SomeRandomString
       - TMDB_API_KEY=your_tmdb_key_here
     volumes:
@@ -134,6 +135,7 @@ docker run -d \
   -e PLEX_TOKEN=YOUR_PLEX_TOKEN \                   # Optional
   -e JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096 \    # Optional
   -e JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY \       # Optional
+  -e APP_LOCALE=en \                                # Optional: use de for Plex library "Filme"
   -e FLASK_SECRET=SomeRandomString \
   -e TMDB_API_KEY=your_tmdb_key_here \
   -v ./data:/app/data \
@@ -143,6 +145,8 @@ docker run -d \
 ```
 
 > At least Plex or Jellyfin must be configured. Both can be also set at the same time.
+
+**Plex library locale (optional):** defaults to `en` (`Movies`). Set `APP_LOCALE=de` if your Plex movie library is named `Filme`.
 
 ---
 

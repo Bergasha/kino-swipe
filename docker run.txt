@@ -3,6 +3,7 @@ docker run -d \
   -p 5005:5005 \
   -e PLEX_URL="https://YOUR_PLEX_URL" \
   -e PLEX_TOKEN="YOUR_PLEX_TOKEN" \
+  -e APP_LOCALE="en" \
   -v kino_data:/app/data \
   --restart unless-stopped \
   bergasha/kino-swipe:latest

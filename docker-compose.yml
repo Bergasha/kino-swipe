@@ -7,6 +7,7 @@ services:
     environment:
       - PLEX_URL=https://your-plex-ip:32400
       - PLEX_TOKEN=your-plex-token-here
+      - APP_LOCALE=en
       - FLASK_SECRET=pick-a-random-string
     volumes:
       - ./data:/app/data
