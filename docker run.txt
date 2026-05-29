@@ -1,8 +1,14 @@
 docker run -d \
   --name kino-swipe \
   -p 5005:5005 \
-  -e PLEX_URL="https://YOUR_PLEX_URL" \
-  -e PLEX_TOKEN="YOUR_PLEX_TOKEN" \
-  -v kino_data:/app/data \
+  -e PLEX_URL=https://YOUR_PLEX_IP:32400 \          
+  -e PLEX_TOKEN=YOUR_PLEX_TOKEN \                   
+  -e JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096 \    
+  -e JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY \       
+  -e APP_LOCALE=en \                                
+  -e FLASK_SECRET=SomeRandomString \
+  -e TMDB_API_KEY=your_tmdb_key_here \
+  -v ./data:/app/data \
+  -v ./static:/app/static \
   --restart unless-stopped \
   bergasha/kino-swipe:latest

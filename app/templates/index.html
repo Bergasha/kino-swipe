@@ -3,6 +3,9 @@
 <head>
     <title>Kino-Swipe</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" href="/static/favicon.ico">
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#111111">
@@ -15,75 +18,129 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
         
-        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        .hidden { display: none !important; }
-        .plex-yellow { color: #e5a00d; }
-        .menu-btn { background: #e5a00d; border: none; padding: 15px; font-size: 1.2rem; border-radius: 8px; cursor: pointer; margin: 10px; font-weight: bold; width: 220px; color: black; }
-        
-        #main-menu { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; flex-grow: 1; }
-        .main-logo { width: 180px; height: auto; margin-bottom: 10px; }
-        
-        .main-title { 
-            font-size: 4.0rem; 
-            margin: 0 0 30px 0; 
-            font-weight: bold; 
-            color: #ff3131; 
-            font-family: 'allura', cursive; 
-            text-shadow: 0 0 5px #fff, 0 0 10px #ff3131, 0 0 20px #ff3131, 0 0 40px #8a0606;
-            animation: neon-glitch 8s infinite; 
+        body { 
+            background-color: #111;
+            background-image: url('/static/brick.png');
+            background-size: auto;
+            background-repeat: repeat;
+            color: white; 
+            font-family: sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            overflow: hidden; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
         }
 
-        @keyframes neon-glitch {
-            0%, 40% { opacity: 1; color: #ff3131; text-shadow: 0 0 5px #fff, 0 0 10px #ff3131, 0 0 20px #ff3131, 0 0 40px #8a0606; }
-            41% { opacity: 0.2; color: #330000; text-shadow: none; }
-            42%, 60% { opacity: 1; color: #ff3131; text-shadow: 0 0 5px #fff, 0 0 10px #ff3131, 0 0 20px #ff3131, 0 0 40px #8a0606; }
-            61%, 63%, 65% { opacity: 0.2; color: #330000; text-shadow: none; }
-            62%, 64% { opacity: 0.8; text-shadow: 0 0 5px #ff3131; }
-            66%, 100% { opacity: 1; color: #ff3131; text-shadow: 0 0 5px #fff, 0 0 10px #ff3131, 0 0 20px #ff3131, 0 0 40px #8a0606; }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .hidden { display: none !important; }
+        .plex-yellow { color: #e5a00d; }
+        .jellyfin-blue { color: #00a4dc; }
+        
+        .menu-btn { 
+            position: relative;
+            z-index: 2;
+            background: #e5a00d; 
+            border: none; 
+            padding: 15px; 
+            font-size: 1.2rem; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 10px; 
+            font-weight: bold; 
+            width: 240px; 
+            color: black; 
+        }
+        
+        #login-section, #main-menu { 
+            position: relative;
+            z-index: 2;
+            padding: 60px 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            flex-grow: 1; 
+        }
+        
+        .main-title { 
+            font-size: clamp(4.5rem, 18vw, 7.5rem); 
+            margin: 0 0 50px 0; 
+            font-weight: normal; 
+            color: #ff3131; 
+            font-family: 'allura', cursive; 
+            white-space: nowrap;
+            line-height: 0.9;
+            text-shadow: 
+                0 0 5px #fff, 
+                0 0 10px #fff, 
+                0 0 20px #ff3131, 
+                0 0 40px #ff3131, 
+                0 0 80px #ff3131, 
+                0 0 120px #ff3131, 
+                0 0 160px #8a0606;
+            animation: neon-blink 5s infinite; 
+        }
+
+        @keyframes neon-blink {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% {
+                text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff3131, 0 0 40px #ff3131, 0 0 80px #ff3131, 0 0 120px #ff3131, 0 0 160px #8a0606;
+                color: #ff3131;
+            }
+            19%, 21%, 23%, 24%, 54%, 56% {
+                text-shadow: none;
+                color: #330000;
+            }
         }
         
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
-        #swipe-deck { position: relative; width: 100%; max-width: 380px; margin: 60px auto 100px auto; height: 68vh; }
+        #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 60px auto 100px auto; max-height: calc(100vh - 180px); }
         
         .movie-card, .mini-poster { perspective: 1000px; }
-        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s, box-shadow 0.3s ease; transform-style: preserve-3d; border-radius: 20px; }
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
-
-        .movie-card { position: absolute; width: 90%; height: 100%; left: 5%; top: 0; touch-action: none; z-index: 5; }
-        .movie-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; }
+        .movie-card img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            display: block; 
+            background: #1a1a1a;
+        }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
-
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
         .trailer-box iframe { width: 100%; height: 100%; border: none; }
-
         #matches-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         #matches-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 500px; overflow-y: auto; padding-bottom: 120px; }
-        
         .mini-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; }
         .mini-front img { width: 100%; height: 100%; object-fit: cover; }
         .mini-front { border: 2px solid #333; }
         .mini-back { padding: 10px; border-radius: 10px; }
-        
         .plex-open-btn { background: #e5a00d; color: black; border: none; padding: 10px 5px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-decoration: none; width: 90%; margin-top: 10px; display: block; text-align: center; }
         .mini-title-text { font-size: 1.1rem; font-weight: bold; color: #e5a00d; text-align: center; margin-bottom: 5px; line-height: 1.1; }
-
         .stats-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
         .stat-badge { background: black; color: #e5a00d; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; }
         .back-content { overflow-y: auto; flex-grow: 1; margin-bottom: 10px; padding: 0 15px; }
         .back-content p { font-size: 0.95rem; line-height: 1.4; color: #eee; margin: 0; text-align: left; }
-
         .glow-side { position: absolute; top: 0; width: 40%; height: 100%; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s; }
         #glow-left { left: 0; background: linear-gradient(to right, rgba(211, 47, 47, 0.8), transparent); }
         #glow-right { right: 0; background: linear-gradient(to left, rgba(76, 175, 80, 0.8), transparent); }
-
         .pill-btn { position: fixed; bottom: 25px; width: 120px; height: 45px; border-radius: 30px; border: none; font-weight: bold; font-size: 0.9rem; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
         #matches-pill { right: 20px; background: #e5a00d; color: black; }
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
-        
         #match-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
         .match-card-popup { background: #1a1a1a; width: 85%; max-width: 320px; border-radius: 20px; border: 2px solid #e5a00d; padding: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 30px rgba(229, 160, 13, 0.4); animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popupIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -92,7 +149,6 @@
         .match-instruction { color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; pointer-events: none; }
         #game-instruction { position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); width: 100%; }
         #modal-instruction { position: fixed; bottom: 85px; }
-
         #genre-pill { position: fixed; top: 15px; right: 15px; width: 100px; height: 35px; border-radius: 20px; border: 1px solid #e5a00d; background: rgba(0,0,0,0.6); color: #e5a00d; font-weight: bold; font-size: 0.8rem; z-index: 10001; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         #genre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 30000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow: hidden; }
         #genre-modal h1 { flex-shrink: 0; margin: 20px 0 15px; }
@@ -100,64 +156,124 @@
         .genre-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
         .genre-item { background: #222; border: 1px solid #333; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; cursor: pointer; }
         .genre-item.active { border-color: #e5a00d; color: #e5a00d; }
-
-      
         #solo-badge { position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid #666; color: #aaa; font-size: 0.75rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; z-index: 10001; backdrop-filter: blur(5px); letter-spacing: 0.05em; }
-
         #match-solo-label { font-size: 0.85rem; color: #aaa; font-style: italic; margin-top: -15px; margin-bottom: 20px; }
-
-      
         #quit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 40000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        
         #quit-modal h2 { font-size: 1.8rem; color: #ff3131; margin: 0 0 10px; text-shadow: 0 0 10px #ff3131; }
-        
         #quit-modal p { color: #888; font-size: 0.95rem; margin: 0 0 35px; padding: 0 30px; line-height: 1.5; }
         .quit-btn-row { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        
         #quit-confirm-btn { background: #d32f2f; color: white; border: none; padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: box-shadow 0.3s; width: 200px; }
-        
         #quit-confirm-btn:hover { box-shadow: 0 0 20px rgba(211,47,47,0.7); }
         #quit-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: border-color 0.3s, color 0.3s; width: 200px; }
         #quit-cancel-btn:hover { border-color: #888; color: white; }
-       
-       
+        #delete-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 49999; }
         #delete-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border: 1px solid #333; border-radius: 16px; z-index: 50000; padding: 30px 25px; width: 280px; box-shadow: 0 8px 40px rgba(0,0,0,0.8); text-align: center; }
-        
         #delete-modal h3 { font-size: 1.2rem; color: #ff3131; margin: 0 0 8px; }
         #delete-modal p { color: #888; font-size: 0.85rem; margin: 0 0 25px; line-height: 1.4; }
-        
-        #delete-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 49999; }
         .delete-btn-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #delete-confirm-btn { background: #d32f2f; color: white; border: none; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
-        
         #delete-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
+        .stamp-yes, .stamp-no {
+            position: absolute;
+            top: 20px;
+            font-size: 4rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+        }
+        .stamp-yes { left: 20px; }
+        .stamp-no  { right: 20px; }
+
         .cast-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 6px 8px 0; width: 100%; box-sizing: border-box; }
         .cast-member { display: flex; flex-direction: column; align-items: center; width: 56px; flex-shrink: 0; }
         .cast-member img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #e5a00d; background: #333; }
         .cast-member .no-photo { width: 52px; height: 52px; border-radius: 50%; background: #333; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
         .cast-member span { font-size: 0.58rem; color: #ccc; text-align: center; margin-top: 4px; line-height: 1.2; word-break: break-word; }
+        
+        .logout-btn { 
+            background: none; 
+            border: 1px solid #444; 
+            color: #666; 
+            padding: 8px 20px;
+            border-radius: 20px;
+            text-decoration: none; 
+            cursor: pointer; 
+            margin-top: 40px; 
+            font-size: 0.95rem; 
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .logout-btn:hover {
+            color: #ccc;
+            border-color: #888;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .signature {
+            position: fixed;
+            bottom: 10px;
+            width: 100%;
+            font-family: 'allura', cursive;
+            color: rgba(79, 5, 5, 0.9);
+            font-size: 1.8rem;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+      
+        #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .login-form { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; }
+        .login-form input { padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 1rem; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            15% { transform: translateX(calc(-50% - 6px)) rotate(-4deg); }
+            30% { transform: translateX(calc(-50% + 6px)) rotate(4deg); }
+            45% { transform: translateX(calc(-50% - 4px)) rotate(-3deg); }
+            60% { transform: translateX(calc(-50% + 4px)) rotate(3deg); }
+            75% { transform: translateX(calc(-50% - 2px)) rotate(-1deg); }
+        }
+        .undo-shake { animation: shake 0.4s ease; }
+
+        #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #d32f2f; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; z-index: 99999; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+        #toast.show { opacity: 1; }
+
+        .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: black; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+    <div id="toast"></div>
     <button id="matches-pill" class="pill-btn hidden">Shortlist</button>
     <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
     <button id="undo-btn" class="hidden">Undo</button>
 
     <div id="login-section">
-        <img src="/static/main.png" class="main-logo" style="margin-top:50px;">
         <h1 class="main-title">Kino-Swipe</h1>
         <button id="login-btn" class="menu-btn" onclick="loginWithPlex()">Login with Plex</button>
-        <p style="margin: 12px 0 0 0; font-size: 0.75rem; color: #888; font-style: italic;">Then</p>
-        <div style="margin: 8px auto 0 auto; text-align: center; width: 220px; line-height: 2;">
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">1. Host a session &amp; share the code with your partner</p>
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">2. Swipe right on the same movie to match</p>
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">3. Using alone? Enable Solo Mode after hosting</p>
+        <p style="position:relative; z-index:2; margin: 8px 0; font-size: 1.1rem; color: #e5a00d; font-weight: bold; letter-spacing: 0.1em;">— or —</p>
+        <button id="jf-login-btn" class="menu-btn" style="background: #00a4dc; margin-top: 8px;" onclick="toggleJfModal()">Login with Jellyfin</button>
+        <p style="position:relative; z-index:2; margin: 12px 0 0 0; font-size: 0.95rem; color: #e5a00d; font-weight: bold; font-style: italic;">Then</p>
+        <div style="position:relative; z-index:2; margin: 8px auto 0 auto; text-align: center; width: 220px; line-height: 2;">
+            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">1. Host a session &amp; share code</p>
+            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">2. Swipe right to match</p>
+            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">3. OR, Press Host & enable Solo Mode</p>
+        </div>
+    </div>
+
+    <div id="jellyfin-modal" class="hidden">
+        <h2 class="jellyfin-blue">Jellyfin Login</h2>
+        <div class="login-form">
+            <input type="text" id="jf-username" placeholder="Username" autocomplete="username">
+            <input type="password" id="jf-password" placeholder="Password" autocomplete="current-password">
+            <button class="menu-btn" style="background: #00a4dc; width: 100%; margin: 10px 0;" onclick="loginWithJellyfin()">Login</button>
+            <button class="menu-btn" style="background: #333; color: white; width: 100%; margin: 0;" onclick="toggleJfModal()">Cancel</button>
         </div>
     </div>
 
     <div id="main-menu" class="hidden">
         <div id="branding">
-            <img src="/static/main.png" class="main-logo">
             <h1 class="main-title">Kino-Swipe</h1>
         </div>
         <div id="controls-area">
@@ -188,7 +304,7 @@
                     Match History 
                 </button>
                 <br>
-                <button onclick="localStorage.clear(); location.reload();" style="background:none; border:none; color:#444; text-decoration:underline; cursor:pointer; margin-top:20px;">Logout</button>
+                <button class="logout-btn" onclick="localStorage.clear(); location.reload();">Logout</button>
             </div>
         </div>
         <div id="game-area" class="hidden">
@@ -201,8 +317,10 @@
         </div>
     </div>
 
+    <div class="signature">Shayno</div>
+
     <div id="genre-modal" class="hidden">
-        <h1 class="plex-yellow">Select Genre</h1>
+        <h1 class="plex-yellow" id="genre-title">Select Genre</h1>
         <div class="genre-list" id="genre-list">
             <div class="genre-item active" onclick="selectGenre('All')">All Movies</div>
             <div class="genre-item" onclick="selectGenre('Recently Added')">Recently Added</div>
@@ -229,7 +347,7 @@
     </div>
 
     <div id="quit-modal" class="hidden">
-        <img src="/static/sad.png" style="width:80px; margin-bottom:20px; opacity:0.6;">
+        <img src="/static/sad.png" style="width:100px; margin-bottom:20px; opacity:1.0;">
         <h2>End Session?</h2>
         <p>Your matches will be saved to<br>Match History.</p>
         <div class="quit-btn-row">
@@ -254,11 +372,22 @@
         let movieStack = [];
         let swipeHistory = [];
         let globalCurrentX = 0;
-        let plexServerId = null;
+        let serverMachineId = null;
         let currentGenre = "All";
         let isHistoryView = false;
         let isSoloMode = false;
         let lastSeenMatchTs = null;
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
+        function getBackend() { return localStorage.getItem('backend') || 'plex'; }
+        function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
+        function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
 
         async function fetchAndStorePlexId() {
             const token = localStorage.getItem('plex_token');
@@ -270,21 +399,56 @@
             } catch (e) { console.error("Could not fetch Plex ID"); }
         }
 
-        async function fetchPlexServerId() {
-            if (plexServerId) return plexServerId;
-            const response = await fetch('/plex/server-info');
+        async function fetchServerInfo() {
+            if (serverMachineId) return serverMachineId;
+            const response = await fetch('/server-info', {
+                headers: { 'X-Backend': getBackend() }
+            });
             if (response.ok) {
                 const data = await response.json();
-                plexServerId = data.machineIdentifier;
-                return plexServerId;
+                serverMachineId = data.backend === 'plex' ? data.machineIdentifier : data.name;
+                updateUIColors(getBackend());
+                return serverMachineId;
             }
             return null;
+        }
+
+        function updateUIColors(backend) {
+            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+            document.querySelectorAll('.plex-yellow').forEach(el => {
+                el.style.color = color;
+                if (el.id === 'genre-title') el.classList.replace('plex-yellow', 'jellyfin-blue');
+            });
+            document.querySelectorAll('.menu-btn').forEach(el => {
+                if (el.id !== 'jf-login-btn' && !el.style.background.includes('rgb')) el.style.background = color;
+            });
+            const pill = document.getElementById('matches-pill');
+            if (pill) pill.style.background = color;
         }
 
         async function loginWithPlex() {
             const resp = await fetch("/auth/plex-url");
             const data = await resp.json();
             window.location.href = data.auth_url;
+        }
+
+        function toggleJfModal() { document.getElementById('jellyfin-modal').classList.toggle('hidden'); }
+
+        async function loginWithJellyfin() {
+            const username = document.getElementById('jf-username').value;
+            const password = document.getElementById('jf-password').value;
+            const res = await fetch('/auth/jellyfin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('jf_token', data.accessToken);
+                localStorage.setItem('jf_user_id', data.userId);
+                localStorage.setItem('backend', 'jellyfin');
+                location.reload();
+            } else showToast(data.error || "Wrong username or password");
         }
 
         function confirmQuit() {
@@ -322,14 +486,23 @@
             const originalText = btn.innerText;
             btn.innerText = "ADDING...";
             btn.disabled = true;
+            
+            const headers = { "Content-Type": "application/json" };
+            if (getBackend() === 'jellyfin') {
+                headers["X-Jellyfin-Token"] = getAuthToken();
+                headers["X-Jellyfin-User-ID"] = getUserId();
+            } else {
+                headers["X-Plex-Token"] = getAuthToken();
+            }
+
             try {
                 const res = await fetch("/watchlist/add", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "X-Plex-Token": localStorage.getItem('plex_token') },
+                    headers: headers,
                     body: JSON.stringify({ movie_id: id })
                 });
                 if (res.ok) {
-                    btn.innerText = "IN WATCHLIST";
+                    btn.innerText = "ADDED";
                     btn.style.borderColor = "#4CAF50"; btn.style.color = "#4CAF50";
                 } else {
                     btn.innerText = "FAILED";
@@ -349,8 +522,9 @@
         async function handleSoloToggle(checkbox) {
             const track = document.getElementById('solo-toggle-track');
             const thumb = document.getElementById('solo-toggle-thumb');
+            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
             if (checkbox.checked) {
-                track.style.background = '#e5a00d';
+                track.style.background = color;
                 thumb.style.transform = 'translateX(18px)';
                 thumb.style.background = '#000';
                 await activateSoloMode();
@@ -387,37 +561,53 @@
 
         async function openMatches(asHistory) {
             isHistoryView = asHistory;
-            const serverId = await fetchPlexServerId();
+            const serverId = await fetchServerInfo();
             if (!serverId) return;
             const label = isSoloMode && !asHistory ? "Your Shortlist" : asHistory ? "Match History" : "Your Matches";
             document.getElementById('modal-title').innerText = label;
+            
+            const headers = {};
+            const backend = getBackend();
+            if (backend === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
+            else headers['X-Plex-User-ID'] = getUserId();
+
             const url = asHistory ? '/matches?view=history' : '/matches';
-            const res = await fetch(url, { headers: { 'X-Plex-User-ID': localStorage.getItem('plex_id') } });
+            const res = await fetch(url, { headers: headers });
             const data = await res.json();
             const list = document.getElementById('matches-list');
             const emptyLabel = asHistory ? 'history' : isSoloMode ? 'shortlist' : 'matches';
             list.innerHTML = data.length ? '' : `<p style="grid-column: span 2; color:#666;">No ${emptyLabel} yet</p>`;
+            
+            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+
             data.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'mini-poster';
-                const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
+                let openBtn;
+                if (backend === 'plex') {
+                    const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
+                    openBtn = `<a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>`;
+                } else {
+                    openBtn = ``;
+                }
+
                 card.innerHTML = `
                     <div class="mini-inner">
                         <div class="mini-front">
                             <img src="${m.thumb}" alt="${m.title}">
-                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:12px; padding:8px 4px; font-weight:bold; color:#e5a00d;">
+                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:12px; padding:8px 4px; font-weight:bold; color:${color};">
                                ${m.title}
                            </div>
                         </div>
-                        <div class="mini-back">
-                            <div class="mini-title-text">${m.title}</div>
+                        <div class="mini-back" style="border-color:${color}">
+                            <div class="mini-title-text" style="color:${color}">${m.title}</div>
                             <div class="stats-row" style="justify-content:center;">
-                                ${m.rating ? `<span class="stat-badge">IMDb ${m.rating}</span>` : ''}
-                                ${m.duration ? `<span class="stat-badge">${m.duration}</span>` : ''}
-                                ${m.year ? `<span class="stat-badge">${m.year}</span>` : ''}
+                                ${m.rating ? `<span class="stat-badge" style="color:${color}">IMDb ${m.rating}</span>` : ''}
+                                ${m.duration ? `<span class="stat-badge" style="color:${color}">${m.duration}</span>` : ''}
+                                ${m.year ? `<span class="stat-badge" style="color:${color}">${m.year}</span>` : ''}
                             </div>
-                            <a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>
-                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#333; color:#e5a00d; border:1px solid #e5a00d; margin-top:5px;" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
+                            ${openBtn}
+                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#333; color:${color}; border:1px solid ${color}; margin-top:5px;" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
                             <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#d32f2f; margin-top:5px; color:black;" onclick="deleteMatch(event, '${m.movie_id}')">DELETE</button>
                         </div>
                     </div>
@@ -442,9 +632,13 @@
             document.getElementById('delete-modal-overlay').classList.remove('hidden');
             document.getElementById('delete-modal').classList.remove('hidden');
             document.getElementById('delete-confirm-btn').onclick = async () => {
+                const headers = {"Content-Type": "application/json"};
+                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
+                else headers['X-Plex-User-ID'] = getUserId();
+
                 await fetch("/matches/delete", { 
                     method: "POST", 
-                    headers: {"Content-Type": "application/json", 'X-Plex-User-ID': localStorage.getItem('plex_id')}, 
+                    headers: headers, 
                     body: JSON.stringify({ movie_id: pendingDeleteId }) 
                 });
                 closeDeleteModal();
@@ -455,11 +649,21 @@
         function _bindStaticHandlers() {
             const undoBtn = document.getElementById('undo-btn');
             if (undoBtn) undoBtn.onclick = async () => {
-                if (swipeHistory.length === 0) return;
+                if (swipeHistory.length === 0) {
+                    undoBtn.classList.remove('undo-shake');
+                    void undoBtn.offsetWidth;
+                    undoBtn.classList.add('undo-shake');
+                    setTimeout(() => undoBtn.classList.remove('undo-shake'), 400);
+                    return;
+                }
                 const lastMovie = swipeHistory.pop();
+                const headers = {'Content-Type': 'application/json'};
+                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
+                else headers['X-Plex-User-ID'] = getUserId();
+
                 await fetch('/undo', { 
                     method: 'POST', 
-                    headers: {'Content-Type': 'application/json', 'X-Plex-User-ID': localStorage.getItem('plex_id')}, 
+                    headers: headers, 
                     body: JSON.stringify({ movie_id: lastMovie.id }) 
                 });
                 movieStack.unshift(lastMovie);
@@ -479,22 +683,27 @@
         function createCard(m) {
             const c = document.createElement('div');
             c.className = 'movie-card';
+            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
             c.dataset.id = m.id; c.dataset.title = m.title; c.dataset.thumb = m.thumb;
             c.innerHTML = `
                 <div class="card-inner">
-                    <div class="card-front"><img src="${m.thumb}"></div>
-                    <div class="card-back">
-                        <div class="movie-title">${m.title}</div>
+                    <div class="card-front">
+                        <img src="${m.thumb}">
+                        <div class="stamp-yes">👍</div>
+                        <div class="stamp-no">👎</div>
+                    </div>
+                    <div class="card-back" style="border-color:${color}">
+                        <div class="movie-title" style="color:${color}">${m.title}</div>
                         <div class="stats-row">
-                            ${m.rating ? `<span class="stat-badge">IMDb ${m.rating}</span>` : ''}
-                            ${m.duration ? `<span class="stat-badge">${m.duration}</span>` : ''}
-                            ${m.year ? `<span class="stat-badge">${m.year}</span>` : ''}
+                            ${m.rating ? `<span class="stat-badge" style="color:${color}">IMDb ${m.rating}</span>` : ''}
+                            ${m.duration ? `<span class="stat-badge" style="color:${color}">${m.duration}</span>` : ''}
+                            ${m.year ? `<span class="stat-badge" style="color:${color}">${m.year}</span>` : ''}
                         </div>
                         <div id="vid-${m.id}" class="trailer-box"></div>
-                        <button class="trailer-btn" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
+                        <button class="trailer-btn" style="background:${color}" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
                         <div class="back-content"><p>${m.summary || 'No description available.'}</p></div>
                         <div id="cast-${m.id}" class="cast-row"></div>
-                        <div style="font-size:0.75rem; color:#e5a00d; text-align:center; margin-top: auto; padding-bottom:10px;">Tap to flip back</div>
+                        <div style="font-size:0.75rem; color:${color}; text-align:center; margin-top: auto; padding-bottom:10px;">Tap to flip back</div>
                     </div>
                 </div>
             `;
@@ -507,13 +716,13 @@
                             castEl.dataset.loaded = 'true';
                             castEl.innerHTML = '<span style="font-size:0.7rem;color:#666;">Loading cast...</span>';
                             try {
-                                const res = await fetch(`/cast/${m.id}`);
+                                const res = await fetch(`/cast/${m.id}`, { headers: { 'X-Backend': getBackend() } });
                                 const data = await res.json();
                                 if (data.cast && data.cast.length > 0) {
                                     castEl.innerHTML = data.cast.map(actor => `
                                         <div class="cast-member">
                                             ${actor.profile_path
-                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy">`
+                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy" style="border-color:${color}">`
                                                 : `<div class="no-photo">🎬</div>`}
                                             <span>${actor.name}</span>
                                         </div>
@@ -540,7 +749,7 @@
                 backContent.style.display = '';
             } else {
                 btn.innerText = 'LOADING...';
-                const res = await fetch(`/get-trailer/${id}`);
+                const res = await fetch(`/get-trailer/${id}`, { headers: { 'X-Backend': getBackend() } });
                 const data = await res.json();
                 if (data.youtube_key) {
                     backContent.style.display = 'none';
@@ -564,12 +773,43 @@
                 if (card.classList.contains('flipped')) return;
                 card.style.transition = 'none';
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
-                glowRight.style.opacity = globalCurrentX > 20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
-                glowLeft.style.opacity = globalCurrentX < -20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
+            
+
+                const cardInner = card.querySelector('.card-inner');
+                if (cardInner) {
+                    if (globalCurrentX > 10) {
+                        const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
+                        cardInner.style.boxShadow = `0 0 ${20 + intensity * 60}px rgba(76, 175, 80, ${0.4 + intensity * 0.6})`;
+                        card.querySelector('.stamp-yes').style.opacity = intensity;
+                        card.querySelector('.stamp-no').style.opacity = 0;
+                    } else if (globalCurrentX < -10) {
+                        const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
+                        cardInner.style.boxShadow = `0 0 ${20 + intensity * 60}px rgba(211, 47, 47, ${0.4 + intensity * 0.6})`;
+                        card.querySelector('.stamp-no').style.opacity = intensity;
+                        card.querySelector('.stamp-yes').style.opacity = 0;
+                    } else {
+                        cardInner.style.boxShadow = '';
+                        card.querySelector('.stamp-yes').style.opacity = 0;
+                        card.querySelector('.stamp-no').style.opacity = 0;
+                    }
+                }
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
-                glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
+        
+                
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onEnd);
+                
+                const cardInner = card.querySelector('.card-inner');
+                if (cardInner) {
+                    cardInner.style.boxShadow = '';
+                    const yes = card.querySelector('.stamp-yes');
+                    const no = card.querySelector('.stamp-no');
+                    if (yes) yes.style.opacity = 0;
+                    if (no) no.style.opacity = 0;
+                }
+
                 if (card.classList.contains('flipped')) { globalCurrentX = 0; return; }
                 card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
                 if (Math.abs(globalCurrentX) > 120) {
@@ -582,11 +822,12 @@
                         headers: {'Content-Type': 'application/json'}, 
                         body: JSON.stringify({ 
                             movie_id: card.dataset.id, title: card.dataset.title, thumb: card.dataset.thumb, direction: dir,
-                            plex_id: localStorage.getItem('plex_id')
+                            plex_id: getUserId()
                         }) 
                     })
                     .then(r => r.json()).then(data => { 
                         if (data.match) { 
+                            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                             document.getElementById('matched-movie-title').innerText = data.title;
                             document.getElementById('match-popup-poster').src = data.thumb || '';
                             const heading = document.getElementById('match-heading');
@@ -613,24 +854,43 @@
         }
 
         document.getElementById('host-btn').onclick = async () => {
-            const res = await fetch('/room/create', { method: 'POST' });
+            const btn = document.getElementById('host-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>Creating...';
+            const res = await fetch('/room/create', {
+                method: 'POST',
+                headers: { 'X-Backend': getBackend() }
+            });
             const data = await res.json();
-            localStorage.setItem('active_room', 'hosting'); 
+            localStorage.setItem('active_room', 'hosting');
             document.getElementById('session-display').innerText = data.pairing_code;
-            document.getElementById('host-btn').classList.add('hidden');
+            btn.classList.add('hidden');
+            btn.disabled = false;
+            btn.innerHTML = 'Host Session';
             document.getElementById('session-info').classList.remove('hidden');
             startPolling();
         };
 
         async function joinRoom() {
             const code = document.getElementById('join-code').value;
+            const btn = document.getElementById('join-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>Joining...';
             const res = await fetch('/room/join', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code }) });
-            if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); } else alert("Invalid Code");
+            if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); }
+            else {
+                const data = await res.json();
+                showToast(data.error || "Invalid Code");
+                btn.disabled = false;
+                btn.innerHTML = 'Join Session';
+            }
         }
 
         async function loadGenres() {
             try {
-                const res = await fetch('/genres');
+                const res = await fetch('/genres', {
+                    headers: { 'X-Backend': getBackend() }
+                });
                 const genres = await res.json();
                 const list = document.getElementById('genre-list');
                 list.querySelectorAll('.genre-dynamic').forEach(el => el.remove());
@@ -648,19 +908,15 @@
 
         const startPolling = () => {
             if (sseSource) { sseSource.close(); sseSource = null; }
-
             sseSource = new EventSource('/room/stream');
-
             sseSource.onmessage = async (event) => {
                 const d = JSON.parse(event.data);
-
                 if (d.closed) {
                     sseSource.close();
                     localStorage.removeItem('active_room');
                     location.reload();
                     return;
                 }
-
                 if (d.genre && d.genre !== currentGenre) {
                     currentGenre = d.genre;
                     document.getElementById('genre-pill').innerText = currentGenre === 'All' ? 'Genres ▾' : currentGenre + ' ▾';
@@ -674,6 +930,7 @@
                     const matchTs = d.last_match.ts;
                     if (matchTs > lastSeenMatchTs) {
                         lastSeenMatchTs = matchTs;
+                        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                         document.getElementById('matched-movie-title').innerText = d.last_match.title;
                         document.getElementById('match-popup-poster').src = d.last_match.thumb || '';
                         document.getElementById('match-heading').innerText = "IT'S A MATCH!";
@@ -682,28 +939,116 @@
                     }
                 }
             };
-
-            sseSource.onerror = () => {
-            };
         };
+
+        document.addEventListener('keydown', async (e) => {
+            const card = document.querySelector('.movie-card:last-child');
+            if (!card) return;
+
+            if (e.key === 'ArrowDown') {
+                card.classList.toggle('flipped');
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                if (swipeHistory.length === 0) return;
+                const lastMovie = swipeHistory.pop();
+                const headers = { 'Content-Type': 'application/json' };
+                if (getBackend() === 'jellyfin') {
+                    headers['X-Jellyfin-User-ID'] = getUserId();
+                } else {
+                    headers['X-Plex-User-ID'] = getUserId();
+                }
+                await fetch('/undo', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ movie_id: lastMovie.id })
+                });
+                movieStack.unshift(lastMovie);
+                renderInitialDeck();
+                return;
+            }
+
+            let dir = null;
+            if (e.key === 'ArrowRight') dir = 'right';
+            if (e.key === 'ArrowLeft') dir = 'left';
+            if (!dir) return;
+
+            if (card.classList.contains('flipped')) return;
+
+            const moveX = dir === 'right' ? 1000 : -1000;
+            card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
+            card.style.transform = `translate(${moveX}px, 0px) rotate(${dir === 'right' ? 20 : -20}deg)`;
+            card.style.opacity = '0';
+
+            const movieData = movieStack[0];
+            swipeHistory.push(movieData);
+
+            fetch('/room/swipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    movie_id: card.dataset.id,
+                    title: card.dataset.title,
+                    thumb: card.dataset.thumb,
+                    direction: dir,
+                    plex_id: getUserId()
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.match) {
+                    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                    document.getElementById('matched-movie-title').innerText = data.title;
+                    document.getElementById('match-popup-poster').src = data.thumb || '';
+                    const heading = document.getElementById('match-heading');
+                    const soloLabel = document.getElementById('match-solo-label');
+                    if (data.solo) {
+                        heading.innerText = 'NICE ONE!';
+                        soloLabel.classList.remove('hidden');
+                    } else {
+                        heading.innerText = "IT'S A MATCH!";
+                        soloLabel.classList.add('hidden');
+                    }
+                    document.getElementById('match-overlay').classList.remove('hidden');
+                }
+            });
+
+            setTimeout(() => {
+                card.remove();
+                movieStack.shift();
+                if (movieStack[4]) {
+                    document.getElementById('swipe-deck').prepend(createCard(movieStack[4]));
+                }
+                initDrag(document.getElementById('swipe-deck').lastElementChild);
+            }, 300);
+        });
 
         window.onload = async () => {
             _bindStaticHandlers();
+            
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
-            const pinUrl = pinId ? `/auth/check-returned-pin?pin_id=${pinId}` : '/auth/check-returned-pin';
-            const pendingPin = await fetch(pinUrl);
-            const result = await pendingPin.json();
-            if (result.authToken) {
-                localStorage.setItem("plex_token", result.authToken);
-                window.history.replaceState({}, '', '/');
+            if (pinId) {
+                const pendingPin = await fetch(`/auth/check-returned-pin?pin_id=${pinId}`);
+                const result = await pendingPin.json();
+                if (result.authToken) {
+                    localStorage.setItem("plex_token", result.authToken);
+                    localStorage.setItem("backend", "plex");
+                    window.history.replaceState({}, '', '/');
+                }
             }
-            if (localStorage.getItem('plex_token')) {
-                await fetchAndStorePlexId();
+
+            const backend = getBackend();
+            const token = getAuthToken();
+
+            if (token) {
+                if (backend === 'plex') await fetchAndStorePlexId();
+                await fetchServerInfo(); 
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
-                if (localStorage.getItem('active_room')) loadMovies();
+                if (localStorage.getItem('active_room')) startPolling();
             }
         };
     </script>
