@@ -1,4 +1,7 @@
 data/kinoswipe.db
+data/kinoswipe.db-journal
+
 __pycache__/
+app/__pycache__/
 *.pyc
 .env
