@@ -203,42 +203,22 @@ def add_to_watchlist():
             user_token = request.headers.get('X-Plex-Token')
             if not user_token:
                 return jsonify({'error': 'Unauthorized'}), 401
-                
+            
+        
             account = MyPlexAccount(token=user_token)
             
-            from plexapi.server import PlexServer
-            user_plex_session = PlexServer(PLEX_URL, user_token)
-            item = None
-
         
-            if str(movie_id).isdigit():
-                try:
-                    item = user_plex_session.library.fetchItem(int(movie_id))
-                except Exception:
-                    pass
-
-            # 2. Cross-backend string parsing fallback
-            if not item:
-                try:
-                    backend_override = 'jellyfin' if not str(movie_id).isdigit() else 'plex'
-                    title, year = get_item_meta(movie_id, backend_override)
-                    
-                    if title:
-                        from app.services import get_plex_movie_section
-                        section = get_plex_movie_section(user_plex_session)
-                        results = section.search(title=title, libtype='movie')
-                        if results:
-                            item = next((m for m in results if m.year == year), results[0])
-                except Exception as lookup_err:
-                    print(f"[watchlist] Metadata fallback search failed: {lookup_err}", flush=True)
-
-            if not item:
-                return jsonify({'error': 'Movie could not be matched on this Plex server'}), 404
-
+            try:
+                plex = get_plex()
+                item = plex.fetchItem(int(movie_id))
+            except Exception:
+                reset_plex()
+                item = get_plex().fetchItem(int(movie_id))
+                
+          
             account.addToWatchlist(item)
             return jsonify({'status': 'success'})
         except Exception as e:
-            print(f"[watchlist] Global Plex watchlist exception: {e}", flush=True)
             return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/server-info')
