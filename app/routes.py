@@ -205,26 +205,31 @@ def add_to_watchlist():
                 print("[watchlist] Error: Missing X-Plex-Token header", flush=True)
                 return jsonify({'error': 'Unauthorized'}), 401
             
-         
+     
             account = MyPlexAccount(token=user_token)
             
-         
-            try:
-                plex = get_plex()
-                item = plex.fetchItem(int(movie_id))
-            except Exception as inner_e:
-                print(f"[watchlist] Initial local lookup failed for ID {movie_id}: {inner_e}. Resetting instance...", flush=True)
-                reset_plex()
-                item = get_plex().fetchItem(int(movie_id))
-                
-    
-           
-            print(f"[watchlist] Resolving cloud target for '{item.title}' via key path: {item.guid}", flush=True)
-            cloud_item = account.library.fetchItemByKey(item.guid)
+        
+            backend_override = 'jellyfin' if not str(movie_id).isdigit() else 'plex'
+            title, year = get_item_meta(movie_id, backend_override)
             
-           
+            if not title:
+                return jsonify({'error': 'Could not extract movie metadata properties'}), 404
+            
+         
+            print(f"[watchlist] Querying global catalog for '{title}' ({year})...", flush=True)
+            search_results = account.searchDiscover(title, libtype='movie')
+            
+            cloud_item = None
+            if search_results:
+            
+                cloud_item = next((m for m in search_results if str(m.year) == str(year)), search_results[0])
+
+            if not cloud_item:
+                return jsonify({'error': 'Movie not found in global Plex catalog directory'}), 404
+
+       
             account.addToWatchlist(cloud_item)
-            print("[watchlist] Successfully added item to Plex watchlist!", flush=True)
+            print(f"[watchlist] Successfully added item '{title}' to user's personal cloud watchlist!", flush=True)
             return jsonify({'status': 'success'})
         except Exception as e:
             import traceback
