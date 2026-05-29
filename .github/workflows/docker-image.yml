@@ -2,7 +2,7 @@ name: Build and Push to Docker Hub
 
 on:
   push:
-    branches: [ "main", "beta" ]
+    branches: [ "main", "Beta" ]
 
 jobs:
   build:
@@ -24,7 +24,7 @@ jobs:
           images: bergasha/kino-swipe
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=beta,enable=${{ github.ref == 'refs/heads/beta' }}
+            type=raw,value=beta,enable=${{ github.ref == 'refs/heads/Beta' }}
 
       - name: Build and push
         uses: docker/build-push-action@v4
