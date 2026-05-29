@@ -10,7 +10,7 @@ from gevent.queue import Queue
 
 from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
 from app.services import (
-    CLIENT_ID, JELLYFIN_URL, PLEX_URL, ADMIN_TOKEN, TMDB_API_KEY, CACHE_TTL_RECENT, CACHE_TTL,
+    CLIENT_ID, JELLYFIN_URL, PLEX_URL, ADMIN_TOKEN, TMDB_API_KEY,
     plex_ready, jellyfin_ready, get_genres, fetch_jellyfin_movies, fetch_plex_movies, 
     get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers
 )
