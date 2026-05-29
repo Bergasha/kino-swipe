@@ -218,8 +218,9 @@ def add_to_watchlist():
                 item = get_plex().fetchItem(int(movie_id))
                 
     
+           
             print(f"[watchlist] Resolving cloud target for '{item.title}' via key path: {item.guid}", flush=True)
-            cloud_item = account.fetchItemByKey(item.guid)
+            cloud_item = account.library.fetchItemByKey(item.guid)
             
            
             account.addToWatchlist(cloud_item)
