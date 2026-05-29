@@ -202,6 +202,7 @@ def add_to_watchlist():
         try:
             user_token = request.headers.get('X-Plex-Token')
             if not user_token:
+                print("[watchlist] Error: Missing X-Plex-Token header", flush=True)
                 return jsonify({'error': 'Unauthorized'}), 401
             
         
@@ -211,14 +212,20 @@ def add_to_watchlist():
             try:
                 plex = get_plex()
                 item = plex.fetchItem(int(movie_id))
-            except Exception:
+            except Exception as inner_e:
+                print(f"[watchlist] Initial local lookup failed for ID {movie_id}: {inner_e}. Resetting instance...", flush=True)
                 reset_plex()
                 item = get_plex().fetchItem(int(movie_id))
                 
-          
+            
+            print(f"[watchlist] Attempting to add item '{item.title}' (ID: {movie_id}) to watchlist...", flush=True)
             account.addToWatchlist(item)
+            print("[watchlist] Successfully added item to Plex watchlist!", flush=True)
             return jsonify({'status': 'success'})
         except Exception as e:
+            import traceback
+            print("[watchlist] FATAL CRASH IN PLEX WATCHLIST LOGIC:", flush=True)
+            traceback.print_exc()
             return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/server-info')
