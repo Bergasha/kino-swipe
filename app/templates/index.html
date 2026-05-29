@@ -757,8 +757,7 @@
                 if (card.classList.contains('flipped')) return;
                 card.style.transition = 'none';
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
-                glowRight.style.opacity = globalCurrentX > 20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
-                glowLeft.style.opacity = globalCurrentX < -20 ? Math.min(Math.abs(globalCurrentX) / 200, 1) : 0;
+               
 
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) {
@@ -773,7 +772,7 @@
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
-                glowLeft.style.opacity = 0; glowRight.style.opacity = 0;
+                // side glows disabled
                 
                 window.removeEventListener('pointermove', onMove);
                 window.removeEventListener('pointerup', onEnd);
