@@ -41,7 +41,7 @@
   
   <Video/>
 
-  <Icon>https://github.com/Bergasha/kino-swipe/blob/main/app/static/main.png?raw=true</Icon>
+  <Icon>https://github.com/Bergasha/kino-swipe/blob/main/static/main.png?raw=true</Icon>
   <Description>Swipe and match movies for Plex and Jellyfin</Description>
 
   <Config Name="WebUI Port" Target="5005" Default="5005" Mode="tcp" Description="Port used to access Kino Swipe" Type="Port" Display="always" Required="true" Mask="false">5005</Config>
