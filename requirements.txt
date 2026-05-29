@@ -1,5 +1,6 @@
-flask
-plexapi
-requests
-werkzeug
-gunicorn
+Flask==3.0.3
+PlexAPI==4.15.15
+requests==2.32.3
+Werkzeug==3.0.3
+gunicorn==22.0.0
+gevent==24.2.1
