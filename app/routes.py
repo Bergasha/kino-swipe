@@ -205,10 +205,10 @@ def add_to_watchlist():
                 print("[watchlist] Error: Missing X-Plex-Token header", flush=True)
                 return jsonify({'error': 'Unauthorized'}), 401
             
-        
+
             account = MyPlexAccount(token=user_token)
             
-        
+
             try:
                 plex = get_plex()
                 item = plex.fetchItem(int(movie_id))
@@ -217,9 +217,13 @@ def add_to_watchlist():
                 reset_plex()
                 item = get_plex().fetchItem(int(movie_id))
                 
+       
+            universal_cloud_id = f"plex://movie/{item.guid}"
             
-            print(f"[watchlist] Attempting to add item '{item.title}' (ID: {movie_id}) to watchlist...", flush=True)
-            account.addToWatchlist(item)
+            print(f"[watchlist] Adding item '{item.title}' via global ID: {universal_cloud_id}", flush=True)
+            
+
+            account.addToWatchlist(universal_cloud_id)
             print("[watchlist] Successfully added item to Plex watchlist!", flush=True)
             return jsonify({'status': 'success'})
         except Exception as e:
