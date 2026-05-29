@@ -310,7 +310,7 @@ def get_cast(movie_id):
         if tmdb_id:
             c_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}").json()
             cast = []
-            for actor in c_res.get('cast', [])[:8]:
+            for actor in c_res.get('cast', [])[:10]:
                 cast.append({
                     'name': actor['name'],
                     'character': actor.get('character', ''),
