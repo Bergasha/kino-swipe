@@ -11,14 +11,15 @@ from gevent.queue import Queue
 from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
 from app.services import (
     CLIENT_ID, JELLYFIN_URL, PLEX_URL, ADMIN_TOKEN, TMDB_API_KEY,
-    plex_ready, jellyfin_ready, fetch_jellyfin_movies, fetch_plex_movies, 
+    plex_ready, jellyfin_ready, fetch_jellyfin_movies, fetch_plex_movies,
     get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers
 )
 
 main_bp = Blueprint('main', __name__)
 
-CACHE_TTL = 43200        
-CACHE_TTL_RECENT = 1800  
+CACHE_TTL = 43200
+CACHE_TTL_RECENT = 1800
+
 
 def get_item_meta(movie_id, backend_override=None):
     backend = backend_override or current_backend()
@@ -34,10 +35,11 @@ def get_item_meta(movie_id, backend_override=None):
             item = get_plex().fetchItem(int(movie_id))
         return item.title, item.year
 
+
 def current_backend():
     header_backend = request.headers.get('X-Backend')
     if header_backend in ('plex', 'jellyfin'):
-        session['backend'] = header_backend 
+        session['backend'] = header_backend
         return header_backend
     code = session.get('active_room')
     if code:
@@ -47,10 +49,11 @@ def current_backend():
                 return row['backend']
     return session.get('backend', 'plex')
 
+
 def fetch_movies(genre_name=None):
     backend = current_backend()
     genre_name = genre_name or "All"
-    
+
     with db_session() as conn:
         cache = conn.execute(
             'SELECT movie_data, updated_at FROM library_cache WHERE backend = ? AND genre = ?',
@@ -71,13 +74,14 @@ def fetch_movies(genre_name=None):
         random.shuffle(movie_list)
     return movie_list
 
+
 def build_and_cache_library(backend, genre_name):
     try:
         if backend == 'jellyfin':
             movies = fetch_jellyfin_movies(genre_name)
         else:
             movies = fetch_plex_movies(genre_name)
-            
+
         if not movies:
             return []
 
@@ -90,6 +94,7 @@ def build_and_cache_library(backend, genre_name):
     except Exception:
         return []
 
+
 def get_genres():
     if current_backend() == 'jellyfin':
         from app.services import get_jellyfin_genres
@@ -97,9 +102,11 @@ def get_genres():
     from app.services import get_plex_genres
     return get_plex_genres()
 
+
 @main_bp.route('/')
 def index():
     return render_template('index.html')
+
 
 @main_bp.route('/auth/plex-url')
 def get_plex_url():
@@ -118,6 +125,7 @@ def get_plex_url():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @main_bp.route('/auth/check-returned-pin')
 def check_pin():
     pin_id = request.args.get('pin_id') or session.get('pending_pin_id')
@@ -130,6 +138,7 @@ def check_pin():
         session.pop('pending_pin_id', None)
         session['backend'] = 'plex'
     return jsonify({'authToken': token})
+
 
 @main_bp.route('/auth/jellyfin-login', methods=['POST'])
 def jellyfin_login():
@@ -170,12 +179,14 @@ def jellyfin_login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @main_bp.route('/auth/available-backends')
 def available_backends():
     return jsonify({
         'plex': plex_ready,
         'jellyfin': jellyfin_ready,
     })
+
 
 @main_bp.route('/watchlist/add', methods=['POST'])
 def add_to_watchlist():
@@ -204,29 +215,46 @@ def add_to_watchlist():
             if not user_token:
                 print("[watchlist] Error: Missing X-Plex-Token header", flush=True)
                 return jsonify({'error': 'Unauthorized'}), 401
-            
-            account = MyPlexAccount(token=user_token)
-            
+
             try:
                 plex = get_plex()
                 item = plex.fetchItem(int(movie_id))
             except Exception as inner_e:
-                print(f"[watchlist] Initial local lookup failed for ID {movie_id}: {inner_e}. Resetting instance...", flush=True)
+                print(f"[watchlist] Initial local lookup failed for ID {movie_id}: {inner_e}. Resetting...", flush=True)
                 reset_plex()
                 item = get_plex().fetchItem(int(movie_id))
-                
-            clean_hex = item.guid.split('/')[-1]
-            cloud_uri = f"plex://movie/{clean_hex}"
-            print(f"[watchlist] Attempting to sync item '{item.title}' via universal URI: {cloud_uri}", flush=True)
-            
-            account.addToWatchlist(cloud_uri)
-            print(f"[watchlist] Successfully added '{item.title}' to Plex watchlist!", flush=True)
-            return jsonify({'status': 'success'})
+
+            rating_key = item.guid.split('/')[-1]
+
+            print(f"[watchlist] Attempting to add '{item.title}' (ratingKey={rating_key})", flush=True)
+
+            headers = {
+                'X-Plex-Token': user_token,
+                'X-Plex-Client-Identifier': CLIENT_ID,
+                'Accept': 'application/json',
+            }
+            r = requests.put(
+                f"https://metadata.provider.plex.tv/library/metadata/{rating_key}/watchlist",
+                headers=headers,
+                timeout=10,
+            )
+
+            if r.status_code in (200, 201):
+                print(f"[watchlist] Successfully added '{item.title}' to Plex watchlist!", flush=True)
+                return jsonify({'status': 'success'})
+            elif r.status_code == 409:
+                print(f"[watchlist] '{item.title}' already on watchlist.", flush=True)
+                return jsonify({'status': 'already_exists'})
+            else:
+                print(f"[watchlist] Plex API returned {r.status_code}: {r.text}", flush=True)
+                return jsonify({'error': f'Plex API error {r.status_code}'}), 500
+
         except Exception as e:
             import traceback
             print("[watchlist] FATAL CRASH IN PLEX WATCHLIST LOGIC:", flush=True)
             traceback.print_exc()
             return jsonify({'error': str(e)}), 500
+
 
 @main_bp.route('/server-info')
 def get_server_info():
@@ -247,9 +275,11 @@ def get_server_info():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @main_bp.route('/plex/server-info')
 def plex_server_info_compat():
     return get_server_info()
+
 
 @main_bp.route('/get-trailer/<movie_id>')
 def get_trailer(movie_id):
@@ -269,6 +299,7 @@ def get_trailer(movie_id):
     except Exception as e:
         print(f"[trailer] EXCEPTION: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
+
 
 @main_bp.route('/cast/<movie_id>')
 def get_cast(movie_id):
@@ -290,6 +321,7 @@ def get_cast(movie_id):
     except Exception as e:
         return jsonify({'error': str(e), 'cast': []}), 500
 
+
 @main_bp.route('/room/create', methods=['POST'])
 def create_room():
     backend = session.get('backend', 'plex')
@@ -305,6 +337,7 @@ def create_room():
     session['solo_mode'] = False
     return jsonify({'pairing_code': pairing_code})
 
+
 @main_bp.route('/room/go-solo', methods=['POST'])
 def go_solo():
     code = session.get('active_room')
@@ -313,9 +346,9 @@ def go_solo():
     with get_db() as conn:
         conn.execute('UPDATE rooms SET ready = 1, solo_mode = 1 WHERE pairing_code = ?', (code,))
     session['solo_mode'] = True
-    
     announce_room_update(code, {'ready': True, 'solo': True})
     return jsonify({'status': 'solo'})
+
 
 @main_bp.route('/room/join', methods=['POST'])
 def join_room():
@@ -332,10 +365,10 @@ def join_room():
             session['active_room'] = code
             session['my_user_id'] = 'guest_' + secrets.token_hex(8)
             session['solo_mode'] = False
-            
             announce_room_update(code, {'ready': True, 'solo': False})
             return jsonify({'status': 'success'})
     return jsonify({'error': 'Invalid Code'}), 404
+
 
 @main_bp.route('/room/swipe', methods=['POST'])
 def swipe():
@@ -378,11 +411,11 @@ def swipe():
                     )
                 match_data = {'title': title, 'thumb': thumb, 'ts': time.time()}
                 conn.execute('UPDATE rooms SET last_match_data = ? WHERE pairing_code = ?', (json.dumps(match_data), code))
-                
                 announce_room_update(code, {'last_match': match_data})
                 return jsonify({'match': True, 'title': title, 'thumb': thumb})
 
     return jsonify({'match': False})
+
 
 @main_bp.route('/room/status')
 def room_status():
@@ -402,6 +435,7 @@ def room_status():
             })
         return jsonify({'ready': False})
 
+
 @main_bp.route('/room/quit', methods=['POST'])
 def quit_room():
     code = session.get('active_room')
@@ -412,9 +446,9 @@ def quit_room():
             conn.execute('UPDATE matches SET status = "archived", room_code = "HISTORY" WHERE room_code = ? AND status = "active"', (code,))
         session.pop('active_room', None)
         session.pop('solo_mode', None)
-        
         announce_room_update(code, {'closed': True})
     return jsonify({'status': 'session_ended'})
+
 
 @main_bp.route('/room/stream')
 def room_stream():
@@ -445,6 +479,7 @@ def room_stream():
     return Response(generate(), mimetype='text/event-stream',
                     headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
+
 @main_bp.route('/movies')
 def get_movies():
     code = session.get('active_room')
@@ -456,15 +491,16 @@ def get_movies():
             new_list = fetch_movies(genre)
             conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?',
                          (json.dumps(new_list), genre, code))
-            
             announce_room_update(code, {'genre': genre})
             return jsonify(new_list)
         room = conn.execute('SELECT movie_data FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
         return Response(room['movie_data'], mimetype='application/json') if room else jsonify([])
 
+
 @main_bp.route('/genres')
 def genres_route():
     return jsonify(get_genres())
+
 
 @main_bp.route('/matches')
 def get_matches():
@@ -478,6 +514,7 @@ def get_matches():
             rows = conn.execute('SELECT title, thumb, movie_id FROM matches WHERE room_code = ? AND status = "active" AND plex_id = ?', (code, plex_id)).fetchall()
         return jsonify([dict(row) for row in rows])
 
+
 @main_bp.route('/matches/delete', methods=['POST'])
 def delete_match():
     mid = str(request.json.get('movie_id'))
@@ -485,6 +522,7 @@ def delete_match():
     with get_db() as conn:
         conn.execute('DELETE FROM matches WHERE movie_id = ? AND plex_id = ?', (mid, plex_id))
     return jsonify({'status': 'deleted'})
+
 
 @main_bp.route('/undo', methods=['POST'])
 def undo_swipe():
@@ -497,6 +535,7 @@ def undo_swipe():
         conn.execute('DELETE FROM matches WHERE room_code = ? AND movie_id = ? AND status = "active" AND plex_id = ?', (code, mid, plex_id))
     return jsonify({'status': 'undone'})
 
+
 @main_bp.route('/proxy')
 def proxy():
     backend = request.args.get('backend', 'plex')
@@ -508,21 +547,23 @@ def proxy():
         img_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
         res = requests.get(img_url, headers=_jf_headers(), stream=True, timeout=10)
         return Response(res.content, content_type=res.headers.get('Content-Type', 'image/jpeg'))
-
-    else:  # plex
+    else:
         path = request.args.get('path')
         if not path or not path.startswith("/library/metadata/"):
             abort(403)
         res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
         return Response(res.content, content_type=res.headers['Content-Type'])
 
+
 @main_bp.route('/manifest.json')
 def serve_manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
 
+
 @main_bp.route('/sw.js')
 def serve_sw():
     return send_from_directory('../data', 'sw.js')
+
 
 @main_bp.route('/static/<path:path>')
 def serve_static(path):
