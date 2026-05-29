@@ -757,14 +757,16 @@
                 if (card.classList.contains('flipped')) return;
                 card.style.transition = 'none';
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
-               
+           
 
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) {
                     if (globalCurrentX > 10) {
-                        cardInner.style.boxShadow = `0 0 ${Math.min(globalCurrentX / 2, 40)}px rgba(76, 175, 80, ${Math.min(globalCurrentX / 100, 0.9)})`;
+                        const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
+                        cardInner.style.boxShadow = `0 0 ${20 + intensity * 60}px rgba(76, 175, 80, ${0.4 + intensity * 0.6})`;
                     } else if (globalCurrentX < -10) {
-                        cardInner.style.boxShadow = `0 0 ${Math.min(Math.abs(globalCurrentX) / 2, 40)}px rgba(211, 47, 47, ${Math.min(Math.abs(globalCurrentX) / 100, 0.9)})`;
+                        const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
+                        cardInner.style.boxShadow = `0 0 ${20 + intensity * 60}px rgba(211, 47, 47, ${0.4 + intensity * 0.6})`;
                     } else {
                         cardInner.style.boxShadow = '';
                     }
@@ -772,7 +774,7 @@
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
-                // side glows disabled
+    
                 
                 window.removeEventListener('pointermove', onMove);
                 window.removeEventListener('pointerup', onEnd);
