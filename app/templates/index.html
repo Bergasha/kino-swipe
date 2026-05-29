@@ -173,6 +173,18 @@
         .delete-btn-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #delete-confirm-btn { background: #d32f2f; color: white; border: none; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
         #delete-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
+        .stamp-yes, .stamp-no {
+            position: absolute;
+            top: 20px;
+            font-size: 4rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+        }
+        .stamp-yes { left: 20px; }
+        .stamp-no  { right: 20px; }
+
         .cast-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 6px 8px 0; width: 100%; box-sizing: border-box; }
         .cast-member { display: flex; flex-direction: column; align-items: center; width: 56px; flex-shrink: 0; }
         .cast-member img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #e5a00d; background: #333; }
@@ -675,7 +687,11 @@
             c.dataset.id = m.id; c.dataset.title = m.title; c.dataset.thumb = m.thumb;
             c.innerHTML = `
                 <div class="card-inner">
-                    <div class="card-front"><img src="${m.thumb}"></div>
+                    <div class="card-front">
+                        <img src="${m.thumb}">
+                        <div class="stamp-yes">👍</div>
+                        <div class="stamp-no">👎</div>
+                    </div>
                     <div class="card-back" style="border-color:${color}">
                         <div class="movie-title" style="color:${color}">${m.title}</div>
                         <div class="stats-row">
@@ -757,30 +773,42 @@
                 if (card.classList.contains('flipped')) return;
                 card.style.transition = 'none';
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
-           
+            
 
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) {
                     if (globalCurrentX > 10) {
                         const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
                         cardInner.style.boxShadow = `0 0 ${20 + intensity * 60}px rgba(76, 175, 80, ${0.4 + intensity * 0.6})`;
+                        card.querySelector('.stamp-yes').style.opacity = intensity;
+                        card.querySelector('.stamp-no').style.opacity = 0;
                     } else if (globalCurrentX < -10) {
                         const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
                         cardInner.style.boxShadow = `0 0 ${20 + intensity * 60}px rgba(211, 47, 47, ${0.4 + intensity * 0.6})`;
+                        card.querySelector('.stamp-no').style.opacity = intensity;
+                        card.querySelector('.stamp-yes').style.opacity = 0;
                     } else {
                         cardInner.style.boxShadow = '';
+                        card.querySelector('.stamp-yes').style.opacity = 0;
+                        card.querySelector('.stamp-no').style.opacity = 0;
                     }
                 }
             };
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
-    
+        
                 
                 window.removeEventListener('pointermove', onMove);
                 window.removeEventListener('pointerup', onEnd);
                 
                 const cardInner = card.querySelector('.card-inner');
-                if (cardInner) cardInner.style.boxShadow = '';
+                if (cardInner) {
+                    cardInner.style.boxShadow = '';
+                    const yes = card.querySelector('.stamp-yes');
+                    const no = card.querySelector('.stamp-no');
+                    if (yes) yes.style.opacity = 0;
+                    if (no) no.style.opacity = 0;
+                }
 
                 if (card.classList.contains('flipped')) { globalCurrentX = 0; return; }
                 card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
