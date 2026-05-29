@@ -11,11 +11,14 @@ from gevent.queue import Queue
 from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
 from app.services import (
     CLIENT_ID, JELLYFIN_URL, PLEX_URL, ADMIN_TOKEN, TMDB_API_KEY,
-    plex_ready, jellyfin_ready, get_genres, fetch_jellyfin_movies, fetch_plex_movies, 
+    plex_ready, jellyfin_ready, fetch_jellyfin_movies, fetch_plex_movies, 
     get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers
 )
 
 main_bp = Blueprint('main', __name__)
+
+CACHE_TTL = 43200        
+CACHE_TTL_RECENT = 1800  
 
 def get_item_meta(movie_id, backend_override=None):
     backend = backend_override or current_backend()
@@ -86,6 +89,13 @@ def build_and_cache_library(backend, genre_name):
         return movies
     except Exception:
         return []
+
+def get_genres():
+    if current_backend() == 'jellyfin':
+        from app.services import get_jellyfin_genres
+        return get_jellyfin_genres()
+    from app.services import get_plex_genres
+    return get_plex_genres()
 
 @main_bp.route('/')
 def index():
