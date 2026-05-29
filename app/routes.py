@@ -203,13 +203,14 @@ def add_to_watchlist():
             user_token = request.headers.get('X-Plex-Token')
             if not user_token:
                 return jsonify({'error': 'Unauthorized'}), 401
+                
             account = MyPlexAccount(token=user_token)
-            try:
-                plex = get_plex()
-                item = plex.fetchItem(int(movie_id))
-            except Exception:
-                reset_plex()
-                item = get_plex().fetchItem(int(movie_id))
+            
+          
+            from plexapi.server import PlexServer
+            user_plex_session = PlexServer(PLEX_URL, user_token)
+            item = user_plex_session.library.fetchItem(int(movie_id))
+            
             account.addToWatchlist(item)
             return jsonify({'status': 'success'})
         except Exception as e:
