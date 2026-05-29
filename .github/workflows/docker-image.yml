@@ -2,8 +2,7 @@ name: Build and Push to Docker Hub
 
 on:
   push:
-    branches:
-      - '*'  
+    branches: [ "main", "beta" ]
 
 jobs:
   build:
