@@ -234,7 +234,7 @@ def add_to_watchlist():
                 'Accept': 'application/json',
             }
             r = requests.put(
-                f"https://metadata.provider.plex.tv/library/metadata/{rating_key}/watchlist",
+                f"https://discover.provider.plex.tv/actions/addToWatchlist?ratingKey={rating_key}",
                 headers=headers,
                 timeout=10,
             )
