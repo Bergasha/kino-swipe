@@ -102,8 +102,8 @@
             }
         }
         
-        #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; z-index: 100; }
-        #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 60px auto 100px auto; max-height: calc(100vh - 180px); }
+        #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #111; z-index: 100; }
+        #swipe-deck { position: relative; width: min(92vw, 380px); aspect-ratio: 2 / 3; margin: 7vh auto 0 auto; max-height: calc(100vh - 22vh); }
         
         .movie-card, .mini-poster { perspective: 1000px; }
         .card-inner, .mini-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s, box-shadow 0.3s ease; transform-style: preserve-3d; border-radius: 20px; }
@@ -137,17 +137,17 @@
         .glow-side { position: absolute; top: 0; width: 40%; height: 100%; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s; }
         #glow-left { left: 0; background: linear-gradient(to right, rgba(211, 47, 47, 0.8), transparent); }
         #glow-right { right: 0; background: linear-gradient(to left, rgba(76, 175, 80, 0.8), transparent); }
-        .pill-btn { position: fixed; bottom: 25px; width: 120px; height: 45px; border-radius: 30px; border: none; font-weight: bold; font-size: 0.9rem; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+        .pill-btn { position: fixed; bottom: 2.5vh; width: 120px; height: 45px; border-radius: 30px; border: none; font-weight: bold; font-size: 0.9rem; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
         #matches-pill { right: 20px; background: #e5a00d; color: black; }
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
-        #undo-btn { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
+        #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         #match-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
         .match-card-popup { background: #1a1a1a; width: 85%; max-width: 320px; border-radius: 20px; border: 2px solid #e5a00d; padding: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 30px rgba(229, 160, 13, 0.4); animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popupIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .match-poster-preview { width: 140px; height: 210px; border-radius: 10px; object-fit: cover; border: 2px solid #333; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .match-logo { width: 100px; margin-bottom: 10px; }
         .match-instruction { color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; pointer-events: none; }
-        #game-instruction { position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); width: 100%; }
+        #poster-instruction { position: fixed; bottom: 18vh; left: 50%; transform: translateX(-50%); width: 100%; }
         #modal-instruction { position: fixed; bottom: 85px; }
         #genre-pill { position: fixed; top: 15px; right: 15px; width: 100px; height: 35px; border-radius: 20px; border: 1px solid #e5a00d; background: rgba(0,0,0,0.6); color: #e5a00d; font-weight: bold; font-size: 0.8rem; z-index: 10001; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         #genre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 30000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow: hidden; }
@@ -236,7 +236,7 @@
         }
         .undo-shake { animation: shake 0.4s ease; }
 
-        #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #d32f2f; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; z-index: 99999; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+        #toast { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #d32f2f; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; z-index: 99999; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
         #toast.show { opacity: 1; }
 
         .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: black; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
@@ -313,7 +313,7 @@
             <div id="glow-left" class="glow-side"></div>
             <div id="glow-right" class="glow-side"></div>
             <div id="swipe-deck"></div>
-            <div id="game-instruction" class="match-instruction">Tap poster for full details</div>
+            <div id="poster-instruction" class="match-instruction">Tap poster for full details</div>
         </div>
     </div>
 
