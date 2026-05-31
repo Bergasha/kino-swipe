@@ -142,21 +142,19 @@
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-       
+      
         #match-overlay { 
             position: fixed; 
             top: 15px; 
             left: 4vw; 
             width: 92vw;
-            max-width: 440px;
+            max-width: 450px;
             background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); 
             z-index: 15000; 
-            display: flex; 
-            flex-direction: row; 
-            align-items: center; 
-            justify-content: space-between; 
+            display: grid;
+            grid-template-columns: 95px 1fr;
             gap: 16px;
-            padding: 18px;
+            padding: 20px;
             box-sizing: border-box;
             backdrop-filter: blur(12px); 
             border: 2px solid #e5a00d;
@@ -168,39 +166,56 @@
         }
         @media (min-width: 480px) {
             #match-overlay {
-                left: calc(50% - 220px);
+                left: calc(50% - 225px);
             }
         }
         #match-overlay.show { transform: translateY(0); }
         
         .match-poster-preview { 
+            grid-column: 1;
+            grid-row: 1;
             width: 95px; 
             height: 142px; 
             border-radius: 12px; 
             object-fit: cover; 
             border: 2px solid #2a2a2a; 
             box-shadow: 0 6px 14px rgba(0,0,0,0.6); 
-            flex-shrink: 0; 
+            flex-shrink: 0;
         }
         
-        .match-details { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: flex-start; 
-            text-align: left; 
-            flex-grow: 1;
-            padding-right: 8px;
+        
+        .match-details-grid {
+            grid-column: 2;
+            display: grid;
+            grid-template-columns: 1fr 85px;
+            gap: 6px;
+            align-items: end;
+        }
+
+        .match-heading-container {
+            grid-column: 1 / span 2;
+            text-align: left;
+            margin-bottom: 2px;
+        }
+
+        .match-text-info {
+            grid-column: 1;
+            text-align: left;
+            padding-right: 4px;
+            align-self: start;
         }
         
-      
+
         .avatar-frame {
+            grid-column: 2;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 90px;
-            height: 142px;
-            flex-shrink: 0;
+            width: 85px;
+            height: 95px;
             overflow: hidden;
+            align-self: end;
+            flex-shrink: 0;
         }
         .match-logo { 
             width: 100%;
@@ -219,7 +234,7 @@
         .genre-item { background: #222; border: 1px solid #333; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; cursor: pointer; }
         .genre-item.active { border-color: #e5a00d; color: #e5a00d; }
         #solo-badge { position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid #666; color: #aaa; font-size: 0.75rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; z-index: 10001; backdrop-filter: blur(5px); letter-spacing: 0.05em; }
-        #match-solo-label { font-size: 0.95rem; color: #bbb; font-style: italic; margin: 4px 0 0 0; }
+        #match-solo-label { font-size: 1rem; color: #bbb; font-style: italic; margin: 6px 0 0 0; }
         #quit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 40000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         #quit-modal h2 { font-size: 1.8rem; color: #ff3131; margin: 0 0 10px; text-shadow: 0 0 10px #ff3131; }
         #quit-modal p { color: #888; font-size: 0.95rem; margin: 0 0 35px; padding: 0 30px; line-height: 1.5; }
@@ -391,13 +406,17 @@
 
     <div id="match-overlay" onclick="triggerDismissMatch()">
         <img id="match-popup-poster" class="match-poster-preview" src="">
-        <div class="match-details">
-            <h1 class="plex-yellow" id="match-heading" style="font-size: 1.6rem; margin: 0 0 5px; font-weight: bold; text-shadow: 0 0 12px rgba(229,160,13,0.4);">IT'S A MATCH!</h1>
-            <h2 id="matched-movie-title" style="margin: 0; font-size: 1.45rem; line-height: 1.25; font-weight: bold; color: white;"></h2>
-            <p id="match-solo-label" class="hidden">Added to your shortlist</p>
-        </div>
-        <div class="avatar-frame">
-            <img src="/static/logo.png" class="match-logo">
+        <div class="match-details-grid">
+            <div class="match-heading-container">
+                <h1 class="plex-yellow" id="match-heading" style="font-size: 1.8rem; margin: 0; font-weight: bold; text-shadow: 0 0 12px rgba(229,160,13,0.4);">IT'S A MATCH!</h1>
+            </div>
+            <div class="match-text-info">
+                <h2 id="matched-movie-title" style="margin: 0; font-size: 1.55rem; line-height: 1.25; font-weight: bold; color: white;"></h2>
+                <p id="match-solo-label" class="hidden">Added to your shortlist</p>
+            </div>
+            <div class="avatar-frame">
+                <img src="/static/logo.png" class="match-logo">
+            </div>
         </div>
     </div>
 
@@ -826,7 +845,6 @@
             }
         }
 
-        
         function presentMatchNotification(data) {
             if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
             
