@@ -46,50 +46,10 @@
         .plex-yellow { color: #e5a00d; }
         .jellyfin-blue { color: #00a4dc; }
         
-        .menu-btn { 
-            position: relative;
-            z-index: 2;
-            background: #e5a00d; 
-            border: none; 
-            padding: 15px; 
-            font-size: 1.2rem; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            margin: 10px; 
-            font-weight: bold; 
-            width: 240px; 
-            color: black; 
-        }
+        .menu-btn { position: relative; z-index: 2; background: #e5a00d; border: none; padding: 15px; font-size: 1.2rem; border-radius: 8px; cursor: pointer; margin: 10px; font-weight: bold; width: 240px; color: black; }
         
-        #login-section, #main-menu { 
-            position: relative;
-            z-index: 2;
-            padding: 60px 20px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center;
-            flex-grow: 1; 
-        }
-        
-        .main-title { 
-            font-size: clamp(4.5rem, 18vw, 7.5rem); 
-            margin: 0 0 50px 0; 
-            font-weight: normal; 
-            color: #ff3131; 
-            font-family: 'allura', cursive; 
-            white-space: nowrap;
-            line-height: 0.9;
-            text-shadow: 
-                0 0 5px #fff, 
-                0 0 10px #fff, 
-                0 0 20px #ff3131, 
-                0 0 40px #ff3131, 
-                0 0 80px #ff3131, 
-                0 0 120px #ff3131, 
-                0 0 160px #8a0606;
-            animation: neon-blink 5s infinite; 
-        }
+        #login-section, #main-menu { position: relative; z-index: 2; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; }
+        .main-title { font-size: clamp(4.5rem, 18vw, 7.5rem); margin: 0 0 50px 0; font-weight: normal; color: #ff3131; font-family: 'allura', cursive; white-space: nowrap; line-height: 0.9; text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff3131, 0 0 40px #ff3131, 0 0 80px #ff3131, 0 0 120px #ff3131, 0 0 160px #8a0606; animation: neon-blink 5s infinite; }
 
         @keyframes neon-blink {
             0%, 18%, 22%, 25%, 53%, 57%, 100% {
@@ -111,13 +71,7 @@
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
         .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; }
-        .movie-card img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain; 
-            display: block; 
-            background: #1a1a1a;
-        }
+        .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #1a1a1a; }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
@@ -143,19 +97,20 @@
         #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
       
-        #match-overlay { position: fixed; top: 15px; left: 4vw; width: 92vw; max-width: 450px; background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); z-index: 15000; display: grid; grid-template-columns: 95px 1fr; gap: 16px; padding: 20px; box-sizing: border-box; backdrop-filter: blur(12px); border: 2px solid #e5a00d; border-radius: 18px; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25); transform: translateY(-160%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); cursor: pointer; }
+        #match-overlay { position: fixed; top: 15px; left: 4vw; width: 92vw; max-width: 450px; background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); z-index: 15000; display: grid; grid-template-columns: 95px 1fr; gap: 16px; padding: 20px; box-sizing: border-box; backdrop-filter: blur(12px); border: 2px solid #e5a00d; border-radius: 18px; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25); transform: translateY(-160%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); cursor: pointer; overflow: hidden; }
         @media (min-width: 480px) { #match-overlay { left: calc(50% - 225px); } }
         #match-overlay.show { transform: translateY(0); }
         .match-poster-preview { grid-column: 1; grid-row: 1; width: 95px; height: 142px; border-radius: 12px; object-fit: cover; border: 2px solid #2a2a2a; box-shadow: 0 6px 14px rgba(0,0,0,0.6); flex-shrink: 0; }
-        .match-details-grid { grid-column: 2; display: grid; grid-template-columns: 1fr 85px; gap: 6px; align-items: end; }
+        .match-details-grid { grid-column: 2; display: grid; grid-template-columns: 1fr 85px; gap: 6px; align-items: center; }
         .match-heading-container { grid-column: 1 / span 2; text-align: left; margin-bottom: 2px; }
         .match-text-info { grid-column: 1; text-align: left; padding-right: 4px; align-self: start; }
-        .avatar-frame { grid-column: 2; display: flex; align-items: center; justify-content: center; width: 95px; height: 105px; overflow: hidden; align-self: end; flex-shrink: 0; }
+        .avatar-frame { grid-column: 2; display: flex; align-items: center; justify-content: center; width: 95px; height: 110px; overflow: hidden; align-self: center; flex-shrink: 0; }
         .match-logo { width: 100%; height: 100%; object-fit: contain; }
         
         .match-instruction { color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; pointer-events: none; }
         #poster-instruction { position: fixed; bottom: 18vh; left: 50%; transform: translateX(-50%); width: 100%; }
         #modal-instruction { position: fixed; bottom: 85px; }
+        
         #genre-pill { position: fixed; top: 15px; right: 15px; width: 100px; height: 35px; border-radius: 20px; border: 1px solid #e5a00d; background: rgba(0,0,0,0.6); color: #e5a00d; font-weight: bold; font-size: 0.8rem; z-index: 10001; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         #genre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 30000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow: hidden; }
         #genre-modal h1 { flex-shrink: 0; margin: 20px 0 15px; }
@@ -163,8 +118,10 @@
         .genre-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
         .genre-item { background: #222; border: 1px solid #333; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; cursor: pointer; }
         .genre-item.active { border-color: #e5a00d; color: #e5a00d; }
+        
         #solo-badge { position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid #666; color: #aaa; font-size: 0.75rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; z-index: 10001; backdrop-filter: blur(5px); letter-spacing: 0.05em; }
         #match-solo-label { font-size: 1rem; color: #bbb; font-style: italic; margin: 12px 0 0 0; }
+        
         #quit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 40000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         #quit-modal h2 { font-size: 1.8rem; color: #ff3131; margin: 0 0 10px; text-shadow: 0 0 10px #ff3131; }
         #quit-modal p { color: #888; font-size: 0.95rem; margin: 0 0 35px; padding: 0 30px; line-height: 1.5; }
@@ -173,6 +130,7 @@
         #quit-confirm-btn:hover { box-shadow: 0 0 20px rgba(211,47,47,0.7); }
         #quit-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 14px 30px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: border-color 0.3s, color 0.3s; width: 200px; }
         #quit-cancel-btn:hover { border-color: #888; color: white; }
+        
         #delete-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 49999; }
         #delete-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border: 1px solid #333; border-radius: 16px; z-index: 50000; padding: 30px 25px; width: 280px; box-shadow: 0 8px 40px rgba(0,0,0,0.8); text-align: center; }
         #delete-modal h3 { font-size: 1.2rem; color: #ff3131; margin: 0 0 8px; }
@@ -180,15 +138,8 @@
         .delete-btn-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #delete-confirm-btn { background: #d32f2f; color: white; border: none; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
         #delete-cancel-btn { background: #222; color: #aaa; border: 1px solid #444; padding: 12px 0; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; width: 100%; }
-        .stamp-yes, .stamp-no {
-            position: absolute;
-            top: 20px;
-            font-size: 4rem;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.1s;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-        }
+        
+        .stamp-yes, .stamp-no { position: absolute; top: 20px; font-size: 4rem; opacity: 0; pointer-events: none; transition: opacity 0.1s; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); }
         .stamp-yes { left: 20px; }
         .stamp-no  { right: 20px; }
 
@@ -198,35 +149,9 @@
         .cast-member .no-photo { width: 52px; height: 52px; border-radius: 50%; background: #333; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
         .cast-member span { font-size: 0.58rem; color: #ccc; text-align: center; margin-top: 4px; line-height: 1.2; word-break: break-word; }
         
-        .logout-btn { 
-            background: none; 
-            border: 1px solid #444; 
-            color: #666; 
-            padding: 8px 20px;
-            border-radius: 20px;
-            text-decoration: none; 
-            cursor: pointer; 
-            margin-top: 40px; 
-            font-size: 0.95rem; 
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        .logout-btn:hover {
-            color: #ccc;
-            border-color: #888;
-            background: rgba(255,255,255,0.05);
-        }
-
-        .signature {
-            position: fixed;
-            bottom: 10px;
-            width: 100%;
-            font-family: 'allura', cursive;
-            color: rgba(79, 5, 5, 0.9);
-            font-size: 1.8rem;
-            pointer-events: none;
-            z-index: 2;
-        }
+        .logout-btn { background: none; border: 1px solid #444; color: #666; padding: 8px 20px; border-radius: 20px; text-decoration: none; cursor: pointer; margin-top: 40px; font-size: 0.95rem; font-weight: bold; transition: all 0.3s ease; }
+        .logout-btn:hover { color: #ccc; border-color: #888; background: rgba(255,255,255,0.05); }
+        .signature { position: fixed; bottom: 10px; width: 100%; font-family: 'allura', cursive; color: rgba(79, 5, 5, 0.9); font-size: 1.8rem; pointer-events: none; z-index: 2; }
 
         #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .login-form { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; }
