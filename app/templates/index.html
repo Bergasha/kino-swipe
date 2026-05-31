@@ -142,42 +142,41 @@
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-    
+       
         #match-overlay { 
             position: fixed; 
             top: 15px; 
-            left: 5vw; 
-            width: 90vw;
-            max-width: 420px;
+            left: 4vw; 
+            width: 92vw;
+            max-width: 440px;
             background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); 
             z-index: 15000; 
             display: flex; 
             flex-direction: row; 
             align-items: center; 
-            justify-content: flex-start; 
+            justify-content: space-between; 
             gap: 16px;
-            padding: 16px;
+            padding: 18px;
             box-sizing: border-box;
             backdrop-filter: blur(12px); 
             border: 2px solid #e5a00d;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(229, 160, 13, 0.2);
-            transform: translateY(-150%);
+            border-radius: 18px;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25);
+            transform: translateY(-160%);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2);
             cursor: pointer;
         }
-      
-        @media (min-width: 460px) {
+        @media (min-width: 480px) {
             #match-overlay {
-                left: calc(50% - 210px);
+                left: calc(50% - 220px);
             }
         }
         #match-overlay.show { transform: translateY(0); }
         
         .match-poster-preview { 
-            width: 85px; 
-            height: 128px; 
-            border-radius: 10px; 
+            width: 95px; 
+            height: 142px; 
+            border-radius: 12px; 
             object-fit: cover; 
             border: 2px solid #2a2a2a; 
             box-shadow: 0 6px 14px rgba(0,0,0,0.6); 
@@ -190,24 +189,22 @@
             align-items: flex-start; 
             text-align: left; 
             flex-grow: 1;
+            padding-right: 8px;
         }
         
+      
         .avatar-frame {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: #252525;
-            border: 2px solid #e5a00d;
-            border-radius: 50%;
-            margin-bottom: 6px;
+            width: 90px;
+            height: 142px;
+            flex-shrink: 0;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
         .match-logo { 
-            width: 36px; 
-            height: 36px; 
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
         
@@ -222,7 +219,7 @@
         .genre-item { background: #222; border: 1px solid #333; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; cursor: pointer; }
         .genre-item.active { border-color: #e5a00d; color: #e5a00d; }
         #solo-badge { position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid #666; color: #aaa; font-size: 0.75rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; z-index: 10001; backdrop-filter: blur(5px); letter-spacing: 0.05em; }
-        #match-solo-label { font-size: 0.85rem; color: #aaa; font-style: italic; margin: 2px 0 0 0; }
+        #match-solo-label { font-size: 0.95rem; color: #bbb; font-style: italic; margin: 4px 0 0 0; }
         #quit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 40000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         #quit-modal h2 { font-size: 1.8rem; color: #ff3131; margin: 0 0 10px; text-shadow: 0 0 10px #ff3131; }
         #quit-modal p { color: #888; font-size: 0.95rem; margin: 0 0 35px; padding: 0 30px; line-height: 1.5; }
@@ -395,12 +392,12 @@
     <div id="match-overlay" onclick="triggerDismissMatch()">
         <img id="match-popup-poster" class="match-poster-preview" src="">
         <div class="match-details">
-            <div class="avatar-frame">
-                <img src="/static/logo.png" class="match-logo">
-            </div>
-            <h1 class="plex-yellow" id="match-heading" style="font-size: 1.3rem; margin: 0 0 3px; font-weight: bold; text-shadow: 0 0 10px rgba(229,160,13,0.35);">IT'S A MATCH!</h1>
-            <h2 id="matched-movie-title" style="margin: 0; font-size: 1.25rem; line-height: 1.25; font-weight: bold; color: white;"></h2>
+            <h1 class="plex-yellow" id="match-heading" style="font-size: 1.6rem; margin: 0 0 5px; font-weight: bold; text-shadow: 0 0 12px rgba(229,160,13,0.4);">IT'S A MATCH!</h1>
+            <h2 id="matched-movie-title" style="margin: 0; font-size: 1.45rem; line-height: 1.25; font-weight: bold; color: white;"></h2>
             <p id="match-solo-label" class="hidden">Added to your shortlist</p>
+        </div>
+        <div class="avatar-frame">
+            <img src="/static/logo.png" class="match-logo">
         </div>
     </div>
 
@@ -493,9 +490,6 @@
             
             const overlay = document.getElementById('match-overlay');
             if (overlay) overlay.style.borderColor = color;
-            
-            const frame = document.querySelector('.avatar-frame');
-            if (frame) frame.style.borderColor = color;
         }
 
         async function loginWithPlex() {
@@ -832,7 +826,7 @@
             }
         }
 
-       
+        
         function presentMatchNotification(data) {
             if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
             
@@ -855,7 +849,6 @@
             const banner = document.getElementById('match-overlay');
             banner.classList.add('show');
             
-          
             matchTimeoutToken = setTimeout(() => {
                 triggerDismissMatch();
             }, 4000);
