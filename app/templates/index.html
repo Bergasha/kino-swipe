@@ -72,6 +72,7 @@
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
         .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; }
         .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #1a1a1a; }
+        .movie-card.fallback-card img { object-fit: cover; }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
@@ -96,14 +97,13 @@
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-      
         #match-overlay { position: fixed; top: 15px; left: 4vw; width: 92vw; max-width: 450px; background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); z-index: 15000; display: grid; grid-template-columns: 95px 1fr; gap: 16px; padding: 20px; box-sizing: border-box; backdrop-filter: blur(12px); border: 2px solid #e5a00d; border-radius: 18px; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25); transform: translateY(-160%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); cursor: pointer; overflow: hidden; }
         @media (min-width: 480px) { #match-overlay { left: calc(50% - 225px); } }
         #match-overlay.show { transform: translateY(0); }
         .match-poster-preview { grid-column: 1; grid-row: 1; width: 95px; height: 142px; border-radius: 12px; object-fit: cover; border: 2px solid #2a2a2a; box-shadow: 0 6px 14px rgba(0,0,0,0.6); flex-shrink: 0; }
         .match-details-grid { grid-column: 2; display: grid; grid-template-columns: 1fr 85px; gap: 6px; align-items: center; position: relative; }
         .match-heading-container { grid-column: 1 / span 2; text-align: left; margin-bottom: 2px; }
-        .match-text-info { grid-column: 1 / span 2; text-align: left; padding-right: 70px; align-self: start; }
+        .match-text-info { grid-column: 1 / span 2; text-align: left; padding-right: 70px; align-self: start; min-width: 0; }
         .avatar-frame { position: absolute; bottom: 0; right: 0; width: 60px; height: 80px; overflow: hidden; flex-shrink: 0; }
         .match-logo { width: 100%; height: 100%; object-fit: contain; }
         
@@ -266,7 +266,7 @@
                 <h1 class="plex-yellow" id="match-heading" style="font-size: 1.8rem; margin: 0; font-weight: bold; text-shadow: 0 0 12px rgba(229,160,13,0.4);">IT'S A MATCH!</h1>
             </div>
             <div class="match-text-info">
-                <h2 id="matched-movie-title" style="margin: 0; font-size: 2.00rem; line-height: 1.25; font-weight: bold; color: white;"></h2>
+                <h2 id="matched-movie-title" style="margin: 0; font-weight: bold; color: #f0e6d3; font-size: clamp(0.8rem, 3vw, 1.2rem); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; word-break: break-word;"></h2>
                 <p id="match-solo-label" class="hidden">Added to your shortlist</p>
             </div>
             <div class="avatar-frame">
@@ -325,11 +325,15 @@
         function getBackend() { return localStorage.getItem('backend') || 'plex'; }
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
+        
         function getMoviesHeaders() {
             const headers = {};
             if (getBackend() === 'jellyfin') {
                 headers['X-Jellyfin-Token'] = getAuthToken();
                 headers['X-Jellyfin-User-ID'] = getUserId();
+            } else {
+                headers['X-Plex-Token'] = getAuthToken();
+                headers['X-Plex-User-ID'] = getUserId();
             }
             return headers;
         }
@@ -340,7 +344,7 @@
             try {
                 const res = await fetch(`https://plex.tv/api/v2/user?X-Plex-Token=${token}`, { headers: { 'Accept': 'application/json' } });
                 const data = await res.json();
-                if (data.id) localStorage.setItem('plex_id', data.id);
+                if (data.id) localStorage.setItem('plex_id', String(data.id));
             } catch (e) { console.error("Could not fetch Plex ID"); }
         }
 
@@ -514,11 +518,7 @@
             const label = isSoloMode && !asHistory ? "Your Shortlist" : asHistory ? "Match History" : "Your Matches";
             document.getElementById('modal-title').innerText = label;
             
-            const headers = {};
-            const backend = getBackend();
-            if (backend === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-            else headers['X-Plex-User-ID'] = getUserId();
-
+            const headers = getMoviesHeaders();
             const url = asHistory ? '/matches?view=history' : '/matches';
             const res = await fetch(url, { headers: headers });
             const data = await res.json();
@@ -526,13 +526,13 @@
             const emptyLabel = asHistory ? 'history' : isSoloMode ? 'shortlist' : 'matches';
             list.innerHTML = data.length ? '' : `<p style="grid-column: span 2; color:#666;">No ${emptyLabel} yet</p>`;
             
-            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
 
             data.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'mini-poster';
                 let openBtn;
-                if (backend === 'plex') {
+                if (getBackend() === 'plex') {
                     const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
                     openBtn = `<a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>`;
                 } else {
@@ -580,9 +580,8 @@
             document.getElementById('delete-modal-overlay').classList.remove('hidden');
             document.getElementById('delete-modal').classList.remove('hidden');
             document.getElementById('delete-confirm-btn').onclick = async () => {
-                const headers = {"Content-Type": "application/json"};
-                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-                else headers['X-Plex-User-ID'] = getUserId();
+                const headers = getMoviesHeaders();
+                headers["Content-Type"] = "application/json";
 
                 await fetch("/matches/delete", { 
                     method: "POST", 
@@ -605,9 +604,8 @@
                     return;
                 }
                 const lastMovie = swipeHistory.pop();
-                const headers = {'Content-Type': 'application/json'};
-                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-                else headers['X-Plex-User-ID'] = getUserId();
+                const headers = getMoviesHeaders();
+                headers['Content-Type'] = 'application/json';
 
                 await fetch('/undo', { 
                     method: 'POST', 
@@ -758,7 +756,6 @@
                 card.style.transition = 'none';
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
             
-
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) {
                     if (globalCurrentX > 10) {
@@ -781,7 +778,6 @@
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
         
-                
                 window.removeEventListener('pointermove', onMove);
                 window.removeEventListener('pointerup', onEnd);
                 
@@ -801,9 +797,13 @@
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
                     card.style.opacity = '0';
                     const movieData = movieStack[0]; swipeHistory.push(movieData);
+                    
+                    const swipeHeaders = getMoviesHeaders();
+                    swipeHeaders['Content-Type'] = 'application/json';
+
                     fetch('/room/swipe', { 
                         method: 'POST', 
-                        headers: {'Content-Type': 'application/json'}, 
+                        headers: swipeHeaders, 
                         body: JSON.stringify({ 
                             movie_id: card.dataset.id, title: card.dataset.title, thumb: card.dataset.thumb, direction: dir,
                             plex_id: getUserId()
@@ -829,11 +829,8 @@
             const btn = document.getElementById('host-btn');
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>Creating...';
-            const createHeaders = { 'X-Backend': getBackend() };
-            if (getBackend() === 'jellyfin') {
-                createHeaders['X-Jellyfin-Token'] = getAuthToken();
-                createHeaders['X-Jellyfin-User-ID'] = getUserId();
-            }
+            
+            const createHeaders = getMoviesHeaders();
             const res = await fetch('/room/create', {
                 method: 'POST',
                 headers: createHeaders
@@ -853,7 +850,15 @@
             const btn = document.getElementById('join-btn');
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>Joining...';
-            const res = await fetch('/room/join', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code }) });
+            
+            const joinHeaders = getMoviesHeaders();
+            joinHeaders['Content-Type'] = 'application/json';
+
+            const res = await fetch('/room/join', { 
+                method: 'POST', 
+                headers: joinHeaders, 
+                body: JSON.stringify({ code }) 
+            });
             if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); }
             else {
                 const data = await res.json();
@@ -925,12 +930,9 @@
             if (e.key === 'ArrowUp') {
                 if (swipeHistory.length === 0) return;
                 const lastMovie = swipeHistory.pop();
-                const headers = { 'Content-Type': 'application/json' };
-                if (getBackend() === 'jellyfin') {
-                    headers['X-Jellyfin-User-ID'] = getUserId();
-                } else {
-                    headers['X-Plex-User-ID'] = getUserId();
-                }
+                const headers = getMoviesHeaders();
+                headers['Content-Type'] = 'application/json';
+
                 await fetch('/undo', {
                     method: 'POST',
                     headers: headers,
@@ -956,9 +958,12 @@
             const movieData = movieStack[0];
             swipeHistory.push(movieData);
 
+            const swipeHeaders = getMoviesHeaders();
+            swipeHeaders['Content-Type'] = 'application/json';
+
             fetch('/room/swipe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: swipeHeaders,
                 body: JSON.stringify({
                     movie_id: card.dataset.id,
                     title: card.dataset.title,
