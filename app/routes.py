@@ -50,46 +50,48 @@ def current_backend():
     return session.get('backend', 'plex')
 
 
-def fetch_movies(genre_name=None):
+def fetch_movies(genre_name=None, user_id=None, user_token=None):
     backend = current_backend()
     genre_name = genre_name or "All"
+    cache_user_id = user_id or ''
 
     with db_session() as conn:
         cache = conn.execute(
-            'SELECT movie_data, updated_at FROM library_cache WHERE backend = ? AND genre = ?',
-            (backend, genre_name)
+            'SELECT movie_data, updated_at FROM library_cache WHERE backend = ? AND genre = ? AND user_id = ?',
+            (backend, genre_name, cache_user_id)
         ).fetchone()
 
     now = time.time()
     ttl = CACHE_TTL_RECENT if genre_name == "Recently Added" else CACHE_TTL
 
     if not cache:
-        movie_list = build_and_cache_library(backend, genre_name)
+        movie_list = build_and_cache_library(backend, genre_name, user_id, user_token)
     else:
         movie_list = json.loads(cache['movie_data'])
         if now - cache['updated_at'] > ttl:
-            threading.Thread(target=build_and_cache_library, args=(backend, genre_name), daemon=True).start()
+            threading.Thread(target=build_and_cache_library, args=(backend, genre_name, user_id, user_token), daemon=True).start()
 
     if genre_name != "Recently Added":
         random.shuffle(movie_list)
     return movie_list
 
 
-def build_and_cache_library(backend, genre_name):
+def build_and_cache_library(backend, genre_name, user_id=None, user_token=None):
     try:
         if backend == 'jellyfin':
-            movies = fetch_jellyfin_movies(genre_name)
+            movies = fetch_jellyfin_movies(genre_name, user_id=user_id, user_token=user_token)
         else:
             movies = fetch_plex_movies(genre_name)
 
         if not movies:
             return []
 
+        cache_user_id = user_id or ''
         with db_session() as conn:
             conn.execute('''
-                INSERT OR REPLACE INTO library_cache (backend, genre, movie_data, updated_at)
-                VALUES (?, ?, ?, ?)
-            ''', (backend, genre_name, json.dumps(movies), time.time()))
+                INSERT OR REPLACE INTO library_cache (backend, genre, user_id, movie_data, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (backend, genre_name, cache_user_id, json.dumps(movies), time.time()))
         return movies
     except Exception:
         return []
@@ -326,7 +328,9 @@ def get_cast(movie_id):
 def create_room():
     backend = session.get('backend', 'plex')
     pairing_code = str(random.randint(1000, 9999))
-    movie_list = fetch_movies()
+    user_id = request.headers.get('X-Jellyfin-User-ID')
+    user_token = request.headers.get('X-Jellyfin-Token')
+    movie_list = fetch_movies(user_id=user_id, user_token=user_token)
     with get_db() as conn:
         conn.execute(
             'INSERT INTO rooms (pairing_code, movie_data, ready, current_genre, solo_mode, backend) VALUES (?, ?, ?, ?, ?, ?)',
@@ -484,11 +488,13 @@ def room_stream():
 def get_movies():
     code = session.get('active_room')
     genre = request.args.get('genre')
+    user_id = request.headers.get('X-Jellyfin-User-ID')
+    user_token = request.headers.get('X-Jellyfin-Token')
     if not code:
         return jsonify([])
     with get_db() as conn:
         if genre:
-            new_list = fetch_movies(genre)
+            new_list = fetch_movies(genre, user_id=user_id, user_token=user_token)
             conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?',
                          (json.dumps(new_list), genre, code))
             announce_room_update(code, {'genre': genre})

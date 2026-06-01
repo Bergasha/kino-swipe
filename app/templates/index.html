@@ -101,10 +101,10 @@
         @media (min-width: 480px) { #match-overlay { left: calc(50% - 225px); } }
         #match-overlay.show { transform: translateY(0); }
         .match-poster-preview { grid-column: 1; grid-row: 1; width: 95px; height: 142px; border-radius: 12px; object-fit: cover; border: 2px solid #2a2a2a; box-shadow: 0 6px 14px rgba(0,0,0,0.6); flex-shrink: 0; }
-        .match-details-grid { grid-column: 2; display: grid; grid-template-columns: 1fr 85px; gap: 6px; align-items: center; }
+        .match-details-grid { grid-column: 2; display: grid; grid-template-columns: 1fr 85px; gap: 6px; align-items: center; position: relative; }
         .match-heading-container { grid-column: 1 / span 2; text-align: left; margin-bottom: 2px; }
-        .match-text-info { grid-column: 1; text-align: left; padding-right: 4px; align-self: start; }
-        .avatar-frame { grid-column: 2; display: flex; align-items: center; justify-content: center; width: 95px; height: 110px; overflow: hidden; align-self: center; flex-shrink: 0; }
+        .match-text-info { grid-column: 1 / span 2; text-align: left; padding-right: 70px; align-self: start; }
+        .avatar-frame { position: absolute; bottom: 0; right: 0; width: 60px; height: 80px; overflow: hidden; flex-shrink: 0; }
         .match-logo { width: 100%; height: 100%; object-fit: contain; }
         
         .match-instruction { color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; pointer-events: none; }
@@ -325,6 +325,14 @@
         function getBackend() { return localStorage.getItem('backend') || 'plex'; }
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
+        function getMoviesHeaders() {
+            const headers = {};
+            if (getBackend() === 'jellyfin') {
+                headers['X-Jellyfin-Token'] = getAuthToken();
+                headers['X-Jellyfin-User-ID'] = getUserId();
+            }
+            return headers;
+        }
 
         async function fetchAndStorePlexId() {
             const token = localStorage.getItem('plex_token');
@@ -412,7 +420,7 @@
             });
             toggleGenreModal();
             const url = genre === 'All' ? '/movies?genre=All' : `/movies?genre=${encodeURIComponent(genre)}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { headers: getMoviesHeaders() });
             movieStack = await res.json();
             currentGenre = genre;
             document.getElementById('genre-pill').innerText = genre === 'All' ? 'Genres ▾' : genre + ' ▾';
@@ -478,7 +486,7 @@
         const loadMovies = async (solo = false) => {
             isSoloMode = solo;
             lastSeenMatchTs = Date.now() / 1000;
-            const res = await fetch('/movies');
+            const res = await fetch('/movies', { headers: getMoviesHeaders() });
             movieStack = await res.json();
             document.getElementById('branding').classList.add('hidden');
             document.getElementById('controls-area').classList.add('hidden');
@@ -821,9 +829,14 @@
             const btn = document.getElementById('host-btn');
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>Creating...';
+            const createHeaders = { 'X-Backend': getBackend() };
+            if (getBackend() === 'jellyfin') {
+                createHeaders['X-Jellyfin-Token'] = getAuthToken();
+                createHeaders['X-Jellyfin-User-ID'] = getUserId();
+            }
             const res = await fetch('/room/create', {
                 method: 'POST',
-                headers: { 'X-Backend': getBackend() }
+                headers: createHeaders
             });
             const data = await res.json();
             localStorage.setItem('active_room', 'hosting');
@@ -884,7 +897,7 @@
                 if (d.genre && d.genre !== currentGenre) {
                     currentGenre = d.genre;
                     document.getElementById('genre-pill').innerText = currentGenre === 'All' ? 'Genres ▾' : currentGenre + ' ▾';
-                    const movieRes = await fetch('/movies');
+                    const movieRes = await fetch('/movies', { headers: getMoviesHeaders() });
                     movieStack = await movieRes.json(); swipeHistory = []; renderInitialDeck();
                 }
                 if (d.ready && document.getElementById('game-area').classList.contains('hidden')) {

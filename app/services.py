@@ -127,7 +127,7 @@ def get_jellyfin_genres():
     except Exception:
         return []
 
-def fetch_jellyfin_movies(genre_name=None):
+def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
     params = {
         'IncludeItemTypes': 'Movie',
         'Recursive': 'true',
@@ -143,7 +143,14 @@ def fetch_jellyfin_movies(genre_name=None):
     elif genre_name and genre_name != "All":
         params['Genres'] = genre_name
 
-    r = requests.get(f"{JELLYFIN_URL}/Items", headers=_jf_headers(), params=params, timeout=15)
+    if user_id and user_token:
+        url = f"{JELLYFIN_URL}/Users/{user_id}/Items"
+        headers = {"X-Emby-Token": user_token, "Content-Type": "application/json"}
+    else:
+        url = f"{JELLYFIN_URL}/Items"
+        headers = _jf_headers()
+
+    r = requests.get(url, headers=headers, params=params, timeout=15)
     r.raise_for_status()
     items = r.json().get('Items', [])
 

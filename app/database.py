@@ -43,8 +43,8 @@ def init_db():
             UNIQUE(room_code, movie_id, plex_id)
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS library_cache (
-            backend TEXT, genre TEXT, movie_data TEXT, updated_at REAL,
-            PRIMARY KEY (backend, genre)
+            backend TEXT, genre TEXT, user_id TEXT NOT NULL DEFAULT "", movie_data TEXT, updated_at REAL,
+            PRIMARY KEY (backend, genre, user_id)
         )''')
 
         cursor = conn.execute("PRAGMA table_info(matches)")
@@ -67,5 +67,17 @@ def init_db():
             conn.execute('ALTER TABLE rooms ADD COLUMN last_match_data TEXT')
         if 'backend' not in room_cols:
             conn.execute('ALTER TABLE rooms ADD COLUMN backend TEXT DEFAULT "plex"')
+
+        cursor = conn.execute("PRAGMA table_info(library_cache)")
+        cache_cols = [col[1] for col in cursor.fetchall()]
+        if 'user_id' not in cache_cols:
+            conn.execute('ALTER TABLE library_cache ADD COLUMN user_id TEXT NOT NULL DEFAULT ""')
+            conn.execute('''CREATE TABLE IF NOT EXISTS library_cache_new (
+                backend TEXT, genre TEXT, user_id TEXT NOT NULL DEFAULT "", movie_data TEXT, updated_at REAL,
+                PRIMARY KEY (backend, genre, user_id)
+            )''')
+            conn.execute('INSERT INTO library_cache_new SELECT backend, genre, "", movie_data, updated_at FROM library_cache')
+            conn.execute('DROP TABLE library_cache')
+            conn.execute('ALTER TABLE library_cache_new RENAME TO library_cache')
 
         conn.execute('DELETE FROM swipes WHERE room_code NOT IN (SELECT pairing_code FROM rooms)')
