@@ -325,6 +325,14 @@
         function getBackend() { return localStorage.getItem('backend') || 'plex'; }
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
+        function getMoviesHeaders() {
+            const headers = {};
+            if (getBackend() === 'jellyfin') {
+                headers['X-Jellyfin-Token'] = getAuthToken();
+                headers['X-Jellyfin-User-ID'] = getUserId();
+            }
+            return headers;
+        }
 
         async function fetchAndStorePlexId() {
             const token = localStorage.getItem('plex_token');
@@ -412,7 +420,7 @@
             });
             toggleGenreModal();
             const url = genre === 'All' ? '/movies?genre=All' : `/movies?genre=${encodeURIComponent(genre)}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { headers: getMoviesHeaders() });
             movieStack = await res.json();
             currentGenre = genre;
             document.getElementById('genre-pill').innerText = genre === 'All' ? 'Genres ▾' : genre + ' ▾';
@@ -478,7 +486,7 @@
         const loadMovies = async (solo = false) => {
             isSoloMode = solo;
             lastSeenMatchTs = Date.now() / 1000;
-            const res = await fetch('/movies');
+            const res = await fetch('/movies', { headers: getMoviesHeaders() });
             movieStack = await res.json();
             document.getElementById('branding').classList.add('hidden');
             document.getElementById('controls-area').classList.add('hidden');
@@ -884,7 +892,7 @@
                 if (d.genre && d.genre !== currentGenre) {
                     currentGenre = d.genre;
                     document.getElementById('genre-pill').innerText = currentGenre === 'All' ? 'Genres ▾' : currentGenre + ' ▾';
-                    const movieRes = await fetch('/movies');
+                    const movieRes = await fetch('/movies', { headers: getMoviesHeaders() });
                     movieStack = await movieRes.json(); swipeHistory = []; renderInitialDeck();
                 }
                 if (d.ready && document.getElementById('game-area').classList.contains('hidden')) {
