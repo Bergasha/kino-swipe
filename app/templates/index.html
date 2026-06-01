@@ -829,9 +829,14 @@
             const btn = document.getElementById('host-btn');
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>Creating...';
+            const createHeaders = { 'X-Backend': getBackend() };
+            if (getBackend() === 'jellyfin') {
+                createHeaders['X-Jellyfin-Token'] = getAuthToken();
+                createHeaders['X-Jellyfin-User-ID'] = getUserId();
+            }
             const res = await fetch('/room/create', {
                 method: 'POST',
-                headers: { 'X-Backend': getBackend() }
+                headers: createHeaders
             });
             const data = await res.json();
             localStorage.setItem('active_room', 'hosting');
