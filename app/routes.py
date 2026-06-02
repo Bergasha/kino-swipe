@@ -440,6 +440,8 @@ def join_room():
             host_ids = {str(m['id']) for m in host_movies}
             intersected_ids = host_ids.intersection(joiner_lookup.keys())
             final_joint_list = [joiner_lookup[mid] for mid in intersected_ids]
+
+            random.shuffle(final_joint_list)
             
             conn.execute('UPDATE rooms SET movie_data = ?, ready = 1 WHERE pairing_code = ?', (json.dumps(final_joint_list), code))
             session['active_room'] = code
