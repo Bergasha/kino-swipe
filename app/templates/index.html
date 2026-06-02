@@ -154,7 +154,7 @@
         .signature { position: fixed; bottom: 10px; width: 100%; font-family: 'allura', cursive; color: rgba(79, 5, 5, 0.9); font-size: 1.8rem; pointer-events: none; z-index: 2; }
 
         #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        #plex-profile-modal, #plex-pin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px; box-sizing: border-box; }
+        #plex-profile-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px; box-sizing: border-box; }
         .plex-profile-btn { display: flex; align-items: center; gap: 14px; width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 16px; cursor: pointer; transition: border-color 0.2s, background 0.2s; text-align: left; }
         .plex-profile-btn:hover { border-color: #e5a00d; background: #222; }
         .plex-profile-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; }
@@ -214,17 +214,6 @@
         <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">Select a profile to apply their library restrictions</p>
         <div id="plex-profile-list" style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin:0 auto;"></div>
         <button class="menu-btn" style="background:#333; color:white; margin-top:20px;" onclick="skipProfileSelect()">Skip / Use Main Account</button>
-    </div>
-
-    <div id="plex-pin-modal" class="hidden">
-        <h2 class="plex-yellow" style="margin-bottom:16px;">Enter PIN</h2>
-        <p id="plex-pin-label" style="color:#bbb; margin-bottom:16px;"></p>
-        <input type="password" id="plex-pin-input" inputmode="numeric" maxlength="4" placeholder="••••"
-            style="padding:15px; width:120px; text-align:center; border-radius:8px; border:1px solid #444; background:#222; color:white; font-size:1.8rem; letter-spacing:0.3em;">
-        <br>
-        <button class="menu-btn" style="margin-top:16px;" onclick="submitPlexPin()">Confirm</button>
-        <button class="menu-btn" style="background:#333; color:white; margin-top:8px;" onclick="cancelPlexPin()">Back</button>
-        <p id="plex-pin-error" style="color:#ff4444; margin-top:10px; display:none;">Incorrect PIN, try again.</p>
     </div>
 
     <div id="main-menu" class="hidden">
@@ -349,9 +338,8 @@
         function getBackend() { return localStorage.getItem('backend') || 'plex'; }
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
-        
         function getMoviesHeaders() {
-            const headers = {};
+            const headers = { 'X-Backend': getBackend() };
             if (getBackend() === 'jellyfin') {
                 headers['X-Jellyfin-Token'] = getAuthToken();
                 headers['X-Jellyfin-User-ID'] = getUserId();
@@ -361,8 +349,6 @@
             }
             return headers;
         }
-
-        let _pendingProfileUserId = null;
 
         async function showPlexProfilePicker() {
             const token = localStorage.getItem('plex_token');
@@ -374,7 +360,6 @@
                 const data = await res.json();
                 const users = data.users || [];
                 if (users.length <= 1) {
-                 
                     await finishPlexLogin();
                     return;
                 }
@@ -389,7 +374,7 @@
                             <div class="plex-profile-name">${u.title}</div>
                             ${u.restricted ? '<div class="plex-profile-restricted">🔒 Restricted</div>' : ''}
                         </div>`;
-                    btn.onclick = () => selectPlexProfile(u);
+                    btn.onclick = () => doSwitchUser(u.id);
                     list.appendChild(btn);
                 });
                 document.getElementById('login-section').classList.add('hidden');
@@ -400,62 +385,27 @@
             }
         }
 
-        async function selectPlexProfile(user) {
+        async function doSwitchUser(userId) {
             const token = localStorage.getItem('plex_token');
-          
             try {
                 const res = await fetch('/auth/plex-switch-user', {
                     method: 'POST',
                     headers: { 'X-Plex-Token': token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user.id })
+                    body: JSON.stringify({ userId })
                 });
                 if (res.ok) {
                     const data = await res.json();
                     localStorage.setItem('plex_token', data.authToken);
                     document.getElementById('plex-profile-modal').classList.add('hidden');
                     await finishPlexLogin();
-                    return;
-                }
-                if (res.status === 401) {
-               
-                    _pendingProfileUserId = user.id;
-                    document.getElementById('plex-pin-label').innerText = `Enter PIN for ${user.title}`;
-                    document.getElementById('plex-pin-input').value = '';
-                    document.getElementById('plex-pin-error').style.display = 'none';
-                    document.getElementById('plex-profile-modal').classList.add('hidden');
-                    document.getElementById('plex-pin-modal').classList.remove('hidden');
+                } else {
+                    console.error('Switch user failed');
+                    await finishPlexLogin();
                 }
             } catch (e) {
                 console.error('Switch user error', e);
                 await finishPlexLogin();
             }
-        }
-
-        async function submitPlexPin() {
-            const token = localStorage.getItem('plex_token');
-            const pin = document.getElementById('plex-pin-input').value;
-            try {
-                const res = await fetch('/auth/plex-switch-user', {
-                    method: 'POST',
-                    headers: { 'X-Plex-Token': token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: _pendingProfileUserId, pin })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    localStorage.setItem('plex_token', data.authToken);
-                    document.getElementById('plex-pin-modal').classList.add('hidden');
-                    await finishPlexLogin();
-                } else {
-                    document.getElementById('plex-pin-error').style.display = 'block';
-                }
-            } catch (e) {
-                document.getElementById('plex-pin-error').style.display = 'block';
-            }
-        }
-
-        function cancelPlexPin() {
-            document.getElementById('plex-pin-modal').classList.add('hidden');
-            document.getElementById('plex-profile-modal').classList.remove('hidden');
         }
 
         async function skipProfileSelect() {
@@ -467,6 +417,7 @@
             await fetchAndStorePlexId();
             await fetchServerInfo();
             document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('plex-profile-modal').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
             loadGenres();
         }
@@ -800,9 +751,6 @@
                                 if (data.cast && data.cast.length > 0) {
                                     castEl.innerHTML = data.cast.map(actor => `
                                         <div class="cast-member">
-                                            ${actor.profile_path
-                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy" style="border-color:${color}">`
-                                                : `<div class="no-photo">🎬</div>`}
                                             <span>${actor.name}</span>
                                         </div>
                                     `).join('');
