@@ -751,6 +751,9 @@
                                 if (data.cast && data.cast.length > 0) {
                                     castEl.innerHTML = data.cast.map(actor => `
                                         <div class="cast-member">
+                                            ${actor.profile_path
+                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy" style="border-color:${color}">`
+                                                : `<div class="no-photo">🎬</div>`}
                                             <span>${actor.name}</span>
                                         </div>
                                     `).join('');
