@@ -165,8 +165,8 @@ def plex_home_users():
             result.append({
                 'id': u.get('uuid') or u.get('id'),
                 'title': u.get('title') or u.get('username') or 'Unknown',
+                'thumb': u.get('thumb'),
                 'restricted': u.get('restricted', False),
-                'hasPinned': u.get('pinned', False) or u.get('hasPinned', False),
             })
         return jsonify({'users': result})
     except Exception as e:
@@ -207,51 +207,6 @@ def plex_switch_user():
             pass
             
         return jsonify({'authToken': switched_token})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@main_bp.route('/auth/plex-validate-pin', methods=['POST'])
-def plex_validate_pin():
-    token = request.headers.get('X-Plex-Token')
-    data = request.json or {}
-    user_id = data.get('userId')
-    pin = data.get('pin', '')
-    if not token or not user_id or not pin:
-        return jsonify({'error': 'Missing required fields'}), 400
-    try:
-        headers = {
-            'X-Plex-Token': token,
-            'X-Plex-Client-Identifier': CLIENT_ID,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        }
-        res = requests.post(
-            f'https://plex.tv/api/v2/home/users/{user_id}/switch',
-            headers=headers,
-            json={'pin': pin},
-            timeout=10,
-        )
-        if res.status_code == 401:
-            return jsonify({'error': 'Incorrect PIN'}), 401
-        res.raise_for_status()
-        result = res.json()
-        switched_token = result.get('authToken')
-        if not switched_token:
-            return jsonify({'error': 'No token returned'}), 500
-            
-        try:
-            account = MyPlexAccount(token=switched_token)
-            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
-            switched_token = server_resource.accessToken
-        except Exception:
-            pass
-            
-        return jsonify({'authToken': switched_token})
-    except requests.HTTPError as e:
-        if e.response.status_code == 401:
-            return jsonify({'error': 'Incorrect PIN'}), 401
-        return jsonify({'error': str(e)}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
