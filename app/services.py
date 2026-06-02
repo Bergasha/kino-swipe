@@ -1,6 +1,7 @@
 import os
 import requests
 from plexapi.server import PlexServer
+from plexapi.myplex import MyPlexAccount
 from plexapi.exceptions import NotFound
 
 PLEX_URL = os.getenv('PLEX_URL', '').rstrip('/')
@@ -37,7 +38,16 @@ def get_plex(user_token=None):
         _plex_instance = PlexServer(PLEX_URL, ADMIN_TOKEN)
         return _plex_instance
         
-    return PlexServer(PLEX_URL, token)
+    try:
+        return PlexServer(PLEX_URL, token)
+    except Exception:
+        try:
+            account = MyPlexAccount(token=token)
+            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
+            server_token = server_resource.accessToken
+            return PlexServer(PLEX_URL, server_token)
+        except Exception:
+            return PlexServer(PLEX_URL, token)
 
 def reset_plex():
     global _plex_instance
