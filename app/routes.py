@@ -165,8 +165,8 @@ def plex_home_users():
             result.append({
                 'id': u.get('uuid') or u.get('id'),
                 'title': u.get('title') or u.get('username') or 'Unknown',
-                'thumb': u.get('thumb'),
                 'restricted': u.get('restricted', False),
+                'thumb': u.get('thumb')
             })
         return jsonify({'users': result})
     except Exception as e:
@@ -190,7 +190,7 @@ def plex_switch_user():
         res = requests.post(
             f'https://plex.tv/api/v2/home/users/{user_id}/switch',
             headers=headers,
-            json={},
+            json={'pin': ''},
             timeout=10,
         )
         res.raise_for_status()
