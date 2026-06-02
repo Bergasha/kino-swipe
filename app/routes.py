@@ -53,7 +53,7 @@ def current_backend():
 def fetch_movies(genre_name=None, user_id=None, user_token=None):
     backend = current_backend()
     genre_name = genre_name or "All"
-    cache_user_id = user_id or ''
+    cache_user_id = user_id or user_token or ''
 
     with db_session() as conn:
         cache = conn.execute(
@@ -84,16 +84,20 @@ def build_and_cache_library(backend, genre_name, user_id=None, user_token=None):
             movies = fetch_plex_movies(genre_name, user_token=user_token)
 
         if not movies:
+            print(f"[library] WARNING: No movies returned for backend={backend} genre={genre_name} user_id={user_id}", flush=True)
             return []
 
-        cache_user_id = user_id or ''
+        cache_user_id = user_id or user_token or ''
         with db_session() as conn:
             conn.execute('''
                 INSERT OR REPLACE INTO library_cache (backend, genre, user_id, movie_data, updated_at)
                 VALUES (?, ?, ?, ?, ?)
             ''', (backend, genre_name, cache_user_id, json.dumps(movies), time.time()))
         return movies
-    except Exception:
+    except Exception as e:
+        import traceback
+        print(f"[library] ERROR building cache for backend={backend} genre={genre_name} user_id={user_id}: {e}", flush=True)
+        traceback.print_exc()
         return []
 
 
@@ -161,8 +165,8 @@ def plex_home_users():
             result.append({
                 'id': u.get('uuid') or u.get('id'),
                 'title': u.get('title') or u.get('username') or 'Unknown',
-                'thumb': u.get('thumb'),
                 'restricted': u.get('restricted', False),
+                'hasPinned': u.get('pinned', False) or u.get('hasPinned', False),
             })
         return jsonify({'users': result})
     except Exception as e:
@@ -174,7 +178,6 @@ def plex_switch_user():
     token = request.headers.get('X-Plex-Token')
     data = request.json or {}
     user_id = data.get('userId')
-    pin = data.get('pin', '')
     if not token or not user_id:
         return jsonify({'error': 'Missing token or userId'}), 400
     try:
@@ -184,13 +187,10 @@ def plex_switch_user():
             'Accept': 'application/json',
             'Content-Type': 'application/json',
         }
-        body = {}
-        if pin:
-            body['pin'] = pin
         res = requests.post(
             f'https://plex.tv/api/v2/home/users/{user_id}/switch',
             headers=headers,
-            json=body,
+            json={},
             timeout=10,
         )
         res.raise_for_status()
@@ -198,6 +198,55 @@ def plex_switch_user():
         switched_token = result.get('authToken')
         if not switched_token:
             return jsonify({'error': 'No token returned from Plex'}), 500
+            
+        try:
+            account = MyPlexAccount(token=switched_token)
+            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
+            switched_token = server_resource.accessToken
+        except Exception:
+            pass
+            
+        return jsonify({'authToken': switched_token})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/auth/plex-validate-pin', methods=['POST'])
+def plex_validate_pin():
+    token = request.headers.get('X-Plex-Token')
+    data = request.json or {}
+    user_id = data.get('userId')
+    pin = data.get('pin', '')
+    if not token or not user_id or not pin:
+        return jsonify({'error': 'Missing required fields'}), 400
+    try:
+        headers = {
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': CLIENT_ID,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+        res = requests.post(
+            f'https://plex.tv/api/v2/home/users/{user_id}/switch',
+            headers=headers,
+            json={'pin': pin},
+            timeout=10,
+        )
+        if res.status_code == 401:
+            return jsonify({'error': 'Incorrect PIN'}), 401
+        res.raise_for_status()
+        result = res.json()
+        switched_token = result.get('authToken')
+        if not switched_token:
+            return jsonify({'error': 'No token returned'}), 500
+            
+        try:
+            account = MyPlexAccount(token=switched_token)
+            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
+            switched_token = server_resource.accessToken
+        except Exception:
+            pass
+            
         return jsonify({'authToken': switched_token})
     except requests.HTTPError as e:
         if e.response.status_code == 401:
