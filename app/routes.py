@@ -142,6 +142,71 @@ def check_pin():
     return jsonify({'authToken': token})
 
 
+@main_bp.route('/auth/plex-home-users')
+def plex_home_users():
+    token = request.headers.get('X-Plex-Token')
+    if not token:
+        return jsonify({'error': 'No token provided'}), 401
+    try:
+        headers = {
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': CLIENT_ID,
+            'Accept': 'application/json',
+        }
+        res = requests.get('https://plex.tv/api/v2/home/users', headers=headers, timeout=10)
+        res.raise_for_status()
+        users = res.json().get('users', [])
+        result = []
+        for u in users:
+            result.append({
+                'id': u.get('uuid') or u.get('id'),
+                'title': u.get('title') or u.get('username') or 'Unknown',
+                'thumb': u.get('thumb'),
+                'restricted': u.get('restricted', False),
+            })
+        return jsonify({'users': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/auth/plex-switch-user', methods=['POST'])
+def plex_switch_user():
+    token = request.headers.get('X-Plex-Token')
+    data = request.json or {}
+    user_id = data.get('userId')
+    pin = data.get('pin', '')
+    if not token or not user_id:
+        return jsonify({'error': 'Missing token or userId'}), 400
+    try:
+        headers = {
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': CLIENT_ID,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+        body = {}
+        if pin:
+            body['pin'] = pin
+        res = requests.post(
+            f'https://plex.tv/api/v2/home/users/{user_id}/switch',
+            headers=headers,
+            json=body,
+            timeout=10,
+        )
+        res.raise_for_status()
+        result = res.json()
+        switched_token = result.get('authToken')
+        if not switched_token:
+            return jsonify({'error': 'No token returned from Plex'}), 500
+        return jsonify({'authToken': switched_token})
+    except requests.HTTPError as e:
+        if e.response.status_code == 401:
+            return jsonify({'error': 'Incorrect PIN'}), 401
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @main_bp.route('/auth/jellyfin-login', methods=['POST'])
 def jellyfin_login():
     if not jellyfin_ready:
