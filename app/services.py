@@ -42,10 +42,15 @@ def get_plex(user_token=None):
         return PlexServer(PLEX_URL, token)
     except Exception:
         try:
+            admin_server = get_plex(ADMIN_TOKEN)
+            target_uuid = admin_server.machineIdentifier
+            
             account = MyPlexAccount(token=token)
-            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
-            server_token = server_resource.accessToken
-            return PlexServer(PLEX_URL, server_token)
+            for resource in account.resources():
+                if resource.clientIdentifier == target_uuid or resource.name == admin_server.friendlyName:
+                    return PlexServer(PLEX_URL, resource.accessToken)
+            
+            raise NotFound("Could not find matching local server resource for home profile token.")
         except Exception:
             return PlexServer(PLEX_URL, token)
 
