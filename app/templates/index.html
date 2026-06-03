@@ -210,7 +210,7 @@
     </div>
 
     <div id="plex-profile-modal" class="hidden">
-        <h2 class="plex-yellow" style="margin-bottom: 16px;">Select Home User</h2>
+        <h2 class="plex-yellow" style="margin-bottom: 16px;">Who's watching?</h2>
         <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">Select a profile to apply their library restrictions</p>
         <div id="plex-profile-list" style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin:0 auto;"></div>
         <button class="menu-btn" style="background:#333; color:white; margin-top:20px;" onclick="skipProfileSelect()">Skip / Use Main Account</button>
@@ -247,6 +247,8 @@
                 <button id="history-btn" class="menu-btn" style="background: #120000; color: #ff3131; margin: 10px; border: 1px solid #ff3131; box-shadow: 0 0 5px #ff3131, 0 0 15px rgba(255, 49, 49, 0.5); transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center;" onmouseover="this.style.boxShadow='0 0 10px #ff3131, 0 0 30px rgba(255, 49, 49, 0.8)'; this.style.background='#250000';" onmouseout="this.style.boxShadow='0 0 5px #ff3131, 0 0 15px rgba(255, 49, 49, 0.5)'; this.style.background='#120000';" onclick="openMatches(true)">
                     Match History 
                 </button>
+                <br>
+                <button id="switch-profile-btn" class="menu-btn hidden" style="background: #333; color: #e5a00d; border: 1px solid #e5a00d;" onclick="openProfileSwitcher()">Switch Profile</button>
                 <br>
                 <button class="logout-btn" onclick="localStorage.clear(); location.reload();">Logout</button>
             </div>
@@ -350,6 +352,11 @@
             return headers;
         }
 
+        function openProfileSwitcher() {
+            document.getElementById('main-menu').classList.add('hidden');
+            showPlexProfilePicker();
+        }
+
         async function showPlexProfilePicker() {
             const token = localStorage.getItem('plex_token');
             if (!token) return;
@@ -416,6 +423,23 @@
         async function finishPlexLogin() {
             await fetchAndStorePlexId();
             await fetchServerInfo();
+            
+            const token = localStorage.getItem('plex_token');
+            if (token && getBackend() === 'plex') {
+                try {
+                    const res = await fetch('/auth/plex-home-users', { headers: { 'X-Plex-Token': token } });
+                    const data = await res.json();
+                    const users = data.users || [];
+                    if (users.length > 1) {
+                        document.getElementById('switch-profile-btn').classList.remove('hidden');
+                    } else {
+                        document.getElementById('switch-profile-btn').classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.error('Could not verify home users count', e);
+                }
+            }
+
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('plex-profile-modal').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
@@ -460,6 +484,8 @@
             
             const overlay = document.getElementById('match-overlay');
             if (overlay) overlay.style.borderColor = color;
+            
+            document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : 'inline-block';
         }
 
         async function loginWithPlex() {
@@ -1098,6 +1124,20 @@
                 if (backend === 'plex') await fetchAndStorePlexId();
                 await fetchServerInfo(); 
                 document.getElementById('login-section').classList.add('hidden');
+                
+                if (token && backend === 'plex') {
+                    try {
+                        const res = await fetch('/auth/plex-home-users', { headers: { 'X-Plex-Token': token } });
+                        const data = await res.json();
+                        const users = data.users || [];
+                        if (users.length > 1) {
+                            document.getElementById('switch-profile-btn').classList.remove('hidden');
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
                 if (localStorage.getItem('active_room')) startPolling();
