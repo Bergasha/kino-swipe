@@ -422,7 +422,6 @@
 
         async function checkHomeUsersCountAsync(token) {
             if (!token || getBackend() !== 'plex') return;
-        
             setTimeout(async () => {
                 try {
                     const res = await fetch('/auth/plex-home-users', { headers: { 'X-Plex-Token': token } });
@@ -440,13 +439,11 @@
         }
 
         async function finishPlexLogin() {
-
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('plex-profile-modal').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
             loadGenres();
 
-      
             await fetchAndStorePlexId();
             await fetchServerInfo();
             
@@ -1119,7 +1116,7 @@
                     localStorage.setItem("plex_token", result.authToken);
                     localStorage.setItem("backend", "plex");
                     window.history.replaceState({}, '', '/');
-                    await showPlexProfilePicker();
+                    await finishPlexLogin();
                     if (localStorage.getItem('active_room')) startPolling();
                     return;
                 }
