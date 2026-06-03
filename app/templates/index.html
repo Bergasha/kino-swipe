@@ -72,6 +72,7 @@
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
         .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; }
         .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #1a1a1a; }
+        .movie-card.fallback-card img { object-fit: cover; }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
         .trailer-btn { background: #e5a00d; color: black; border: none; padding: 10px; width: 90%; font-weight: bold; border-radius: 8px; margin: 5px 0; cursor: pointer; font-size: 0.8rem; z-index: 200; }
         .trailer-box { width: 90%; aspect-ratio: 16/9; background: #000; margin: 5px 0; border-radius: 8px; display: none; overflow: hidden; }
@@ -96,7 +97,6 @@
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-      
         #match-overlay { position: fixed; top: 15px; left: 4vw; width: 92vw; max-width: 450px; background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); z-index: 15000; display: grid; grid-template-columns: 95px 1fr; gap: 16px; padding: 20px; box-sizing: border-box; backdrop-filter: blur(12px); border: 2px solid #e5a00d; border-radius: 18px; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25); transform: translateY(-160%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); cursor: pointer; overflow: hidden; }
         @media (min-width: 480px) { #match-overlay { left: calc(50% - 225px); } }
         #match-overlay.show { transform: translateY(0); }
@@ -154,6 +154,12 @@
         .signature { position: fixed; bottom: 10px; width: 100%; font-family: 'allura', cursive; color: rgba(79, 5, 5, 0.9); font-size: 1.8rem; pointer-events: none; z-index: 2; }
 
         #jellyfin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        #plex-profile-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 60000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px; box-sizing: border-box; }
+        .plex-profile-btn { display: flex; align-items: center; gap: 14px; width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 16px; cursor: pointer; transition: border-color 0.2s, background 0.2s; text-align: left; }
+        .plex-profile-btn:hover { border-color: #e5a00d; background: #222; }
+        .plex-profile-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; }
+        .plex-profile-name { color: white; font-size: 1rem; font-weight: bold; }
+        .plex-profile-restricted { font-size: 0.75rem; color: #e5a00d; margin-top: 2px; }
         .login-form { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; }
         .login-form input { padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 1rem; }
 
@@ -203,6 +209,13 @@
         </div>
     </div>
 
+    <div id="plex-profile-modal" class="hidden">
+        <h2 class="plex-yellow" style="margin-bottom: 16px;">Who's watching?</h2>
+        <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">Select a profile to apply their library restrictions</p>
+        <div id="plex-profile-list" style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin:0 auto;"></div>
+        <button class="menu-btn" style="background:#333; color:white; margin-top:20px;" onclick="skipProfileSelect()">Skip / Use Main Account</button>
+    </div>
+
     <div id="main-menu" class="hidden">
         <div id="branding">
             <h1 class="main-title">Kino-Swipe</h1>
@@ -234,6 +247,8 @@
                 <button id="history-btn" class="menu-btn" style="background: #120000; color: #ff3131; margin: 10px; border: 1px solid #ff3131; box-shadow: 0 0 5px #ff3131, 0 0 15px rgba(255, 49, 49, 0.5); transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center;" onmouseover="this.style.boxShadow='0 0 10px #ff3131, 0 0 30px rgba(255, 49, 49, 0.8)'; this.style.background='#250000';" onmouseout="this.style.boxShadow='0 0 5px #ff3131, 0 0 15px rgba(255, 49, 49, 0.5)'; this.style.background='#120000';" onclick="openMatches(true)">
                     Match History 
                 </button>
+                <br>
+                <button id="switch-profile-btn" class="menu-btn hidden" style="background: #333; color: #e5a00d; border: 1px solid #e5a00d;" onclick="openProfileSwitcher()">Switch Profile</button>
                 <br>
                 <button class="logout-btn" onclick="localStorage.clear(); location.reload();">Logout</button>
             </div>
@@ -326,12 +341,114 @@
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
         function getMoviesHeaders() {
-            const headers = {};
+            const headers = { 'X-Backend': getBackend() };
             if (getBackend() === 'jellyfin') {
                 headers['X-Jellyfin-Token'] = getAuthToken();
                 headers['X-Jellyfin-User-ID'] = getUserId();
+            } else {
+                headers['X-Plex-Token'] = getAuthToken();
+                headers['X-Plex-User-ID'] = getUserId();
             }
             return headers;
+        }
+
+        function openProfileSwitcher() {
+            document.getElementById('main-menu').classList.add('hidden');
+            showPlexProfilePicker();
+        }
+
+        async function showPlexProfilePicker() {
+            const token = localStorage.getItem('plex_token');
+            if (!token) return;
+            try {
+                const res = await fetch('/auth/plex-home-users', {
+                    headers: { 'X-Plex-Token': token }
+                });
+                const data = await res.json();
+                const users = data.users || [];
+                if (users.length <= 1) {
+                    await finishPlexLogin();
+                    return;
+                }
+                const list = document.getElementById('plex-profile-list');
+                list.innerHTML = '';
+                users.forEach(u => {
+                    const btn = document.createElement('button');
+                    btn.className = 'plex-profile-btn';
+                    btn.innerHTML = `
+                        <img class="plex-profile-avatar" src="${u.thumb || '/static/sad.png'}" onerror="this.src='/static/sad.png'">
+                        <div>
+                            <div class="plex-profile-name">${u.title}</div>
+                            ${u.restricted ? '<div class="plex-profile-restricted">🔒 Restricted</div>' : ''}
+                        </div>`;
+                    btn.onclick = () => doSwitchUser(u.id);
+                    list.appendChild(btn);
+                });
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('plex-profile-modal').classList.remove('hidden');
+            } catch (e) {
+                console.error('Could not fetch Plex home users', e);
+                await finishPlexLogin();
+            }
+        }
+
+        async function doSwitchUser(userId) {
+            const token = localStorage.getItem('plex_token');
+            try {
+                const res = await fetch('/auth/plex-switch-user', {
+                    method: 'POST',
+                    headers: { 'X-Plex-Token': token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('plex_token', data.authToken);
+                    document.getElementById('plex-profile-modal').classList.add('hidden');
+                    await finishPlexLogin();
+                } else {
+                    console.error('Switch user failed');
+                    await finishPlexLogin();
+                }
+            } catch (e) {
+                console.error('Switch user error', e);
+                await finishPlexLogin();
+            }
+        }
+
+        async function skipProfileSelect() {
+            document.getElementById('plex-profile-modal').classList.add('hidden');
+            await finishPlexLogin();
+        }
+
+        async function checkHomeUsersCountAsync(token) {
+            if (!token || getBackend() !== 'plex') return;
+            setTimeout(async () => {
+                try {
+                    const res = await fetch('/auth/plex-home-users', { headers: { 'X-Plex-Token': token } });
+                    const data = await res.json();
+                    const users = data.users || [];
+                    if (users.length > 1) {
+                        document.getElementById('switch-profile-btn').classList.remove('hidden');
+                    } else {
+                        document.getElementById('switch-profile-btn').classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.error('Could not verify home users count in background:', e);
+                }
+            }, 50);
+        }
+
+        async function finishPlexLogin() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('plex-profile-modal').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            loadGenres();
+
+            await fetchAndStorePlexId();
+            await fetchServerInfo();
+            
+            const token = localStorage.getItem('plex_token');
+            await checkHomeUsersCountAsync(token);
         }
 
         async function fetchAndStorePlexId() {
@@ -340,7 +457,7 @@
             try {
                 const res = await fetch(`https://plex.tv/api/v2/user?X-Plex-Token=${token}`, { headers: { 'Accept': 'application/json' } });
                 const data = await res.json();
-                if (data.id) localStorage.setItem('plex_id', data.id);
+                if (data.id) localStorage.setItem('plex_id', String(data.id));
             } catch (e) { console.error("Could not fetch Plex ID"); }
         }
 
@@ -372,6 +489,8 @@
             
             const overlay = document.getElementById('match-overlay');
             if (overlay) overlay.style.borderColor = color;
+            
+            document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : 'inline-block';
         }
 
         async function loginWithPlex() {
@@ -514,11 +633,7 @@
             const label = isSoloMode && !asHistory ? "Your Shortlist" : asHistory ? "Match History" : "Your Matches";
             document.getElementById('modal-title').innerText = label;
             
-            const headers = {};
-            const backend = getBackend();
-            if (backend === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-            else headers['X-Plex-User-ID'] = getUserId();
-
+            const headers = getMoviesHeaders();
             const url = asHistory ? '/matches?view=history' : '/matches';
             const res = await fetch(url, { headers: headers });
             const data = await res.json();
@@ -526,13 +641,13 @@
             const emptyLabel = asHistory ? 'history' : isSoloMode ? 'shortlist' : 'matches';
             list.innerHTML = data.length ? '' : `<p style="grid-column: span 2; color:#666;">No ${emptyLabel} yet</p>`;
             
-            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
 
             data.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'mini-poster';
                 let openBtn;
-                if (backend === 'plex') {
+                if (getBackend() === 'plex') {
                     const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
                     openBtn = `<a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>`;
                 } else {
@@ -580,9 +695,8 @@
             document.getElementById('delete-modal-overlay').classList.remove('hidden');
             document.getElementById('delete-modal').classList.remove('hidden');
             document.getElementById('delete-confirm-btn').onclick = async () => {
-                const headers = {"Content-Type": "application/json"};
-                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-                else headers['X-Plex-User-ID'] = getUserId();
+                const headers = getMoviesHeaders();
+                headers["Content-Type"] = "application/json";
 
                 await fetch("/matches/delete", { 
                     method: "POST", 
@@ -605,9 +719,8 @@
                     return;
                 }
                 const lastMovie = swipeHistory.pop();
-                const headers = {'Content-Type': 'application/json'};
-                if (getBackend() === 'jellyfin') headers['X-Jellyfin-User-ID'] = getUserId();
-                else headers['X-Plex-User-ID'] = getUserId();
+                const headers = getMoviesHeaders();
+                headers['Content-Type'] = 'application/json';
 
                 await fetch('/undo', { 
                     method: 'POST', 
@@ -758,7 +871,6 @@
                 card.style.transition = 'none';
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
             
-
                 const cardInner = card.querySelector('.card-inner');
                 if (cardInner) {
                     if (globalCurrentX > 10) {
@@ -781,7 +893,6 @@
             const onEnd = async () => {
                 if (!isDragging) return; isDragging = false;
         
-                
                 window.removeEventListener('pointermove', onMove);
                 window.removeEventListener('pointerup', onEnd);
                 
@@ -801,9 +912,13 @@
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
                     card.style.opacity = '0';
                     const movieData = movieStack[0]; swipeHistory.push(movieData);
+                    
+                    const swipeHeaders = getMoviesHeaders();
+                    swipeHeaders['Content-Type'] = 'application/json';
+
                     fetch('/room/swipe', { 
                         method: 'POST', 
-                        headers: {'Content-Type': 'application/json'}, 
+                        headers: swipeHeaders, 
                         body: JSON.stringify({ 
                             movie_id: card.dataset.id, title: card.dataset.title, thumb: card.dataset.thumb, direction: dir,
                             plex_id: getUserId()
@@ -829,11 +944,8 @@
             const btn = document.getElementById('host-btn');
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>Creating...';
-            const createHeaders = { 'X-Backend': getBackend() };
-            if (getBackend() === 'jellyfin') {
-                createHeaders['X-Jellyfin-Token'] = getAuthToken();
-                createHeaders['X-Jellyfin-User-ID'] = getUserId();
-            }
+            
+            const createHeaders = getMoviesHeaders();
             const res = await fetch('/room/create', {
                 method: 'POST',
                 headers: createHeaders
@@ -853,7 +965,15 @@
             const btn = document.getElementById('join-btn');
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>Joining...';
-            const res = await fetch('/room/join', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code }) });
+            
+            const joinHeaders = getMoviesHeaders();
+            joinHeaders['Content-Type'] = 'application/json';
+
+            const res = await fetch('/room/join', { 
+                method: 'POST', 
+                headers: joinHeaders, 
+                body: JSON.stringify({ code }) 
+            });
             if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); }
             else {
                 const data = await res.json();
@@ -925,12 +1045,9 @@
             if (e.key === 'ArrowUp') {
                 if (swipeHistory.length === 0) return;
                 const lastMovie = swipeHistory.pop();
-                const headers = { 'Content-Type': 'application/json' };
-                if (getBackend() === 'jellyfin') {
-                    headers['X-Jellyfin-User-ID'] = getUserId();
-                } else {
-                    headers['X-Plex-User-ID'] = getUserId();
-                }
+                const headers = getMoviesHeaders();
+                headers['Content-Type'] = 'application/json';
+
                 await fetch('/undo', {
                     method: 'POST',
                     headers: headers,
@@ -956,9 +1073,12 @@
             const movieData = movieStack[0];
             swipeHistory.push(movieData);
 
+            const swipeHeaders = getMoviesHeaders();
+            swipeHeaders['Content-Type'] = 'application/json';
+
             fetch('/room/swipe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: swipeHeaders,
                 body: JSON.stringify({
                     movie_id: card.dataset.id,
                     title: card.dataset.title,
@@ -996,6 +1116,9 @@
                     localStorage.setItem("plex_token", result.authToken);
                     localStorage.setItem("backend", "plex");
                     window.history.replaceState({}, '', '/');
+                    await finishPlexLogin();
+                    if (localStorage.getItem('active_room')) startPolling();
+                    return;
                 }
             }
 
@@ -1006,6 +1129,11 @@
                 if (backend === 'plex') await fetchAndStorePlexId();
                 await fetchServerInfo(); 
                 document.getElementById('login-section').classList.add('hidden');
+                
+                if (token && backend === 'plex') {
+                    await checkHomeUsersCountAsync(token);
+                }
+
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
                 if (localStorage.getItem('active_room')) startPolling();

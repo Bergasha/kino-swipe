@@ -1,6 +1,7 @@
 import os
 import requests
 from plexapi.server import PlexServer
+from plexapi.myplex import MyPlexAccount
 from plexapi.exceptions import NotFound
 
 PLEX_URL = os.getenv('PLEX_URL', '').rstrip('/')
@@ -25,19 +26,39 @@ _plex_genre_cache = None
 _plex_instance = None
 _jellyfin_genre_cache = None
 
-def get_plex():
-    global _plex_instance
-    if _plex_instance is not None:
+def get_plex(user_token=None):
+    token = user_token or ADMIN_TOKEN
+    if not token:
+        raise ValueError("No Plex token provided and ADMIN_TOKEN is missing.")
+    
+    if token == ADMIN_TOKEN:
+        global _plex_instance
+        if _plex_instance is not None:
+            return _plex_instance
+        _plex_instance = PlexServer(PLEX_URL, ADMIN_TOKEN)
         return _plex_instance
-    _plex_instance = PlexServer(PLEX_URL, ADMIN_TOKEN)
-    return _plex_instance
+        
+    try:
+        return PlexServer(PLEX_URL, token)
+    except Exception:
+        try:
+            admin_server = get_plex(ADMIN_TOKEN)
+            target_uuid = admin_server.machineIdentifier
+            
+            account = MyPlexAccount(token=token)
+            for resource in account.resources():
+                if resource.clientIdentifier == target_uuid or resource.name == admin_server.friendlyName:
+                    return PlexServer(PLEX_URL, resource.accessToken)
+            
+            raise NotFound("Could not find matching local server resource for home profile token.")
+        except Exception:
+            return PlexServer(PLEX_URL, token)
 
 def reset_plex():
     global _plex_instance
     _plex_instance = None
 
 def get_plex_movie_section(plex):
-   
     library_name = PLEX_LIBRARY_BY_LOCALE.get(APP_LOCALE, PLEX_LIBRARY_BY_LOCALE['en'])
     try:
         return plex.library.section(library_name)
@@ -70,13 +91,14 @@ def get_plex_genres():
     except Exception:
         return []
 
-def fetch_plex_movies(genre_name=None):
+def fetch_plex_movies(genre_name=None, user_token=None):
     try:
-        plex = get_plex()
+        plex = get_plex(user_token=user_token)
         movie_section = get_plex_movie_section(plex)
     except Exception:
-        reset_plex()
-        plex = get_plex()
+        if not user_token:
+            reset_plex()
+        plex = get_plex(user_token=user_token)
         movie_section = get_plex_movie_section(plex)
     search_genre = "Science Fiction" if genre_name == "Sci-Fi" else genre_name
 

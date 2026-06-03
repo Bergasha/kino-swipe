@@ -16,11 +16,9 @@ def create_app():
     if not os.environ.get('TMDB_API_KEY'):
         raise RuntimeError("Missing env var: TMDB_API_KEY")
 
- 
     from app.database import init_db
     init_db()
 
-   
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 

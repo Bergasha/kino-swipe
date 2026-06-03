@@ -53,7 +53,7 @@ def current_backend():
 def fetch_movies(genre_name=None, user_id=None, user_token=None):
     backend = current_backend()
     genre_name = genre_name or "All"
-    cache_user_id = user_id or ''
+    cache_user_id = user_id or user_token or ''
 
     with db_session() as conn:
         cache = conn.execute(
@@ -81,19 +81,23 @@ def build_and_cache_library(backend, genre_name, user_id=None, user_token=None):
         if backend == 'jellyfin':
             movies = fetch_jellyfin_movies(genre_name, user_id=user_id, user_token=user_token)
         else:
-            movies = fetch_plex_movies(genre_name)
+            movies = fetch_plex_movies(genre_name, user_token=user_token)
 
         if not movies:
+            print(f"[library] WARNING: No movies returned for backend={backend} genre={genre_name} user_id={user_id}", flush=True)
             return []
 
-        cache_user_id = user_id or ''
+        cache_user_id = user_id or user_token or ''
         with db_session() as conn:
             conn.execute('''
                 INSERT OR REPLACE INTO library_cache (backend, genre, user_id, movie_data, updated_at)
                 VALUES (?, ?, ?, ?, ?)
             ''', (backend, genre_name, cache_user_id, json.dumps(movies), time.time()))
         return movies
-    except Exception:
+    except Exception as e:
+        import traceback
+        print(f"[library] ERROR building cache for backend={backend} genre={genre_name} user_id={user_id}: {e}", flush=True)
+        traceback.print_exc()
         return []
 
 
@@ -140,6 +144,71 @@ def check_pin():
         session.pop('pending_pin_id', None)
         session['backend'] = 'plex'
     return jsonify({'authToken': token})
+
+
+@main_bp.route('/auth/plex-home-users')
+def plex_home_users():
+    token = request.headers.get('X-Plex-Token')
+    if not token:
+        return jsonify({'error': 'No token provided'}), 401
+    try:
+        headers = {
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': CLIENT_ID,
+            'Accept': 'application/json',
+        }
+        res = requests.get('https://plex.tv/api/v2/home/users', headers=headers, timeout=10)
+        res.raise_for_status()
+        users = res.json().get('users', [])
+        result = []
+        for u in users:
+            result.append({
+                'id': u.get('uuid') or u.get('id'),
+                'title': u.get('title') or u.get('username') or 'Unknown',
+                'restricted': u.get('restricted', False),
+                'thumb': u.get('thumb')
+            })
+        return jsonify({'users': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/auth/plex-switch-user', methods=['POST'])
+def plex_switch_user():
+    token = request.headers.get('X-Plex-Token')
+    data = request.json or {}
+    user_id = data.get('userId')
+    if not token or not user_id:
+        return jsonify({'error': 'Missing token or userId'}), 400
+    try:
+        headers = {
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': CLIENT_ID,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+        res = requests.post(
+            f'https://plex.tv/api/v2/home/users/{user_id}/switch',
+            headers=headers,
+            json={'pin': ''},
+            timeout=10,
+        )
+        res.raise_for_status()
+        result = res.json()
+        switched_token = result.get('authToken')
+        if not switched_token:
+            return jsonify({'error': 'No token returned from Plex'}), 500
+            
+        try:
+            account = MyPlexAccount(token=switched_token)
+            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
+            switched_token = server_resource.accessToken
+        except Exception:
+            pass
+            
+        return jsonify({'authToken': switched_token})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @main_bp.route('/auth/jellyfin-login', methods=['POST'])
@@ -215,20 +284,16 @@ def add_to_watchlist():
         try:
             user_token = request.headers.get('X-Plex-Token')
             if not user_token:
-                print("[watchlist] Error: Missing X-Plex-Token header", flush=True)
                 return jsonify({'error': 'Unauthorized'}), 401
 
             try:
                 plex = get_plex()
                 item = plex.fetchItem(int(movie_id))
-            except Exception as inner_e:
-                print(f"[watchlist] Initial local lookup failed for ID {movie_id}: {inner_e}. Resetting...", flush=True)
+            except Exception:
                 reset_plex()
                 item = get_plex().fetchItem(int(movie_id))
 
             rating_key = item.guid.split('/')[-1]
-
-            print(f"[watchlist] Attempting to add '{item.title}' (ratingKey={rating_key})", flush=True)
 
             headers = {
                 'X-Plex-Token': user_token,
@@ -242,19 +307,13 @@ def add_to_watchlist():
             )
 
             if r.status_code in (200, 201):
-                print(f"[watchlist] Successfully added '{item.title}' to Plex watchlist!", flush=True)
                 return jsonify({'status': 'success'})
             elif r.status_code == 409:
-                print(f"[watchlist] '{item.title}' already on watchlist.", flush=True)
                 return jsonify({'status': 'already_exists'})
             else:
-                print(f"[watchlist] Plex API returned {r.status_code}: {r.text}", flush=True)
                 return jsonify({'error': f'Plex API error {r.status_code}'}), 500
 
         except Exception as e:
-            import traceback
-            print("[watchlist] FATAL CRASH IN PLEX WATCHLIST LOGIC:", flush=True)
-            traceback.print_exc()
             return jsonify({'error': str(e)}), 500
 
 
@@ -287,11 +346,8 @@ def plex_server_info_compat():
 def get_trailer(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
-        print(f"[trailer] movie_id={movie_id} backend_override={backend_override} session_backend={session.get('backend')} active_room={session.get('active_room')}", flush=True)
         title, year = get_item_meta(movie_id, backend_override)
-        print(f"[trailer] title={title!r} year={year!r}", flush=True)
         tmdb_id = tmdb_search(title, year)
-        print(f"[trailer] tmdb_id={tmdb_id}", flush=True)
         if tmdb_id:
             v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}").json()
             trailers = [v for v in v_res.get('results', []) if v['site'] == 'YouTube' and v['type'] == 'Trailer']
@@ -299,7 +355,6 @@ def get_trailer(movie_id):
                 return jsonify({'youtube_key': trailers[0]['key']})
         return jsonify({'error': 'Not found'}), 404
     except Exception as e:
-        print(f"[trailer] EXCEPTION: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -328,8 +383,13 @@ def get_cast(movie_id):
 def create_room():
     backend = session.get('backend', 'plex')
     pairing_code = str(random.randint(1000, 9999))
-    user_id = request.headers.get('X-Jellyfin-User-ID')
-    user_token = request.headers.get('X-Jellyfin-Token')
+    if backend == 'jellyfin':
+        user_id = request.headers.get('X-Jellyfin-User-ID')
+        user_token = request.headers.get('X-Jellyfin-Token')
+    else:
+        user_id = request.headers.get('X-Plex-User-ID') or ''
+        user_token = request.headers.get('X-Plex-Token')
+        
     movie_list = fetch_movies(user_id=user_id, user_token=user_token)
     with get_db() as conn:
         conn.execute(
@@ -358,6 +418,13 @@ def go_solo():
 def join_room():
     code = request.json.get('code')
     joiner_backend = session.get('backend', 'plex')
+    if joiner_backend == 'jellyfin':
+        joiner_uid = request.headers.get('X-Jellyfin-User-ID')
+        joiner_token = request.headers.get('X-Jellyfin-Token')
+    else:
+        joiner_uid = request.headers.get('X-Plex-User-ID') or ''
+        joiner_token = request.headers.get('X-Plex-Token')
+
     with get_db() as conn:
         room = conn.execute('SELECT * FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
         if room:
@@ -365,7 +432,18 @@ def join_room():
                 return jsonify({
                     'error': f"This room uses {room['backend'].capitalize()}. Please log in with {room['backend'].capitalize()} to join."
                 }), 409
-            conn.execute('UPDATE rooms SET ready = 1 WHERE pairing_code = ?', (code,))
+                
+            joiner_movies = fetch_movies(genre_name=room['current_genre'], user_id=joiner_uid, user_token=joiner_token)
+            host_movies = json.loads(room['movie_data'])
+            
+            joiner_lookup = {str(m['id']): m for m in joiner_movies}
+            host_ids = {str(m['id']) for m in host_movies}
+            intersected_ids = host_ids.intersection(joiner_lookup.keys())
+            final_joint_list = [joiner_lookup[mid] for mid in intersected_ids]
+
+            random.shuffle(final_joint_list)
+            
+            conn.execute('UPDATE rooms SET movie_data = ?, ready = 1 WHERE pairing_code = ?', (json.dumps(final_joint_list), code))
             session['active_room'] = code
             session['my_user_id'] = 'guest_' + secrets.token_hex(8)
             session['solo_mode'] = False
@@ -488,8 +566,14 @@ def room_stream():
 def get_movies():
     code = session.get('active_room')
     genre = request.args.get('genre')
-    user_id = request.headers.get('X-Jellyfin-User-ID')
-    user_token = request.headers.get('X-Jellyfin-Token')
+    backend = current_backend()
+    if backend == 'jellyfin':
+        user_id = request.headers.get('X-Jellyfin-User-ID')
+        user_token = request.headers.get('X-Jellyfin-Token')
+    else:
+        user_id = request.headers.get('X-Plex-User-ID')
+        user_token = request.headers.get('X-Plex-Token')
+        
     if not code:
         return jsonify([])
     with get_db() as conn:
@@ -552,13 +636,21 @@ def proxy():
             abort(400)
         img_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
         res = requests.get(img_url, headers=_jf_headers(), stream=True, timeout=10)
-        return Response(res.content, content_type=res.headers.get('Content-Type', 'image/jpeg'))
+        
+        
+        response = Response(res.content, content_type=res.headers.get('Content-Type', 'image/jpeg'))
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+        return response
     else:
         path = request.args.get('path')
         if not path or not path.startswith("/library/metadata/"):
             abort(403)
         res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
-        return Response(res.content, content_type=res.headers['Content-Type'])
+        
+       
+        response = Response(res.content, content_type=res.headers['Content-Type'])
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+        return response
 
 
 @main_bp.route('/manifest.json')
