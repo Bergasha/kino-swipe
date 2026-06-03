@@ -420,12 +420,10 @@
             await finishPlexLogin();
         }
 
-        async function finishPlexLogin() {
-            await fetchAndStorePlexId();
-            await fetchServerInfo();
-            
-            const token = localStorage.getItem('plex_token');
-            if (token && getBackend() === 'plex') {
+        async function checkHomeUsersCountAsync(token) {
+            if (!token || getBackend() !== 'plex') return;
+        
+            setTimeout(async () => {
                 try {
                     const res = await fetch('/auth/plex-home-users', { headers: { 'X-Plex-Token': token } });
                     const data = await res.json();
@@ -436,14 +434,24 @@
                         document.getElementById('switch-profile-btn').classList.add('hidden');
                     }
                 } catch (e) {
-                    console.error('Could not verify home users count', e);
+                    console.error('Could not verify home users count in background:', e);
                 }
-            }
+            }, 50);
+        }
+
+        async function finishPlexLogin() {
 
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('plex-profile-modal').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
             loadGenres();
+
+      
+            await fetchAndStorePlexId();
+            await fetchServerInfo();
+            
+            const token = localStorage.getItem('plex_token');
+            await checkHomeUsersCountAsync(token);
         }
 
         async function fetchAndStorePlexId() {
@@ -1126,16 +1134,7 @@
                 document.getElementById('login-section').classList.add('hidden');
                 
                 if (token && backend === 'plex') {
-                    try {
-                        const res = await fetch('/auth/plex-home-users', { headers: { 'X-Plex-Token': token } });
-                        const data = await res.json();
-                        const users = data.users || [];
-                        if (users.length > 1) {
-                            document.getElementById('switch-profile-btn').classList.remove('hidden');
-                        }
-                    } catch (e) {
-                        console.error(e);
-                    }
+                    await checkHomeUsersCountAsync(token);
                 }
 
                 document.getElementById('main-menu').classList.remove('hidden');
