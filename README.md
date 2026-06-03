@@ -10,6 +10,9 @@
 Always trying to decide on a movie to watch together? This may be the fun solution you've been looking for.
 Dating app style — swipe right to like, swipe left to pass. If you both swipe right on the same movie, **IT'S A MATCH!!**
 
+
+**Supports Plex & Jellyfin**
+
 ---
 
 ## Screenshots
@@ -28,7 +31,9 @@ Dating app style — swipe right to like, swipe left to pass. If you both swipe 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/76a68e48-dc70-43a9-b637-f74287fbddce" width="32%" />
   <img src="https://github.com/user-attachments/assets/dedd8c0a-3941-401f-9177-a385660b9689" width="32%" />
-  <img src="https://github.com/user-attachments/assets/d0e1d768-a1d2-4d32-a76a-ac3fd0ec74ca" width="32%" />
+  <img src="https://github.com/user-attachments/assets/3346713b-ba96-4919-9355-31f3cd19abf8" width="32%" />
+  <img src="https://github.com/user-attachments/assets/37a41d5e-7c61-4b8e-a0b5-27c0df04a3bc" width="32%" />
+  <img src="https://github.com/user-attachments/assets/872efa1e-43d2-4a7f-b0eb-02696e6db24a" width="32%" />
 </p>
 
 </details>
@@ -47,13 +52,15 @@ When you click **Host Session** or select a new genre for the absolute first tim
 - **Plex & Jellyfin Integration:** Connects directly to your Plex or Jellyfin server to pull movies.
 - **Coloured sessions:** Plex Yellow lets you know you're in a Plex session and Jellyfin Blue for Jellyfin.
 - **Real-Time Sync:** Host a room, share a 4-digit code, and swipe with a partner instantly.
-- **Visual Feedback:** Faint Red/Green glow overlays that react as you drag posters left or right.
+- **Visual Feedback:** Faint Red/Green glow with thumbs-up or thumbs-down overlays that react as you drag posters left or right.
 - **Select Genre:** Both sessions stay in sync while browsing genres.
 - **Add to Watchlist:** Tap a match to open in Plex or save to watchlist/favourites for later.
 - **Watch Trailer:** Tap the poster for full synopsis, cast, and trailer via TMDB.
 - **PWA Support:** Add to your Home Screen for a native app feel.
-- **Match Notifications:** Instant alerts when you both swipe right on the same movie.
+- **Match Notifications:** Instant alerts with haptic feedback when you both swipe right on the same movie.
 - **Match History:** All matches saved to history until you're ready to delete them.
+- **Plex Home Users** Have kids with restricted accounts? You can now select their profile if they are a Home User to only see suitable movies.
+- **Jellyfin Restricted Libraries** Also for Jellyfin users with restricted libraries will only see their movies.
 - **Solo Mode:** Flying solo? Host a session and flick the solo toggle — every right swipe saves to your Match History.
 
 ---
