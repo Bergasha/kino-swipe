@@ -636,13 +636,21 @@ def proxy():
             abort(400)
         img_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
         res = requests.get(img_url, headers=_jf_headers(), stream=True, timeout=10)
-        return Response(res.content, content_type=res.headers.get('Content-Type', 'image/jpeg'))
+        
+        
+        response = Response(res.content, content_type=res.headers.get('Content-Type', 'image/jpeg'))
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+        return response
     else:
         path = request.args.get('path')
         if not path or not path.startswith("/library/metadata/"):
             abort(403)
         res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
-        return Response(res.content, content_type=res.headers['Content-Type'])
+        
+       
+        response = Response(res.content, content_type=res.headers['Content-Type'])
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+        return response
 
 
 @main_bp.route('/manifest.json')
