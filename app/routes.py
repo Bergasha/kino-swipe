@@ -346,8 +346,9 @@ def plex_server_info_compat():
 def get_trailer(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
+        backend = backend_override or current_backend()
         title, year = get_item_meta(movie_id, backend_override)
-        tmdb_id = tmdb_search(title, year)
+        tmdb_id = tmdb_search(title, year, movie_id=movie_id, backend=backend)
         if tmdb_id:
             v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}").json()
             trailers = [v for v in v_res.get('results', []) if v['site'] == 'YouTube' and v['type'] == 'Trailer']
@@ -362,8 +363,9 @@ def get_trailer(movie_id):
 def get_cast(movie_id):
     try:
         backend_override = request.headers.get('X-Backend')
+        backend = backend_override or current_backend()
         title, year = get_item_meta(movie_id, backend_override)
-        tmdb_id = tmdb_search(title, year)
+        tmdb_id = tmdb_search(title, year, movie_id=movie_id, backend=backend)
         if tmdb_id:
             c_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}").json()
             cast = []
