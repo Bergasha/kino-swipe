@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount
@@ -77,18 +78,45 @@ def get_plex_movie_section(plex):
 
     raise NotFound('No Plex movie library found')
 
+GENRE_CACHE_TTL = 86400  # 24 hours
+
 def get_plex_genres():
     global _plex_genre_cache
     if _plex_genre_cache is not None:
         return _plex_genre_cache
+
+    from app.database import db_session
+    import time
+
+
+    with db_session() as conn:
+        row = conn.execute(
+            'SELECT genre_data, updated_at FROM genre_cache WHERE backend = ?', ('plex',)
+        ).fetchone()
+        if row and (time.time() - row['updated_at']) < GENRE_CACHE_TTL:
+            _plex_genre_cache = json.loads(row['genre_data'])
+            return _plex_genre_cache
+
     try:
         plex = get_plex()
         section = get_plex_movie_section(plex)
         genres = sorted({g.title for g in section.listFilterChoices(field='genre')})
         display = ["Sci-Fi" if g == "Science Fiction" else g for g in genres]
         _plex_genre_cache = display
+        with db_session() as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO genre_cache (backend, genre_data, updated_at) VALUES (?, ?, ?)',
+                ('plex', json.dumps(display), time.time())
+            )
         return display
     except Exception:
+  
+        with db_session() as conn:
+            row = conn.execute(
+                'SELECT genre_data FROM genre_cache WHERE backend = ?', ('plex',)
+            ).fetchone()
+            if row:
+                return json.loads(row['genre_data'])
         return []
 
 def fetch_plex_movies(genre_name=None, user_token=None):
@@ -135,6 +163,19 @@ def get_jellyfin_genres():
     global _jellyfin_genre_cache
     if _jellyfin_genre_cache is not None:
         return _jellyfin_genre_cache
+
+    from app.database import db_session
+    import time
+
+
+    with db_session() as conn:
+        row = conn.execute(
+            'SELECT genre_data, updated_at FROM genre_cache WHERE backend = ?', ('jellyfin',)
+        ).fetchone()
+        if row and (time.time() - row['updated_at']) < GENRE_CACHE_TTL:
+            _jellyfin_genre_cache = json.loads(row['genre_data'])
+            return _jellyfin_genre_cache
+
     try:
         params = {
             'IncludeItemTypes': 'Movie',
@@ -145,8 +186,20 @@ def get_jellyfin_genres():
         r.raise_for_status()
         genres = sorted(g['Name'] for g in r.json().get('Items', []))
         _jellyfin_genre_cache = genres
+        with db_session() as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO genre_cache (backend, genre_data, updated_at) VALUES (?, ?, ?)',
+                ('jellyfin', json.dumps(genres), time.time())
+            )
         return genres
     except Exception:
+
+        with db_session() as conn:
+            row = conn.execute(
+                'SELECT genre_data FROM genre_cache WHERE backend = ?', ('jellyfin',)
+            ).fetchone()
+            if row:
+                return json.loads(row['genre_data'])
         return []
 
 def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
@@ -213,13 +266,42 @@ def get_jellyfin_item(item_id):
         item['CommunityRating'] = round(item['CommunityRating'], 1)
     return item
 
-def tmdb_search(title, year):
+def tmdb_search(title, year, movie_id=None, backend=None):
+    """Search TMDB for a movie ID. Caches results in tmdb_cache keyed by (backend, movie_id)."""
+    from app.database import db_session
+    import time
+
+
+    if movie_id and backend:
+        with db_session() as conn:
+            row = conn.execute(
+                'SELECT tmdb_id FROM tmdb_cache WHERE backend = ? AND movie_id = ?',
+                (backend, str(movie_id))
+            ).fetchone()
+            if row is not None:
+                return row['tmdb_id']  
+
+
+    tmdb_id = None
     base = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(title)}"
-    if year:
-        r = requests.get(f"{base}&year={year}").json()
-        if r.get('results'):
-            return r['results'][0]['id']
-    r = requests.get(base).json()
-    if r.get('results'):
-        return r['results'][0]['id']
-    return None
+    try:
+        if year:
+            r = requests.get(f"{base}&year={year}", timeout=10).json()
+            if r.get('results'):
+                tmdb_id = r['results'][0]['id']
+        if tmdb_id is None:
+            r = requests.get(base, timeout=10).json()
+            if r.get('results'):
+                tmdb_id = r['results'][0]['id']
+    except Exception:
+        pass
+
+  
+    if movie_id and backend:
+        with db_session() as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO tmdb_cache (backend, movie_id, tmdb_id, updated_at) VALUES (?, ?, ?, ?)',
+                (backend, str(movie_id), tmdb_id, time.time())
+            )
+
+    return tmdb_id

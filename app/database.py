@@ -46,6 +46,18 @@ def init_db():
             backend TEXT, genre TEXT, user_id TEXT NOT NULL DEFAULT "", movie_data TEXT, updated_at REAL,
             PRIMARY KEY (backend, genre, user_id)
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS tmdb_cache (
+            backend TEXT NOT NULL,
+            movie_id TEXT NOT NULL,
+            tmdb_id INTEGER,
+            updated_at REAL,
+            PRIMARY KEY (backend, movie_id)
+        )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS genre_cache (
+            backend TEXT PRIMARY KEY,
+            genre_data TEXT,
+            updated_at REAL
+        )''')
 
         cursor = conn.execute("PRAGMA table_info(matches)")
         columns = [col[1] for col in cursor.fetchall()]
