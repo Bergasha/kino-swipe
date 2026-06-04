@@ -178,6 +178,29 @@
 
         .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: black; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        #end-of-deck {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; border-radius: 20px;
+            background: #111; border: 2px solid #333; padding: 30px 20px; box-sizing: border-box;
+        }
+        #end-of-deck .end-quote {
+            font-family: 'allura', cursive; font-size: 2rem; color: #e5a00d;
+            line-height: 1.3; margin-bottom: 12px;
+            text-shadow: 0 0 8px rgba(229,160,13,0.3);
+        }
+        #end-of-deck .end-attr {
+            font-size: 0.75rem; color: #666; font-style: italic; margin-bottom: 28px; letter-spacing: 0.05em;
+        }
+        #end-of-deck .end-sub {
+            font-size: 0.85rem; color: #555; margin-bottom: 20px;
+        }
+        #end-of-deck .end-btn {
+            background: none; border: 1px solid #e5a00d; color: #e5a00d;
+            padding: 10px 24px; border-radius: 20px; font-size: 0.85rem;
+            font-weight: bold; cursor: pointer; transition: background 0.2s;
+        }
+        #end-of-deck .end-btn:hover { background: rgba(229,160,13,0.1); }
     </style>
 </head>
 <body>
@@ -526,6 +549,7 @@
             await fetch('/room/quit', { method: 'POST' });
             localStorage.removeItem('active_room');
             isSoloMode = false;
+            if (sseRetryTimer) { clearTimeout(sseRetryTimer); sseRetryTimer = null; }
             if (sseSource) { sseSource.close(); sseSource = null; }
             location.reload();
         }
@@ -734,9 +758,34 @@
             if (matchesPill) matchesPill.onclick = () => openMatches(false);
         }
 
+        const END_QUOTES = [
+            { quote: "That's a wrap.", attr: "— Every director, ever" },
+            { quote: "I'll be back.", attr: "— The Terminator (1984)" },
+            { quote: "There's no place like home.", attr: "— The Wizard of Oz (1939)" },
+            { quote: "You've seen everything. Time to just pick one.", attr: "— Common sense" },
+            { quote: "After all, tomorrow is another day.", attr: "— Gone with the Wind (1939)" },
+            { quote: "Roads? Where we're going, we don't need roads.", attr: "— Back to the Future (1985)" },
+            { quote: "The stuff that dreams are made of.", attr: "— The Maltese Falcon (1941)" },
+        ];
+
         function renderInitialDeck() {
             const deck = document.getElementById('swipe-deck');
             deck.innerHTML = '';
+            if (movieStack.length === 0) {
+                const q = END_QUOTES[Math.floor(Math.random() * END_QUOTES.length)];
+                const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+                const el = document.createElement('div');
+                el.id = 'end-of-deck';
+                el.style.borderColor = color.replace(')', ', 0.3)').replace('rgb', 'rgba');
+                el.innerHTML = `
+                    <div class="end-quote" style="color:${color}">"${q.quote}"</div>
+                    <div class="end-attr">${q.attr}</div>
+                    <div class="end-sub">You've swiped everything in this genre.</div>
+                    <button class="end-btn" style="border-color:${color}; color:${color}" onclick="toggleGenreModal()">Try Another Genre</button>
+                `;
+                deck.appendChild(el);
+                return;
+            }
             movieStack.slice(0, 5).reverse().forEach(m => deck.appendChild(createCard(m)));
             initDrag(deck.lastElementChild);
         }
@@ -929,7 +978,7 @@
                             presentMatchNotification(data);
                         } 
                     });
-                    setTimeout(() => { card.remove(); movieStack.shift(); if (movieStack[4]) document.getElementById('swipe-deck').prepend(createCard(movieStack[4])); initDrag(document.getElementById('swipe-deck').lastElementChild); globalCurrentX = 0; }, 300);
+                    setTimeout(() => { card.remove(); movieStack.shift(); if (movieStack[4]) document.getElementById('swipe-deck').prepend(createCard(movieStack[4])); initDrag(document.getElementById('swipe-deck').lastElementChild); globalCurrentX = 0; if (movieStack.length === 0) renderInitialDeck(); }, 300);
                 } else { card.style.transform = ''; setTimeout(() => globalCurrentX = 0, 50); }
             };
             card.onpointerdown = (e) => {
@@ -1002,10 +1051,23 @@
         }
 
         let sseSource = null;
+        let sseRetryDelay = 2000;
+        let sseRetryTimer = null;
 
         const startPolling = () => {
             if (sseSource) { sseSource.close(); sseSource = null; }
+            if (sseRetryTimer) { clearTimeout(sseRetryTimer); sseRetryTimer = null; }
             sseSource = new EventSource('/room/stream');
+            sseSource.onopen = () => { sseRetryDelay = 2000; };
+            sseSource.onerror = () => {
+                sseSource.close(); sseSource = null;
+                if (localStorage.getItem('active_room')) {
+                    sseRetryTimer = setTimeout(() => {
+                        sseRetryDelay = Math.min(sseRetryDelay * 2, 30000);
+                        startPolling();
+                    }, sseRetryDelay);
+                }
+            };
             sseSource.onmessage = async (event) => {
                 const d = JSON.parse(event.data);
                 if (d.closed) {
@@ -1101,6 +1163,7 @@
                     document.getElementById('swipe-deck').prepend(createCard(movieStack[4]));
                 }
                 initDrag(document.getElementById('swipe-deck').lastElementChild);
+                if (movieStack.length === 0) renderInitialDeck();
             }, 300);
         });
 
