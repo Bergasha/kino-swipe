@@ -143,9 +143,9 @@
         .stamp-yes { left: 20px; }
         .stamp-no  { right: 20px; }
 
-        .solo-add-stamp { position: fixed; top: 50%; left: 50%; --tilt: -10deg; transform: translate(-50%, -50%) rotate(var(--tilt)) scale(0.7); background: transparent; color: #d32f2f; border: 4px double #d32f2f; padding: 10px 24px; border-radius: 6px; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 9000; transition: opacity 0.15s ease, transform 0.15s ease; mix-blend-mode: normal; text-shadow: 0 0 1px #d32f2f; box-shadow: 0 0 0 1px rgba(211,47,47,0.3) inset; font-family: 'Arial Black', sans-serif; }
-        .solo-add-stamp.jf { color: #00a4dc; border-color: #00a4dc; text-shadow: 0 0 1px #00a4dc; box-shadow: 0 0 0 1px rgba(0,164,220,0.3) inset; }
-        .solo-add-stamp.show { opacity: 0.88; transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1); }
+        .solo-add-stamp { position: fixed; top: 50%; left: 50%; --tilt: -10deg; transform: translate(-50%, -50%) rotate(var(--tilt)) scale(0.7); background: rgba(245, 240, 225, 0.94); color: #d32f2f; border: 4px double #d32f2f; padding: 10px 24px; border-radius: 6px; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 9000; transition: opacity 0.15s ease, transform 0.15s ease; text-shadow: 0 0 1px #d32f2f; box-shadow: 0 0 0 1px rgba(211,47,47,0.3) inset, 0 4px 18px rgba(0,0,0,0.5); font-family: 'Arial Black', sans-serif; }
+        .solo-add-stamp.jf { color: #00a4dc; border-color: #00a4dc; text-shadow: 0 0 1px #00a4dc; box-shadow: 0 0 0 1px rgba(0,164,220,0.3) inset, 0 4px 18px rgba(0,0,0,0.5); }
+        .solo-add-stamp.show { opacity: 0.96; transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1); }
 
         .cast-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 6px 8px 0; width: 100%; box-sizing: border-box; }
         .cast-member { display: flex; flex-direction: column; align-items: center; width: 56px; flex-shrink: 0; }
