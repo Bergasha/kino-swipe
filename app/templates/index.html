@@ -143,7 +143,7 @@
         .stamp-yes { left: 20px; }
         .stamp-no  { right: 20px; }
 
-        .solo-add-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0,0,0,0.85); color: #e5a00d; border: 2px solid #e5a00d; padding: 14px 22px; border-radius: 14px; font-weight: bold; font-size: 1.1rem; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.2s ease, transform 0.2s ease; box-shadow: 0 0 20px rgba(229,160,13,0.5); }
+        .solo-add-stamp { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0,0,0,0.85); color: #e5a00d; border: 2px solid #e5a00d; padding: 14px 22px; border-radius: 14px; font-weight: bold; font-size: 1.1rem; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 9000; transition: opacity 0.2s ease, transform 0.2s ease; box-shadow: 0 0 20px rgba(229,160,13,0.5); }
         .solo-add-stamp.jf { color: #00a4dc; border-color: #00a4dc; box-shadow: 0 0 20px rgba(0,164,220,0.5); }
         .solo-add-stamp.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
@@ -209,6 +209,7 @@
 </head>
 <body>
     <div id="toast"></div>
+    <div id="solo-add-stamp" class="solo-add-stamp"></div>
     <button id="matches-pill" class="pill-btn hidden">Shortlist</button>
     <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
     <button id="undo-btn" class="hidden">Undo</button>
@@ -903,20 +904,12 @@
         }
 
         function showSoloAddStamp() {
-            const deck = document.getElementById('swipe-deck');
-            const topCard = deck.querySelector('.movie-card:last-child');
-            if (!topCard) return;
+            const stamp = document.getElementById('solo-add-stamp');
+            if (getBackend() === 'jellyfin') stamp.classList.add('jf');
+            else stamp.classList.remove('jf');
+            stamp.innerText = 'Added to Shortlist';
 
-            let stamp = topCard.querySelector('.solo-add-stamp');
-            if (!stamp) {
-                stamp = document.createElement('div');
-                stamp.className = 'solo-add-stamp';
-                if (getBackend() === 'jellyfin') stamp.classList.add('jf');
-                stamp.innerText = 'Added to Shortlist';
-                topCard.appendChild(stamp);
-            }
-
-            requestAnimationFrame(() => stamp.classList.add('show'));
+            stamp.classList.add('show');
             clearTimeout(stamp._hideTimer);
             stamp._hideTimer = setTimeout(() => {
                 stamp.classList.remove('show');
