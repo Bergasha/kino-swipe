@@ -97,7 +97,7 @@
         #quit-pill { left: 20px; background: #d32f2f; color: black; }
         #undo-btn { position: fixed; bottom: 9vh; left: 50%; transform: translateX(-50%); background: #222; color: #a64703; width: 65px; height: 65px; border-radius: 50%; border: 3px solid #a64703; font-size: 1.0rem; z-index: 9999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-        #match-overlay { position: fixed; top: 15px; left: 4vw; width: 92vw; max-width: 450px; background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); z-index: 15000; display: grid; grid-template-columns: 95px 1fr; gap: 16px; padding: 20px; box-sizing: border-box; backdrop-filter: blur(12px); border: 2px solid #e5a00d; border-radius: 18px; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25); transform: translateY(-160%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); cursor: pointer; overflow: hidden; }
+        #match-overlay { position: fixed; top: 15px; left: 4vw; width: 92vw; max-width: 450px; background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); z-index: 15000; display: grid; grid-template-columns: 95px 1fr; gap: 16px; padding: 20px; box-sizing: border-box; backdrop-filter: blur(12px); border: 2px solid #e5a00d; border-radius: 18px; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229, 160, 13, 0.25); transform: translateY(-160%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); touch-action: none; overflow: hidden; }
         @media (min-width: 480px) { #match-overlay { left: calc(50% - 225px); } }
         #match-overlay.show { transform: translateY(0); }
         .match-poster-preview { grid-column: 1; grid-row: 1; width: 95px; height: 142px; border-radius: 12px; object-fit: cover; border: 2px solid #2a2a2a; box-shadow: 0 6px 14px rgba(0,0,0,0.6); flex-shrink: 0; }
@@ -302,7 +302,7 @@
         <button class="menu-btn" style="margin-top:20px;" onclick="toggleGenreModal()">Cancel</button>
     </div>
 
-    <div id="match-overlay" onclick="triggerDismissMatch()">
+    <div id="match-overlay">
         <img id="match-popup-poster" class="match-poster-preview" src="">
         <div class="match-details-grid">
             <div class="match-heading-container">
@@ -900,7 +900,7 @@
             
             matchTimeoutToken = setTimeout(() => {
                 triggerDismissMatch();
-            }, 4000);
+            }, 3000);
         }
 
         function showSoloAddStamp() {
@@ -926,6 +926,49 @@
                 clearTimeout(matchTimeoutToken);
                 matchTimeoutToken = null;
             }
+        }
+
+        function initMatchOverlaySwipeDismiss() {
+            const banner = document.getElementById('match-overlay');
+            if (!banner) return;
+            let startY = 0, currentY = 0, isDragging = false;
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const y = e.clientY || (e.touches && e.touches[0].clientY);
+                currentY = Math.min(0, y - startY);
+                banner.style.transition = 'none';
+                banner.style.transform = `translateY(${currentY}px)`;
+                banner.style.opacity = String(Math.max(0.3, 1 - Math.abs(currentY) / 150));
+            };
+
+            const onEnd = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onEnd);
+                banner.style.transition = '';
+                banner.style.opacity = '';
+                banner.style.transform = '';
+
+                if (Math.abs(currentY) > 60) {
+                    triggerDismissMatch();
+                } else {
+                    matchTimeoutToken = setTimeout(() => {
+                        triggerDismissMatch();
+                    }, 3000);
+                }
+                currentY = 0;
+            };
+
+            banner.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                startY = e.clientY || (e.touches && e.touches[0].clientY);
+                if (matchTimeoutToken) { clearTimeout(matchTimeoutToken); matchTimeoutToken = null; }
+                banner.setPointerCapture(e.pointerId);
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onEnd);
+            });
         }
 
         function initDrag(card) {
@@ -1191,6 +1234,7 @@
 
         window.onload = async () => {
             _bindStaticHandlers();
+            initMatchOverlaySwipeDismiss();
             
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
