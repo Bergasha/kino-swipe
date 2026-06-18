@@ -143,6 +143,10 @@
         .stamp-yes { left: 20px; }
         .stamp-no  { right: 20px; }
 
+        .solo-add-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0,0,0,0.85); color: #e5a00d; border: 2px solid #e5a00d; padding: 14px 22px; border-radius: 14px; font-weight: bold; font-size: 1.1rem; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.2s ease, transform 0.2s ease; box-shadow: 0 0 20px rgba(229,160,13,0.5); }
+        .solo-add-stamp.jf { color: #00a4dc; border-color: #00a4dc; box-shadow: 0 0 20px rgba(0,164,220,0.5); }
+        .solo-add-stamp.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
         .cast-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 6px 8px 0; width: 100%; box-sizing: border-box; }
         .cast-member { display: flex; flex-direction: column; align-items: center; width: 56px; flex-shrink: 0; }
         .cast-member img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #e5a00d; background: #333; }
@@ -872,7 +876,12 @@
 
         function presentMatchNotification(data) {
             if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-            
+
+            if (data.solo) {
+                showSoloAddStamp();
+                return;
+            }
+
             if (matchTimeoutToken) clearTimeout(matchTimeoutToken);
 
             const _titleEl = document.getElementById('matched-movie-title');
@@ -880,24 +889,38 @@
             const _len = (data.title || '').length;
             _titleEl.style.fontSize = _len <= 15 ? '1.6rem' : _len <= 30 ? '1.25rem' : _len <= 45 ? '1rem' : '0.82rem';
             document.getElementById('match-popup-poster').src = data.thumb || '';
-            
+
             const heading = document.getElementById('match-heading');
-            const soloLabel = document.getElementById('match-solo-label');
-            
-            if (data.solo) {
-                heading.innerText = 'NICE ONE!';
-                soloLabel.classList.remove('hidden');
-            } else {
-                heading.innerText = "IT'S A MATCH!";
-                soloLabel.classList.add('hidden');
-            }
-            
+            heading.innerText = "IT'S A MATCH!";
+            document.getElementById('match-solo-label').classList.add('hidden');
+
             const banner = document.getElementById('match-overlay');
             banner.classList.add('show');
             
             matchTimeoutToken = setTimeout(() => {
                 triggerDismissMatch();
             }, 4000);
+        }
+
+        function showSoloAddStamp() {
+            const deck = document.getElementById('swipe-deck');
+            const topCard = deck.querySelector('.movie-card:last-child');
+            if (!topCard) return;
+
+            let stamp = topCard.querySelector('.solo-add-stamp');
+            if (!stamp) {
+                stamp = document.createElement('div');
+                stamp.className = 'solo-add-stamp';
+                if (getBackend() === 'jellyfin') stamp.classList.add('jf');
+                stamp.innerText = 'Added to Shortlist';
+                topCard.appendChild(stamp);
+            }
+
+            requestAnimationFrame(() => stamp.classList.add('show'));
+            clearTimeout(stamp._hideTimer);
+            stamp._hideTimer = setTimeout(() => {
+                stamp.classList.remove('show');
+            }, 1000);
         }
 
         function triggerDismissMatch() {
