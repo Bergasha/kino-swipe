@@ -108,8 +108,9 @@
         .match-logo { width: 100%; height: 100%; object-fit: contain; }
         
         .match-instruction { color: #ffffff; font-size: 0.9rem; font-style: italic; z-index: 20001; pointer-events: none; }
+        .pill-modal-btn { background: #e5a00d; color: black; border: none; padding: 10px 22px; font-size: 0.85rem; border-radius: 25px; cursor: pointer; font-weight: bold; z-index: 20001; }
         #poster-instruction { position: fixed; bottom: 18vh; left: 50%; transform: translateX(-50%); width: 100%; }
-        #modal-instruction { position: fixed; bottom: 85px; }
+        #modal-instruction { position: fixed; bottom: 70px; left: 0; width: 100%; text-align: center; }
         
         #genre-pill { position: fixed; top: 15px; right: 15px; width: 100px; height: 35px; border-radius: 20px; border: 1px solid #e5a00d; background: rgba(0,0,0,0.6); color: #e5a00d; font-weight: bold; font-size: 0.8rem; z-index: 10001; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         #genre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 30000; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow: hidden; }
@@ -278,6 +279,14 @@
                 <br>
                 <button id="switch-profile-btn" class="menu-btn hidden" style="background: #333; color: #e5a00d; border: 1px solid #e5a00d;" onclick="openProfileSwitcher()">Switch Profile</button>
                 <br>
+                <label id="homescreen-toggle-row" class="hidden" style="display:flex; align-items:center; justify-content:center; gap:10px; margin: 14px auto; cursor:pointer; width:fit-content;">
+                    <span style="font-size:0.8rem; color:#999;">Show matches on Plex home screen</span>
+                    <div id="homescreen-toggle-track" style="position:relative; width:40px; height:22px; background:#333; border-radius:22px; transition:background 0.3s;">
+                        <div id="homescreen-toggle-thumb" style="position:absolute; top:3px; left:3px; width:16px; height:16px; background:#888; border-radius:50%; transition:transform 0.3s, background 0.3s;"></div>
+                    </div>
+                    <input type="checkbox" id="homescreen-toggle" onchange="handleHomescreenToggle(this)" style="display:none;">
+                </label>
+                <br>
                 <button class="logout-btn" onclick="localStorage.clear(); location.reload();">Logout</button>
             </div>
         </div>
@@ -322,7 +331,8 @@
         <h1 id="modal-title" class="plex-yellow">Your Matches</h1>
         <div id="matches-list"></div>
         <div id="modal-instruction" class="match-instruction">Tap on match for more options</div>
-        <button class="menu-btn" style="position: fixed; bottom: 20px; width: 150px; z-index:20001;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
+        <button id="delete-all-btn" class="hidden pill-modal-btn" style="position: fixed; bottom: 20px; left: 20px; background:#d32f2f; color:white;" onclick="deleteAllMatches()">Delete All</button>
+        <button class="pill-modal-btn" style="position: fixed; bottom: 20px; right: 20px;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
     </div>
 
     <div id="quit-modal" class="hidden">
@@ -477,6 +487,7 @@
             
             const token = localStorage.getItem('plex_token');
             await checkHomeUsersCountAsync(token);
+            await checkHomescreenSyncAsync();
         }
 
         async function fetchAndStorePlexId() {
@@ -631,6 +642,46 @@
             }
         }
 
+        async function handleHomescreenToggle(checkbox) {
+            const track = document.getElementById('homescreen-toggle-track');
+            const thumb = document.getElementById('homescreen-toggle-thumb');
+            const enabled = checkbox.checked;
+            if (enabled) {
+                track.style.background = '#e5a00d';
+                thumb.style.transform = 'translateX(18px)';
+                thumb.style.background = '#000';
+            } else {
+                track.style.background = '#333';
+                thumb.style.transform = 'translateX(0)';
+                thumb.style.background = '#888';
+            }
+            try {
+                await fetch('/homescreen/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Plex-User-ID': getUserId() },
+                    body: JSON.stringify({ enabled })
+                });
+            } catch (e) { console.error('Could not update homescreen sync setting:', e); }
+        }
+
+        async function checkHomescreenSyncAsync() {
+            if (getBackend() !== 'plex') return;
+            try {
+                const res = await fetch('/homescreen/status', { headers: { 'X-Plex-User-ID': getUserId() } });
+                const data = await res.json();
+                if (!data.available) return;
+                const row = document.getElementById('homescreen-toggle-row');
+                const checkbox = document.getElementById('homescreen-toggle');
+                const track = document.getElementById('homescreen-toggle-track');
+                const thumb = document.getElementById('homescreen-toggle-thumb');
+                row.classList.remove('hidden');
+                checkbox.checked = !!data.enabled;
+                track.style.background = data.enabled ? '#e5a00d' : '#333';
+                thumb.style.transform = data.enabled ? 'translateX(18px)' : 'translateX(0)';
+                thumb.style.background = data.enabled ? '#000' : '#888';
+            } catch (e) { console.error('Could not check homescreen sync status:', e); }
+        }
+
         const loadMovies = async (solo = false) => {
             isSoloMode = solo;
             lastSeenMatchTs = Date.now() / 1000;
@@ -657,6 +708,7 @@
 
         async function openMatches(asHistory) {
             isHistoryView = asHistory;
+            document.getElementById('delete-all-btn').classList.toggle('hidden', !asHistory);
             const serverId = await fetchServerInfo();
             if (!serverId) return;
             const label = isSoloMode && !asHistory ? "Your Shortlist" : asHistory ? "Match History" : "Your Matches";
@@ -721,6 +773,8 @@
         async function deleteMatch(event, id) {
             event.stopPropagation();
             pendingDeleteId = id;
+            document.querySelector('#delete-modal h3').innerText = 'Delete Match?';
+            document.querySelector('#delete-modal p').innerText = 'This will remove the match from your list.';
             document.getElementById('delete-modal-overlay').classList.remove('hidden');
             document.getElementById('delete-modal').classList.remove('hidden');
             document.getElementById('delete-confirm-btn').onclick = async () => {
@@ -731,6 +785,25 @@
                     method: "POST", 
                     headers: headers, 
                     body: JSON.stringify({ movie_id: pendingDeleteId }) 
+                });
+                closeDeleteModal();
+                openMatches(isHistoryView);
+            };
+        }
+
+        function deleteAllMatches() {
+            document.querySelector('#delete-modal h3').innerText = 'Delete All History?';
+            document.querySelector('#delete-modal p').innerText = 'This will permanently remove every match in your history.';
+            document.getElementById('delete-modal-overlay').classList.remove('hidden');
+            document.getElementById('delete-modal').classList.remove('hidden');
+            document.getElementById('delete-confirm-btn').onclick = async () => {
+                const headers = getMoviesHeaders();
+                headers["Content-Type"] = "application/json";
+
+                await fetch("/matches/delete-all", {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify({ view: 'history' })
                 });
                 closeDeleteModal();
                 openMatches(isHistoryView);
@@ -1261,6 +1334,7 @@
                 
                 if (token && backend === 'plex') {
                     await checkHomeUsersCountAsync(token);
+                    await checkHomescreenSyncAsync();
                 }
 
                 document.getElementById('main-menu').classList.remove('hidden');
