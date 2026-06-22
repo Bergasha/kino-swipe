@@ -14,6 +14,7 @@ from app.services import (
     plex_ready, jellyfin_ready, fetch_jellyfin_movies, fetch_plex_movies,
     get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers
 )
+from app import plex_homescreen
 
 main_bp = Blueprint('main', __name__)
 
@@ -476,6 +477,8 @@ def swipe():
                     'INSERT OR IGNORE INTO matches (room_code, movie_id, title, thumb, status, plex_id) VALUES (?, ?, ?, ?, "active", ?)',
                     (code, mid, title, thumb, plex_id)
                 )
+                if current_backend() == 'plex' and plex_id:
+                    plex_homescreen.add_match_async(plex_id, mid)
                 return jsonify({'match': True, 'title': title, 'thumb': thumb, 'solo': True})
 
             other_swipe = conn.execute(
@@ -488,11 +491,15 @@ def swipe():
                     'INSERT OR IGNORE INTO matches (room_code, movie_id, title, thumb, status, plex_id) VALUES (?, ?, ?, ?, "active", ?)',
                     (code, mid, title, thumb, plex_id)
                 )
+                if current_backend() == 'plex' and plex_id:
+                    plex_homescreen.add_match_async(plex_id, mid)
                 if other_swipe['plex_id'] and other_swipe['plex_id'] != plex_id:
                     conn.execute(
                         'INSERT OR IGNORE INTO matches (room_code, movie_id, title, thumb, status, plex_id) VALUES (?, ?, ?, ?, "active", ?)',
                         (code, mid, title, thumb, other_swipe['plex_id'])
                     )
+                    if current_backend() == 'plex':
+                        plex_homescreen.add_match_async(other_swipe['plex_id'], mid)
                 match_data = {'title': title, 'thumb': thumb, 'ts': time.time()}
                 conn.execute('UPDATE rooms SET last_match_data = ? WHERE pairing_code = ?', (json.dumps(match_data), code))
                 announce_room_update(code, {'last_match': match_data})
@@ -613,7 +620,47 @@ def delete_match():
     plex_id = request.headers.get('X-Plex-User-ID') or request.headers.get('X-Jellyfin-User-ID')
     with get_db() as conn:
         conn.execute('DELETE FROM matches WHERE movie_id = ? AND plex_id = ?', (mid, plex_id))
+    if current_backend() == 'plex' and plex_id:
+        plex_homescreen.remove_match_async(plex_id, mid)
     return jsonify({'status': 'deleted'})
+
+
+@main_bp.route('/matches/delete-all', methods=['POST'])
+def delete_all_matches():
+    code = session.get('active_room')
+    view = (request.json or {}).get('view')
+    plex_id = request.headers.get('X-Plex-User-ID') or request.headers.get('X-Jellyfin-User-ID')
+    with get_db() as conn:
+        if view == 'history':
+            rows = conn.execute('SELECT movie_id FROM matches WHERE status = "archived" AND plex_id = ?', (plex_id,)).fetchall()
+            conn.execute('DELETE FROM matches WHERE status = "archived" AND plex_id = ?', (plex_id,))
+        else:
+            rows = conn.execute('SELECT movie_id FROM matches WHERE room_code = ? AND status = "active" AND plex_id = ?', (code, plex_id)).fetchall()
+            conn.execute('DELETE FROM matches WHERE room_code = ? AND status = "active" AND plex_id = ?', (code, plex_id))
+    if current_backend() == 'plex' and plex_id:
+        for row in rows:
+            plex_homescreen.remove_match_async(plex_id, row['movie_id'])
+    return jsonify({'status': 'deleted', 'count': len(rows)})
+
+
+@main_bp.route('/homescreen/status')
+def homescreen_status():
+    plex_id = request.headers.get('X-Plex-User-ID')
+    if not plex_id or current_backend() != 'plex':
+        return jsonify({'available': False})
+    plex_homescreen.ensure_user_known(plex_id)
+    plex_homescreen.cleanup_expired_async(plex_id)
+    return jsonify({'available': True, 'enabled': plex_homescreen.get_homescreen_enabled(plex_id)})
+
+
+@main_bp.route('/homescreen/toggle', methods=['POST'])
+def homescreen_toggle():
+    plex_id = request.headers.get('X-Plex-User-ID')
+    if not plex_id or current_backend() != 'plex':
+        return jsonify({'error': 'Plex login required'}), 400
+    enabled = bool(request.json.get('enabled'))
+    plex_homescreen.set_homescreen_enabled(plex_id, enabled)
+    return jsonify({'status': 'ok', 'enabled': enabled})
 
 
 @main_bp.route('/undo', methods=['POST'])
@@ -625,6 +672,8 @@ def undo_swipe():
     with get_db() as conn:
         conn.execute('DELETE FROM swipes WHERE room_code = ? AND movie_id = ? AND user_id = ?', (code, mid, uid))
         conn.execute('DELETE FROM matches WHERE room_code = ? AND movie_id = ? AND status = "active" AND plex_id = ?', (code, mid, plex_id))
+    if current_backend() == 'plex' and plex_id:
+        plex_homescreen.remove_match_async(plex_id, mid)
     return jsonify({'status': 'undone'})
 
 
