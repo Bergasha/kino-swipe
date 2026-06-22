@@ -46,6 +46,7 @@ When you click **Host Session** or select a new genre for the absolute first tim
 * **First run / New genre:** May take **5–15 seconds** depending on the size of your Plex or Jellyfin library while it builds the initial local dataset.
 * **Subsequent runs:** **Instantaneous.** The app shuffles and serves cards out of the local cache immediately.
 * **Automatic Updates:** The cache automatically and silently updates in a background thread every 24 hours, meaning you will never experience that initial setup delay again after the first run.
+* **Plex Homescreen Sync:** Matches on Plex homescreen are only visable to the user who made the match, All other remote or admin users will not see those matches.
 
 ---  
 ## Features
@@ -59,6 +60,7 @@ When you click **Host Session** or select a new genre for the absolute first tim
 - **PWA Support:** Add to your Home Screen for a native app feel.
 - **Match Notifications:** Instant alerts with haptic feedback when you both swipe right on the same movie.
 - **Match History:** All matches saved to history until you're ready to delete them.
+- **Plex-Homescreen-Sync:** Each match will automatically show on a per-users Plex Homescreen (Until deleted from Kino).
 - **Plex Home Users** Have kids with restricted accounts? You can now select their profile if they are a Home User to only see suitable movies.
 - **Jellyfin Restricted Libraries** Also for Jellyfin users with restricted libraries will only see their movies.
 - **Solo Mode:** Flying solo? Host a session and flick the solo toggle — every right swipe saves to your Match History.
