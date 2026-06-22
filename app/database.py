@@ -36,7 +36,7 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('CREATE TABLE IF NOT EXISTS rooms (pairing_code TEXT PRIMARY KEY, movie_data TEXT, ready INTEGER, current_genre TEXT, solo_mode INTEGER DEFAULT 0, backend TEXT DEFAULT "plex")')
-        conn.execute('CREATE TABLE IF NOT EXISTS swipes (room_code TEXT, movie_id TEXT, user_id TEXT, direction TEXT, plex_id TEXT)')
+        conn.execute('CREATE TABLE IF NOT EXISTS swipes (room_code TEXT, movie_id TEXT, user_id TEXT, direction TEXT, plex_id TEXT, plex_token TEXT)')
         conn.execute('''CREATE TABLE IF NOT EXISTS matches (
             room_code TEXT, movie_id TEXT, title TEXT, thumb TEXT,
             status TEXT DEFAULT "active", plex_id TEXT,
@@ -58,6 +58,16 @@ def init_db():
             genre_data TEXT,
             updated_at REAL
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS homescreen_sync (
+            plex_id TEXT PRIMARY KEY,
+            enabled INTEGER DEFAULT 1,
+            rating_key INTEGER,
+            targeting_applied INTEGER DEFAULT 0
+        )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS homescreen_items (
+            plex_id TEXT, movie_id TEXT, added_at REAL,
+            PRIMARY KEY (plex_id, movie_id)
+        )''')
 
         cursor = conn.execute("PRAGMA table_info(matches)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -70,6 +80,8 @@ def init_db():
         sw_cols = [col[1] for col in cursor.fetchall()]
         if 'plex_id' not in sw_cols:
             conn.execute('ALTER TABLE swipes ADD COLUMN plex_id TEXT')
+        if 'plex_token' not in sw_cols:
+            conn.execute('ALTER TABLE swipes ADD COLUMN plex_token TEXT')
 
         cursor = conn.execute("PRAGMA table_info(rooms)")
         room_cols = [col[1] for col in cursor.fetchall()]
