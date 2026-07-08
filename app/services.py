@@ -78,7 +78,7 @@ def get_plex_movie_section(plex):
 
     raise NotFound('No Plex movie library found')
 
-GENRE_CACHE_TTL = 86400  # 24 hours
+GENRE_CACHE_TTL = 86400
 
 def get_plex_genres():
     global _plex_genre_cache
@@ -87,7 +87,6 @@ def get_plex_genres():
 
     from app.database import db_session
     import time
-
 
     with db_session() as conn:
         row = conn.execute(
@@ -110,7 +109,6 @@ def get_plex_genres():
             )
         return display
     except Exception:
-  
         with db_session() as conn:
             row = conn.execute(
                 'SELECT genre_data FROM genre_cache WHERE backend = ?', ('plex',)
@@ -167,7 +165,6 @@ def get_jellyfin_genres():
     from app.database import db_session
     import time
 
-
     with db_session() as conn:
         row = conn.execute(
             'SELECT genre_data, updated_at FROM genre_cache WHERE backend = ?', ('jellyfin',)
@@ -179,12 +176,21 @@ def get_jellyfin_genres():
     try:
         params = {
             'IncludeItemTypes': 'Movie',
+            'Recursive': 'true',
+            'Fields': 'Genres',
             'EnableImages': 'false',
             'EnableUserData': 'false',
         }
-        r = requests.get(f"{JELLYFIN_URL}/Genres", headers=_jf_headers(), params=params, timeout=10)
+        r = requests.get(f"{JELLYFIN_URL}/Items", headers=_jf_headers(), params=params, timeout=10)
         r.raise_for_status()
-        genres = sorted(g['Name'] for g in r.json().get('Items', []))
+        
+        movie_genres = set()
+        for item in r.json().get('Items', []):
+            for genre in item.get('Genres', []):
+                if genre:
+                    movie_genres.add(genre)
+                    
+        genres = sorted(list(movie_genres))
         _jellyfin_genre_cache = genres
         with db_session() as conn:
             conn.execute(
@@ -193,7 +199,6 @@ def get_jellyfin_genres():
             )
         return genres
     except Exception:
-
         with db_session() as conn:
             row = conn.execute(
                 'SELECT genre_data FROM genre_cache WHERE backend = ?', ('jellyfin',)
@@ -267,10 +272,8 @@ def get_jellyfin_item(item_id):
     return item
 
 def tmdb_search(title, year, movie_id=None, backend=None):
-    """Search TMDB for a movie ID. Caches results in tmdb_cache keyed by (backend, movie_id)."""
     from app.database import db_session
     import time
-
 
     if movie_id and backend:
         with db_session() as conn:
@@ -279,8 +282,7 @@ def tmdb_search(title, year, movie_id=None, backend=None):
                 (backend, str(movie_id))
             ).fetchone()
             if row is not None:
-                return row['tmdb_id']  
-
+                return row['tmdb_id']
 
     tmdb_id = None
     base = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(title)}"
@@ -296,7 +298,6 @@ def tmdb_search(title, year, movie_id=None, backend=None):
     except Exception:
         pass
 
-  
     if movie_id and backend:
         with db_session() as conn:
             conn.execute(
