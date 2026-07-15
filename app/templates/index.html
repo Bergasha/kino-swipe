@@ -70,7 +70,8 @@
         .flipped .card-inner, .flipped .mini-inner { transform: rotateY(180deg); }
         .card-front, .card-back, .mini-front, .mini-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
         .card-back, .mini-back { transform: rotateY(180deg); background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #e5a00d; }
-        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; }
+        .movie-card { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 5; border-radius: 20px; user-select: none; -webkit-user-select: none; }
+        .movie-card img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
         .movie-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: #1a1a1a; }
         .movie-card.fallback-card img { object-fit: cover; }
         .movie-title { margin-bottom: 10px; font-weight: bold; font-size: 1.8rem; color: #e5a00d; padding: 0 10px; line-height: 1.1; }
@@ -876,7 +877,7 @@
             c.innerHTML = `
                 <div class="card-inner">
                     <div class="card-front">
-                        <img src="${m.thumb}">
+                        <img src="${m.thumb}" draggable="false" ondragstart="return false;">
                         <div class="stamp-yes">👍</div>
                         <div class="stamp-no">👎</div>
                     </div>
