@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/01bccced-a75b-4854-8c1d-c25674c99a5b" alt="Kino-Swipe Banner" width="600">
+  <img src="https://github.com/user-attachments/assets/4e45835c-95b8-4b1f-90b3-b19ef05d95e5" alt="Kino-Swipe Banner" width="600">
 </p>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe) 
