@@ -585,15 +585,18 @@ def get_movies():
         
     if not code:
         return jsonify([])
-    with get_db() as conn:
-        if genre:
-            new_list = fetch_movies(genre, user_id=user_id, user_token=user_token)
-            conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?',
-                         (json.dumps(new_list), genre, code))
-            announce_room_update(code, {'genre': genre})
-            return jsonify(new_list)
-        room = conn.execute('SELECT movie_data FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
-        return Response(room['movie_data'], mimetype='application/json') if room else jsonify([])
+    try:
+        with get_db() as conn:
+            if genre:
+                new_list = fetch_movies(genre, user_id=user_id, user_token=user_token)
+                conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?',
+                             (json.dumps(new_list), genre, code))
+                announce_room_update(code, {'genre': genre})
+                return jsonify(new_list)
+            room = conn.execute('SELECT movie_data FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
+            return Response(room['movie_data'], mimetype='application/json') if room else jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @main_bp.route('/genres')
