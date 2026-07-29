@@ -238,6 +238,11 @@
             toggleGenreModal();
             const url = genre === 'All' ? '/movies?genre=All' : `/movies?genre=${encodeURIComponent(genre)}`;
             const res = await fetch(url, { headers: getMoviesHeaders() });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(`Unable to reach server: ${err.error || res.status}`);
+                return;
+            }
             movieStack = await res.json();
             currentGenre = genre;
             document.getElementById('genre-pill').innerText = genre === 'All' ? 'Genres ▾' : genre + ' ▾';
