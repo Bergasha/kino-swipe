@@ -66,7 +66,7 @@ def fetch_movies(genre_name=None, user_id=None, user_token=None):
     ttl = CACHE_TTL_RECENT if genre_name == "Recently Added" else CACHE_TTL
 
     if not cache:
-        movie_list = build_and_cache_library(backend, genre_name, user_id, user_token)
+        movie_list = build_and_cache_library(backend, genre_name, user_id, user_token, raise_on_error=True)
     else:
         movie_list = json.loads(cache['movie_data'])
         if now - cache['updated_at'] > ttl:
@@ -77,7 +77,7 @@ def fetch_movies(genre_name=None, user_id=None, user_token=None):
     return movie_list
 
 
-def build_and_cache_library(backend, genre_name, user_id=None, user_token=None):
+def build_and_cache_library(backend, genre_name, user_id=None, user_token=None, raise_on_error=False):
     try:
         if backend == 'jellyfin':
             movies = fetch_jellyfin_movies(genre_name, user_id=user_id, user_token=user_token)
@@ -99,6 +99,8 @@ def build_and_cache_library(backend, genre_name, user_id=None, user_token=None):
         import traceback
         print(f"[library] ERROR building cache for backend={backend} genre={genre_name} user_id={user_id}: {e}", flush=True)
         traceback.print_exc()
+        if raise_on_error:
+            raise
         return []
 
 
@@ -393,7 +395,10 @@ def create_room():
         user_id = request.headers.get('X-Plex-User-ID') or ''
         user_token = request.headers.get('X-Plex-Token')
         
-    movie_list = fetch_movies(user_id=user_id, user_token=user_token)
+    try:
+        movie_list = fetch_movies(user_id=user_id, user_token=user_token)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     with get_db() as conn:
         conn.execute(
             'INSERT INTO rooms (pairing_code, movie_data, ready, current_genre, solo_mode, backend) VALUES (?, ?, ?, ?, ?, ?)',
