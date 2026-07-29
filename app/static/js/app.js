@@ -800,6 +800,13 @@
                 method: 'POST',
                 headers: createHeaders
             });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(`Unable to reach server: ${err.error || res.status}`);
+                btn.disabled = false;
+                btn.innerHTML = 'Host Session';
+                return;
+            }
             const data = await res.json();
             localStorage.setItem('active_room', 'hosting');
             document.getElementById('session-display').innerText = data.pairing_code;
