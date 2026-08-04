@@ -5,6 +5,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/bergasha/kino-swipe)](https://hub.docker.com/r/bergasha/kino-swipe) 
 [![GitHub Stars](https://img.shields.io/github/stars/Bergasha/kino-swipe?style=flat-square&logo=github&color=yellow)](https://github.com/Bergasha/kino-swipe/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-f15a2c?logo=unraid)
 
 
 Always trying to decide on a movie to watch together? This may be the fun solution you've been looking for.
