@@ -202,6 +202,10 @@
         }
 
         async function loginWithPlex() {
+            const btn = document.getElementById('login-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Connecting…';
             try {
                 const resp = await fetchWithTimeout("/auth/plex-url");
                 const data = await resp.json();
@@ -213,6 +217,9 @@
             } catch (e) {
                 console.error('Plex login init failed', e);
                 showToast("Could not reach Plex, try again");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         }
 
