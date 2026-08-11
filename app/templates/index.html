@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kino-Swipe</title>
+    <title>Kino Beta</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
@@ -12,7 +12,7 @@
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Kino-Swipe">
+    <meta name="apple-mobile-web-app-title" content="Kino Beta">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
 
     <link rel="stylesheet" href="/static/css/style.css">
@@ -25,7 +25,7 @@
     <button id="undo-btn" class="hidden">Undo</button>
 
     <div id="login-section" class="hidden">
-        <h1 class="main-title">Kino-Swipe</h1>
+        <h1 class="main-title">Kino Beta</h1>
         <button id="login-btn" class="menu-btn" onclick="loginWithPlex()">Login with Plex</button>
         <p style="position:relative; z-index:2; margin: 8px 0; font-size: 1.1rem; color: #e5a00d; font-weight: bold; letter-spacing: 0.1em;">— or —</p>
         <button id="jf-login-btn" class="menu-btn" style="background: #00a4dc; margin-top: 8px;" onclick="toggleJfModal()">Login with Jellyfin</button>
@@ -56,7 +56,7 @@
 
     <div id="main-menu" class="hidden">
         <div id="branding">
-            <h1 class="main-title">Kino-Swipe</h1>
+            <h1 class="main-title">Kino Beta</h1>
         </div>
         <div id="controls-area">
             <button id="host-btn" class="menu-btn" onmouseover="this.style.boxShadow=`0 0 20px rgba(${this.dataset.glowRgb || '229, 160, 13'}, 0.7)`;" onmouseout="this.style.boxShadow=`0 0 12px rgba(${this.dataset.glowRgb || '229, 160, 13'}, 0.4)`;" style="box-shadow: 0 0 12px rgba(229, 160, 13, 0.4); transition: 0.3s ease;">Host Session</button>

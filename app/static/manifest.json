@@ -1,7 +1,7 @@
 {
   "id": "com.bergasha.kinoswipe",
-  "name": "Kino-Swipe",
-  "short_name": "KinoSwipe",
+  "name": "Kino Beta",
+  "short_name": "Kino Beta",
   "description": "Tinder-style movie matching for your Plex library.",
   "icons": [
     {
