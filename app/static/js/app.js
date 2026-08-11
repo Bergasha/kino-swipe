@@ -18,6 +18,15 @@
         }
 
         function getBackend() { return localStorage.getItem('backend') || 'plex'; }
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } finally {
+                clearTimeout(id);
+            }
+        }
         function escapeHtml(str) {
             if (str === null || str === undefined) return '';
             return String(str)
@@ -145,23 +154,25 @@
             const token = localStorage.getItem('plex_token');
             if (!token) return;
             try {
-                const res = await fetch(`https://plex.tv/api/v2/user?X-Plex-Token=${token}`, { headers: { 'Accept': 'application/json' } });
+                const res = await fetchWithTimeout(`https://plex.tv/api/v2/user?X-Plex-Token=${token}`, { headers: { 'Accept': 'application/json' } });
                 const data = await res.json();
                 if (data.id) localStorage.setItem('plex_id', String(data.id));
-            } catch (e) { console.error("Could not fetch Plex ID"); }
+            } catch (e) { console.error("Could not fetch Plex ID", e); }
         }
 
         async function fetchServerInfo() {
             if (serverMachineId) return serverMachineId;
-            const response = await fetch('/server-info', {
-                headers: { 'X-Backend': getBackend() }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                serverMachineId = data.backend === 'plex' ? data.machineIdentifier : data.name;
-                updateUIColors(getBackend());
-                return serverMachineId;
-            }
+            try {
+                const response = await fetchWithTimeout('/server-info', {
+                    headers: { 'X-Backend': getBackend() }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    serverMachineId = data.backend === 'plex' ? data.machineIdentifier : data.name;
+                    updateUIColors(getBackend());
+                    return serverMachineId;
+                }
+            } catch (e) { console.error("Could not fetch server info", e); }
             return null;
         }
 
@@ -191,9 +202,18 @@
         }
 
         async function loginWithPlex() {
-            const resp = await fetch("/auth/plex-url");
-            const data = await resp.json();
-            window.location.href = data.auth_url;
+            try {
+                const resp = await fetchWithTimeout("/auth/plex-url");
+                const data = await resp.json();
+                if (data.auth_url) {
+                    window.location.href = data.auth_url;
+                } else {
+                    showToast(data.error || "Could not reach Plex, try again");
+                }
+            } catch (e) {
+                console.error('Plex login init failed', e);
+                showToast("Could not reach Plex, try again");
+            }
         }
 
         function toggleJfModal() { document.getElementById('jellyfin-modal').classList.toggle('hidden'); }
@@ -975,22 +995,27 @@
             }, 300);
         });
 
-        window.onload = async () => {
+        const boot = async () => {
             _bindStaticHandlers();
             initMatchOverlaySwipeDismiss();
-            
+
             const params = new URLSearchParams(window.location.search);
             const pinId = params.get('pin_id');
             if (pinId) {
-                const pendingPin = await fetch(`/auth/check-returned-pin?pin_id=${pinId}`);
-                const result = await pendingPin.json();
-                if (result.authToken) {
-                    localStorage.setItem("plex_token", result.authToken);
-                    localStorage.setItem("backend", "plex");
+                try {
+                    const pendingPin = await fetchWithTimeout(`/auth/check-returned-pin?pin_id=${pinId}`);
+                    const result = await pendingPin.json();
+                    if (result.authToken) {
+                        localStorage.setItem("plex_token", result.authToken);
+                        localStorage.setItem("backend", "plex");
+                        window.history.replaceState({}, '', '/');
+                        await finishPlexLogin();
+                        if (localStorage.getItem('active_room')) startPolling();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Pin check failed or timed out', e);
                     window.history.replaceState({}, '', '/');
-                    await finishPlexLogin();
-                    if (localStorage.getItem('active_room')) startPolling();
-                    return;
                 }
             }
 
@@ -998,20 +1023,27 @@
             const token = getAuthToken();
 
             if (token) {
-                if (backend === 'plex') await fetchAndStorePlexId();
-                await fetchServerInfo(); 
+                // Reveal the UI immediately using cached data; refresh details in the background.
+                updateUIColors(backend);
                 document.getElementById('login-section').classList.add('hidden');
-                
-                if (token && backend === 'plex') {
-                    await checkHomeUsersCountAsync(token);
-                    await checkHomescreenSyncAsync();
-                }
-
                 document.getElementById('main-menu').classList.remove('hidden');
                 loadGenres();
                 if (localStorage.getItem('active_room')) startPolling();
+
+                if (backend === 'plex') fetchAndStorePlexId();
+                fetchServerInfo();
+                if (backend === 'plex') {
+                    checkHomeUsersCountAsync(token);
+                    checkHomescreenSyncAsync();
+                }
             } else {
                 document.getElementById('login-section').classList.remove('hidden');
             }
         };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', boot);
+        } else {
+            boot();
+        }
 
