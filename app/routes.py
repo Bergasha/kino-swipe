@@ -122,7 +122,7 @@ def get_plex_url():
     REDIRECT_URL = f"{request.scheme}://{request.host}"
     headers = {'X-Plex-Product': 'KinoSwipe', 'X-Plex-Client-Identifier': CLIENT_ID, 'Accept': 'application/json'}
     try:
-        res = requests.post('https://plex.tv/api/v2/pins?strong=true', headers=headers).json()
+        res = requests.post('https://plex.tv/api/v2/pins?strong=true', headers=headers, timeout=10).json()
         forward = f"{REDIRECT_URL}?pin_id={res['id']}"
         auth_url = (
             f"https://app.plex.tv/auth/#!?clientID={CLIENT_ID}"
@@ -141,7 +141,10 @@ def check_pin():
     if not pin_id:
         return jsonify({'authToken': None})
     headers = {'X-Plex-Client-Identifier': CLIENT_ID, 'Accept': 'application/json'}
-    res = requests.get(f"https://plex.tv/api/v2/pins/{pin_id}", headers=headers).json()
+    try:
+        res = requests.get(f"https://plex.tv/api/v2/pins/{pin_id}", headers=headers, timeout=10).json()
+    except Exception as e:
+        return jsonify({'authToken': None, 'error': str(e)}), 502
     token = res.get('authToken')
     if token:
         session.pop('pending_pin_id', None)
