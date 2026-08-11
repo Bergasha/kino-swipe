@@ -6,7 +6,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/Bergasha/kino-swipe?style=flat-square&logo=github&color=yellow)](https://github.com/Bergasha/kino-swipe/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 ![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-f15a2c?logo=unraid)
-
+## This is the Beta version and may be unstable; please use the main branch unless you want bleeding edge.
 
 Always trying to decide on a movie to watch together? This may be the fun solution you've been looking for.
 Dating app style — swipe right to like, swipe left to pass. If you both swipe right on the same movie, **IT'S A MATCH!!**
