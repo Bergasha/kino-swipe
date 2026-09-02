@@ -199,6 +199,9 @@
             if (overlay) overlay.style.borderColor = color;
             
             document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : 'inline-block';
+
+            const homescreenLabel = document.getElementById('homescreen-toggle-label');
+            if (homescreenLabel) homescreenLabel.textContent = `Show matches on ${backend === 'jellyfin' ? 'Jellyfin' : 'Plex'} home screen`;
         }
 
         async function loginWithPlex() {
@@ -346,18 +349,19 @@
                 thumb.style.background = '#888';
             }
             try {
+                const headers = getMoviesHeaders();
+                headers['Content-Type'] = 'application/json';
                 await fetch('/homescreen/toggle', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Plex-User-ID': getUserId() },
+                    headers,
                     body: JSON.stringify({ enabled })
                 });
             } catch (e) { console.error('Could not update homescreen sync setting:', e); }
         }
 
         async function checkHomescreenSyncAsync() {
-            if (getBackend() !== 'plex') return;
             try {
-                const res = await fetch('/homescreen/status', { headers: { 'X-Plex-User-ID': getUserId() } });
+                const res = await fetch('/homescreen/status', { headers: getMoviesHeaders() });
                 const data = await res.json();
                 if (!data.available) return;
                 const row = document.getElementById('homescreen-toggle-row');
@@ -1039,10 +1043,8 @@
 
                 if (backend === 'plex') fetchAndStorePlexId();
                 fetchServerInfo();
-                if (backend === 'plex') {
-                    checkHomeUsersCountAsync(token);
-                    checkHomescreenSyncAsync();
-                }
+                if (backend === 'plex') checkHomeUsersCountAsync(token);
+                checkHomescreenSyncAsync();
             } else {
                 document.getElementById('login-section').classList.remove('hidden');
             }
