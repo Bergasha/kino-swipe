@@ -204,6 +204,19 @@
             if (homescreenLabel) homescreenLabel.textContent = backend === 'jellyfin' ? 'Show matches in Jellyfin favourites' : 'Show matches on Plex home screen';
         }
 
+        async function applyAvailableBackends() {
+            try {
+                const res = await fetchWithTimeout('/auth/available-backends');
+                const data = await res.json();
+                const plexBtn = document.getElementById('login-btn');
+                const jfBtn = document.getElementById('jf-login-btn');
+                const divider = document.getElementById('login-or-divider');
+                if (data.plex === false) plexBtn.classList.add('hidden');
+                if (data.jellyfin === false) jfBtn.classList.add('hidden');
+                if (data.plex === false || data.jellyfin === false) divider.classList.add('hidden');
+            } catch (e) { console.error('Could not check available backends', e); }
+        }
+
         async function loginWithPlex() {
             const btn = document.getElementById('login-btn');
             const originalText = btn.textContent;
@@ -1047,6 +1060,7 @@
                 checkHomescreenSyncAsync();
             } else {
                 document.getElementById('login-section').classList.remove('hidden');
+                applyAvailableBackends();
             }
         };
 
