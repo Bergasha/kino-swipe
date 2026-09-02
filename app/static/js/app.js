@@ -201,7 +201,7 @@
             document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : 'inline-block';
 
             const homescreenLabel = document.getElementById('homescreen-toggle-label');
-            if (homescreenLabel) homescreenLabel.textContent = `Show matches on ${backend === 'jellyfin' ? 'Jellyfin' : 'Plex'} home screen`;
+            if (homescreenLabel) homescreenLabel.textContent = backend === 'jellyfin' ? 'Show matches in Jellyfin favourites' : 'Show matches on Plex home screen';
         }
 
         async function loginWithPlex() {
