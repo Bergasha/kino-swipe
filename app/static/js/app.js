@@ -340,7 +340,7 @@
             const thumb = document.getElementById('homescreen-toggle-thumb');
             const enabled = checkbox.checked;
             if (enabled) {
-                track.style.background = '#e5a00d';
+                track.style.background = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
                 thumb.style.transform = 'translateX(18px)';
                 thumb.style.background = '#000';
             } else {
@@ -370,7 +370,7 @@
                 const thumb = document.getElementById('homescreen-toggle-thumb');
                 row.classList.remove('hidden');
                 checkbox.checked = !!data.enabled;
-                track.style.background = data.enabled ? '#e5a00d' : '#333';
+                track.style.background = data.enabled ? (getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d') : '#333';
                 thumb.style.transform = data.enabled ? 'translateX(18px)' : 'translateX(0)';
                 thumb.style.background = data.enabled ? '#000' : '#888';
             } catch (e) { console.error('Could not check homescreen sync status:', e); }
