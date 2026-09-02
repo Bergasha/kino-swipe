@@ -202,6 +202,19 @@
 
             const homescreenLabel = document.getElementById('homescreen-toggle-label');
             if (homescreenLabel) homescreenLabel.textContent = backend === 'jellyfin' ? 'Show matches in Jellyfin favourites' : 'Show matches on Plex home screen';
+
+            const brandTitle = document.querySelector('#branding .main-title');
+            if (brandTitle) {
+                if (backend === 'jellyfin') {
+                    brandTitle.style.setProperty('--neon-color', '#00a4dc');
+                    brandTitle.style.setProperty('--neon-dim', '#003a4d');
+                    brandTitle.style.setProperty('--neon-off', '#001a26');
+                } else {
+                    brandTitle.style.setProperty('--neon-color', '#e5a00d');
+                    brandTitle.style.setProperty('--neon-dim', '#7a5606');
+                    brandTitle.style.setProperty('--neon-off', '#332200');
+                }
+            }
         }
 
         async function applyAvailableBackends() {
