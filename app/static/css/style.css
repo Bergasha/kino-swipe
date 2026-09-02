@@ -38,16 +38,19 @@
         .menu-btn { position: relative; z-index: 2; background: #e5a00d; border: none; padding: 15px; font-size: 1.2rem; border-radius: 8px; cursor: pointer; margin: 10px; font-weight: bold; width: 240px; color: black; }
         
         #login-section, #main-menu { position: relative; z-index: 2; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; }
-        .main-title { font-size: clamp(4.5rem, 18vw, 7.5rem); margin: 0 0 50px 0; font-weight: normal; color: #ff3131; font-family: 'allura', cursive; white-space: nowrap; line-height: 0.9; text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff3131, 0 0 40px #ff3131, 0 0 80px #ff3131, 0 0 120px #ff3131, 0 0 160px #8a0606; animation: neon-blink 5s infinite; }
+        .main-title {
+            --neon-color: #ff3131; --neon-dim: #8a0606; --neon-off: #330000;
+            font-size: clamp(4.5rem, 18vw, 7.5rem); margin: 0 0 50px 0; font-weight: normal; color: var(--neon-color); font-family: 'allura', cursive; white-space: nowrap; line-height: 0.9; text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px var(--neon-color), 0 0 40px var(--neon-color), 0 0 80px var(--neon-color), 0 0 120px var(--neon-color), 0 0 160px var(--neon-dim); animation: neon-blink 5s infinite;
+        }
 
         @keyframes neon-blink {
             0%, 18%, 22%, 25%, 53%, 57%, 100% {
-                text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff3131, 0 0 40px #ff3131, 0 0 80px #ff3131, 0 0 120px #ff3131, 0 0 160px #8a0606;
-                color: #ff3131;
+                text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px var(--neon-color), 0 0 40px var(--neon-color), 0 0 80px var(--neon-color), 0 0 120px var(--neon-color), 0 0 160px var(--neon-dim);
+                color: var(--neon-color);
             }
             19%, 21%, 23%, 24%, 54%, 56% {
                 text-shadow: none;
-                color: #330000;
+                color: var(--neon-off);
             }
         }
         
