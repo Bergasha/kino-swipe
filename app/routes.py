@@ -12,7 +12,7 @@ from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
 from app.services import (
     CLIENT_ID, JELLYFIN_URL, PLEX_URL, ADMIN_TOKEN, TMDB_API_KEY,
     plex_ready, jellyfin_ready, fetch_jellyfin_movies, fetch_plex_movies,
-    get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers
+    get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers, _jf_client_auth
 )
 from app import plex_homescreen
 from app import jellyfin_homescreen
@@ -254,10 +254,7 @@ def jellyfin_login():
         return jsonify({'error': 'Username required'}), 400
     try:
         auth_headers = {
-            'X-Emby-Authorization': (
-                f'MediaBrowser Client="KinoSwipe", Device="Browser", '
-                f'DeviceId="{CLIENT_ID}", Version="1.0.0"'
-            ),
+            'Authorization': _jf_client_auth(),
             'Content-Type': 'application/json',
         }
         res = requests.post(
@@ -305,7 +302,7 @@ def add_to_watchlist():
         try:
             r = requests.post(
                 f"{JELLYFIN_URL}/Users/{user_id}/FavoriteItems/{movie_id}",
-                headers={'X-Emby-Token': user_token},
+                headers=_jf_headers(user_token),
                 timeout=10,
             )
             r.raise_for_status()

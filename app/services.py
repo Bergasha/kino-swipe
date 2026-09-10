@@ -151,9 +151,20 @@ def fetch_plex_movies(genre_name=None, user_token=None):
         })
     return movie_list
 
-def _jf_headers():
+_JF_CLIENT_PARAMS = f'Client="KinoSwipe", Device="Browser", DeviceId="{CLIENT_ID}", Version="1.0.0"'
+
+
+def _jf_client_auth():
+    return f'MediaBrowser {_JF_CLIENT_PARAMS}'
+
+
+def _jf_auth_header(token):
+    return f'MediaBrowser Token="{token}", {_JF_CLIENT_PARAMS}'
+
+
+def _jf_headers(token=None):
     return {
-        'X-Emby-Token': JELLYFIN_API_KEY,
+        'Authorization': _jf_auth_header(token or JELLYFIN_API_KEY),
         'Content-Type': 'application/json',
     }
 
@@ -225,7 +236,7 @@ def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
 
     if user_id and user_token:
         url = f"{JELLYFIN_URL}/Users/{user_id}/Items"
-        headers = {"X-Emby-Token": user_token, "Content-Type": "application/json"}
+        headers = _jf_headers(user_token)
     else:
         url = f"{JELLYFIN_URL}/Items"
         headers = _jf_headers()
