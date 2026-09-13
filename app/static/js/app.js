@@ -10,6 +10,21 @@
         let lastSeenMatchTs = null;
         let matchTimeoutToken = null;
 
+        const PLEX_NEON_PALETTE = [
+            { color: '#b967ff', dim: '#5a2d8a', off: '#251140' },
+            { color: '#ff3131', dim: '#8a0606', off: '#330000' },
+            { color: '#39ff14', dim: '#0f7a08', off: '#052e02' },
+            { color: '#ff2fa0', dim: '#8a1055', off: '#330018' },
+            { color: '#ff8c00', dim: '#7a3c00', off: '#331900' },
+        ];
+        let plexNeonPick = null;
+        function getPlexNeonPick() {
+            if (!plexNeonPick) {
+                plexNeonPick = PLEX_NEON_PALETTE[Math.floor(Math.random() * PLEX_NEON_PALETTE.length)];
+            }
+            return plexNeonPick;
+        }
+
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
@@ -210,9 +225,10 @@
                     brandTitle.style.setProperty('--neon-dim', '#003a4d');
                     brandTitle.style.setProperty('--neon-off', '#001a26');
                 } else {
-                    brandTitle.style.setProperty('--neon-color', '#e5a00d');
-                    brandTitle.style.setProperty('--neon-dim', '#7a5606');
-                    brandTitle.style.setProperty('--neon-off', '#332200');
+                    const pick = getPlexNeonPick();
+                    brandTitle.style.setProperty('--neon-color', pick.color);
+                    brandTitle.style.setProperty('--neon-dim', pick.dim);
+                    brandTitle.style.setProperty('--neon-off', pick.off);
                 }
             }
         }
