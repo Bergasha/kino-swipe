@@ -18,23 +18,43 @@ Dating app style — swipe right to like, swipe left to pass. If you both swipe 
 
 ## Screenshots
 
+<p align="center">
+  <img src="docs/screenshots/hero-3.png" width="85%" alt="Kino-Swipe login, swiping and match screens" />
+</p>
+
 <details>
-<summary>Click to view screenshots</summary>
+<summary>Click to view all screenshots</summary>
 
 <br>
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/1c5eb50e-a488-4a05-8c6a-5659cf783aba" width="32%" />
-  <img src="https://github.com/user-attachments/assets/042c9d4f-5d5e-4815-852f-07d929e2ef8e" width="32%" />
-  <img src="https://github.com/user-attachments/assets/87f64b9e-919b-47ec-b6e4-495e587af732" width="32%" />
-</p>
+<h3 align="center">Login & Sessions</h3>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/76a68e48-dc70-43a9-b637-f74287fbddce" width="32%" />
-  <img src="https://github.com/user-attachments/assets/dedd8c0a-3941-401f-9177-a385660b9689" width="32%" />
-  <img src="https://github.com/user-attachments/assets/3346713b-ba96-4919-9355-31f3cd19abf8" width="32%" />
-  <img src="https://github.com/user-attachments/assets/37a41d5e-7c61-4b8e-a0b5-27c0df04a3bc" width="32%" />
-  <img src="https://github.com/user-attachments/assets/872efa1e-43d2-4a7f-b0eb-02696e6db24a" width="32%" />
+  <img src="docs/screenshots/01-login-small.png" width="30%" alt="Login" />
+  <img src="docs/screenshots/02-home-small.png" width="30%" alt="Home" />
+  <img src="docs/screenshots/03-host-session-small.png" width="30%" alt="Host session" />
+</p>
+
+<h3 align="center">Swiping</h3>
+
+<p align="center">
+  <img src="docs/screenshots/04-swipe-small.png" width="30%" alt="Swipe" />
+  <img src="docs/screenshots/05-swipe-right-small.png" width="30%" alt="Swipe right" />
+  <img src="docs/screenshots/06-swipe-left-small.png" width="30%" alt="Swipe left" />
+</p>
+
+<h3 align="center">Movie Details & Trailers</h3>
+
+<p align="center">
+  <img src="docs/screenshots/07-details-small.png" width="30%" alt="Details" />
+  <img src="docs/screenshots/08-trailer-small.png" width="30%" alt="Trailer" />
+</p>
+
+<h3 align="center">Matches & Solo Mode</h3>
+
+<p align="center">
+  <img src="docs/screenshots/09-match-small.png" width="30%" alt="It's a match" />
+  <img src="docs/screenshots/10-solo-mode-small.png" width="30%" alt="Solo mode" />
 </p>
 
 </details>
