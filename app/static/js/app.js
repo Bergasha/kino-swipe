@@ -89,9 +89,9 @@
                     const btn = document.createElement('button');
                     btn.className = 'plex-profile-btn';
                     btn.innerHTML = `
-                        <img class="plex-profile-avatar" src="${u.thumb || '/static/sad.png'}" onerror="this.src='/static/sad.png'">
+                        <img class="plex-profile-avatar" src="${escapeHtml(u.thumb || '/static/sad.png')}" onerror="this.src='/static/sad.png'">
                         <div>
-                            <div class="plex-profile-name">${u.title}</div>
+                            <div class="plex-profile-name">${escapeHtml(u.title)}</div>
                             ${u.restricted ? '<div class="plex-profile-restricted">🔒 Restricted</div>' : ''}
                         </div>`;
                     btn.onclick = () => doSwitchUser(u.id);
@@ -155,6 +155,7 @@
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('plex-profile-modal').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
+            updateUIColors(getBackend());
             loadGenres();
 
             await fetchAndStorePlexId();
@@ -192,28 +193,17 @@
         }
 
         function updateUIColors(backend) {
-            const color = backend === 'jellyfin' ? '#00a4dc' : '#e5a00d';
-            const glowRgb = backend === 'jellyfin' ? '0, 164, 220' : '229, 160, 13';
-            document.querySelectorAll('.plex-yellow').forEach(el => {
-                el.style.color = color;
-                if (el.id === 'genre-title') el.classList.replace('plex-yellow', 'jellyfin-blue');
-            });
-            document.querySelectorAll('.menu-btn').forEach(el => {
-                if (el.id !== 'jf-login-btn' && !el.style.background.includes('rgb')) el.style.background = color;
-            });
-            ['host-btn', 'join-btn'].forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.dataset.glowRgb = glowRgb;
-                el.style.boxShadow = `0 0 12px rgba(${glowRgb}, 0.4)`;
-            });
-            const pill = document.getElementById('matches-pill');
-            if (pill) pill.style.background = color;
-            
-            const overlay = document.getElementById('match-overlay');
-            if (overlay) overlay.style.borderColor = color;
-            
-            document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : 'inline-block';
+            const palette = backend === 'jellyfin'
+                ? { accent: '#00a4dc', hi: '#46d4ff', lo: '#0080c4', rgb: '0, 164, 220' }
+                : { accent: '#e5a00d', hi: '#ffc63d', lo: '#d98200', rgb: '229, 160, 13' };
+            const root = document.documentElement.style;
+            root.setProperty('--accent', palette.accent);
+            root.setProperty('--accent-hi', palette.hi);
+            root.setProperty('--accent-lo', palette.lo);
+            root.setProperty('--accent-rgb', palette.rgb);
+            document.documentElement.dataset.backend = backend;
+
+            document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : '';
 
             const homescreenLabel = document.getElementById('homescreen-toggle-label');
             if (homescreenLabel) homescreenLabel.textContent = backend === 'jellyfin' ? 'Show matches in Jellyfin favourites' : 'Show matches on Plex home screen';
@@ -345,7 +335,7 @@
                 });
                 if (res.ok) {
                     btn.innerText = "ADDED";
-                    btn.style.borderColor = "#4CAF50"; btn.style.color = "#4CAF50";
+                    btn.classList.add('added');
                 } else {
                     btn.innerText = "FAILED";
                     setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 2000);
@@ -362,34 +352,13 @@
         }
 
         async function handleSoloToggle(checkbox) {
-            const track = document.getElementById('solo-toggle-track');
-            const thumb = document.getElementById('solo-toggle-thumb');
-            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
-            if (checkbox.checked) {
-                track.style.background = color;
-                thumb.style.transform = 'translateX(18px)';
-                thumb.style.background = '#000';
-                await activateSoloMode();
-            } else {
-                track.style.background = '#333';
-                thumb.style.transform = 'translateX(0)';
-                thumb.style.background = '#888';
-            }
+            document.getElementById('solo-toggle-track').classList.toggle('on', checkbox.checked);
+            if (checkbox.checked) await activateSoloMode();
         }
 
         async function handleHomescreenToggle(checkbox) {
-            const track = document.getElementById('homescreen-toggle-track');
-            const thumb = document.getElementById('homescreen-toggle-thumb');
             const enabled = checkbox.checked;
-            if (enabled) {
-                track.style.background = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
-                thumb.style.transform = 'translateX(18px)';
-                thumb.style.background = '#000';
-            } else {
-                track.style.background = '#333';
-                thumb.style.transform = 'translateX(0)';
-                thumb.style.background = '#888';
-            }
+            document.getElementById('homescreen-toggle-track').classList.toggle('on', enabled);
             try {
                 const headers = getMoviesHeaders();
                 headers['Content-Type'] = 'application/json';
@@ -406,15 +375,9 @@
                 const res = await fetch('/homescreen/status', { headers: getMoviesHeaders() });
                 const data = await res.json();
                 if (!data.available) return;
-                const row = document.getElementById('homescreen-toggle-row');
-                const checkbox = document.getElementById('homescreen-toggle');
-                const track = document.getElementById('homescreen-toggle-track');
-                const thumb = document.getElementById('homescreen-toggle-thumb');
-                row.classList.remove('hidden');
-                checkbox.checked = !!data.enabled;
-                track.style.background = data.enabled ? (getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d') : '#333';
-                thumb.style.transform = data.enabled ? 'translateX(18px)' : 'translateX(0)';
-                thumb.style.background = data.enabled ? '#000' : '#888';
+                document.getElementById('homescreen-toggle-row').classList.remove('hidden');
+                document.getElementById('homescreen-toggle').checked = !!data.enabled;
+                document.getElementById('homescreen-toggle-track').classList.toggle('on', !!data.enabled);
             } catch (e) { console.error('Could not check homescreen sync status:', e); }
         }
 
@@ -428,6 +391,7 @@
             document.getElementById('game-area').classList.remove('hidden');
             document.getElementById('matches-pill').classList.remove('hidden');
             document.getElementById('quit-pill').classList.remove('hidden');
+            document.getElementById('action-dock').classList.remove('hidden');
             document.getElementById('undo-btn').classList.remove('hidden');
 
             if (isSoloMode) {
@@ -456,13 +420,12 @@
             const data = await res.json();
             const list = document.getElementById('matches-list');
             const emptyLabel = asHistory ? 'history' : isSoloMode ? 'shortlist' : 'matches';
-            list.innerHTML = data.length ? '' : `<p style="grid-column: span 2; color:#666;">No ${emptyLabel} yet</p>`;
-            
-            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+            list.innerHTML = data.length ? '' : `<p class="empty">No ${emptyLabel} yet</p>`;
 
-            data.forEach(m => {
+            data.forEach((m, i) => {
                 const card = document.createElement('div');
                 card.className = 'mini-poster';
+                card.style.animationDelay = `${Math.min(i, 12) * 45}ms`;
                 let openBtn;
                 if (getBackend() === 'plex') {
                     const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
@@ -475,20 +438,18 @@
                     <div class="mini-inner">
                         <div class="mini-front">
                             <img src="${escapeHtml(m.thumb)}" alt="${escapeHtml(m.title)}">
-                            <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, black); font-size:12px; padding:8px 4px; font-weight:bold; color:${color};">
-                               ${escapeHtml(m.title)}
-                           </div>
+                            <div class="mini-label">${escapeHtml(m.title)}</div>
                         </div>
-                        <div class="mini-back" style="border-color:${color}">
-                            <div class="mini-title-text" style="color:${color}">${escapeHtml(m.title)}</div>
-                            <div class="stats-row" style="justify-content:center;">
-                                ${m.rating ? `<span class="stat-badge" style="color:${color}">IMDb ${m.rating}</span>` : ''}
-                                ${m.duration ? `<span class="stat-badge" style="color:${color}">${m.duration}</span>` : ''}
-                                ${m.year ? `<span class="stat-badge" style="color:${color}">${m.year}</span>` : ''}
+                        <div class="mini-back">
+                            <div class="mini-title-text">${escapeHtml(m.title)}</div>
+                            <div class="stats-row">
+                                ${m.rating ? `<span class="stat-badge rating">${escapeHtml(m.rating)}</span>` : ''}
+                                ${m.duration ? `<span class="stat-badge">${escapeHtml(m.duration)}</span>` : ''}
+                                ${m.year ? `<span class="stat-badge">${escapeHtml(m.year)}</span>` : ''}
                             </div>
                             ${openBtn}
-                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#333; color:${color}; border:1px solid ${color}; margin-top:5px;" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
-                            <button class="menu-btn" style="width:90%; padding:8px; font-size:0.7rem; background:#d32f2f; margin-top:5px; color:black;" onclick="deleteMatch(event, '${m.movie_id}')">DELETE</button>
+                            <button class="mini-btn" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
+                            <button class="mini-btn danger" onclick="deleteMatch(event, '${m.movie_id}')">DELETE</button>
                         </div>
                     </div>
                 `;
@@ -570,6 +531,10 @@
             };
             const matchesPill = document.getElementById('matches-pill');
             if (matchesPill) matchesPill.onclick = () => openMatches(false);
+            const nopeBtn = document.getElementById('nope-btn');
+            if (nopeBtn) nopeBtn.onclick = () => { if (navigator.vibrate) navigator.vibrate(10); swipeTopCard('left'); };
+            const likeBtn = document.getElementById('like-btn');
+            if (likeBtn) likeBtn.onclick = () => { if (navigator.vibrate) navigator.vibrate(10); swipeTopCard('right'); };
         }
 
         const END_QUOTES = [
@@ -587,15 +552,13 @@
             deck.innerHTML = '';
             if (movieStack.length === 0) {
                 const q = END_QUOTES[Math.floor(Math.random() * END_QUOTES.length)];
-                const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
                 const el = document.createElement('div');
                 el.id = 'end-of-deck';
-                el.style.borderColor = color.replace(')', ', 0.3)').replace('rgb', 'rgba');
                 el.innerHTML = `
-                    <div class="end-quote" style="color:${color}">"${q.quote}"</div>
+                    <div class="end-quote">"${q.quote}"</div>
                     <div class="end-attr">${q.attr}</div>
                     <div class="end-sub">You've swiped everything in this genre.</div>
-                    <button class="end-btn" style="border-color:${color}; color:${color}" onclick="toggleGenreModal()">Try Another Genre</button>
+                    <button class="menu-btn end-btn" onclick="toggleGenreModal()">Try Another Genre</button>
                 `;
                 deck.appendChild(el);
                 return;
@@ -607,27 +570,35 @@
         function createCard(m) {
             const c = document.createElement('div');
             c.className = 'movie-card';
-            const color = getBackend() === 'jellyfin' ? '#00a4dc' : '#e5a00d';
+            const star = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.8 21.1 7 14.2 2 9.3l6.9-1z"/></svg>';
             c.dataset.id = m.id; c.dataset.title = m.title; c.dataset.thumb = m.thumb;
             c.innerHTML = `
                 <div class="card-inner">
                     <div class="card-front">
                         <img src="${escapeHtml(m.thumb)}" draggable="false" ondragstart="return false;">
-                        <div class="stamp-yes">👍</div>
-                        <div class="stamp-no">👎</div>
+                        <div class="card-meta">
+                            <h3>${escapeHtml(m.title)}</h3>
+                            <div class="meta-chips">
+                                ${m.rating ? `<span class="chip rating">${star}${escapeHtml(m.rating)}</span>` : ''}
+                                ${m.year ? `<span class="chip">${escapeHtml(m.year)}</span>` : ''}
+                                ${m.duration ? `<span class="chip">${escapeHtml(m.duration)}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="stamp-yes">LIKE</div>
+                        <div class="stamp-no">NOPE</div>
                     </div>
-                    <div class="card-back" style="border-color:${color}">
-                        <div class="movie-title" style="color:${color}">${escapeHtml(m.title)}</div>
+                    <div class="card-back">
+                        <div class="movie-title">${escapeHtml(m.title)}</div>
                         <div class="stats-row">
-                            ${m.rating ? `<span class="stat-badge" style="color:${color}">IMDb ${m.rating}</span>` : ''}
-                            ${m.duration ? `<span class="stat-badge" style="color:${color}">${m.duration}</span>` : ''}
-                            ${m.year ? `<span class="stat-badge" style="color:${color}">${m.year}</span>` : ''}
+                            ${m.rating ? `<span class="stat-badge rating">${star}${escapeHtml(m.rating)}</span>` : ''}
+                            ${m.duration ? `<span class="stat-badge">${escapeHtml(m.duration)}</span>` : ''}
+                            ${m.year ? `<span class="stat-badge">${escapeHtml(m.year)}</span>` : ''}
                         </div>
                         <div id="vid-${m.id}" class="trailer-box"></div>
-                        <button class="trailer-btn" style="background:${color}" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
+                        <button class="trailer-btn" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
                         <div class="back-content"><p>${escapeHtml(m.summary) || 'No description available.'}</p></div>
                         <div id="cast-${m.id}" class="cast-row"></div>
-                        <div style="font-size:0.75rem; color:${color}; text-align:center; margin-top: auto; padding-bottom:10px;">Tap to flip back</div>
+                        <div class="flip-hint">Tap to flip back</div>
                     </div>
                 </div>
             `;
@@ -638,7 +609,7 @@
                         const castEl = document.getElementById(`cast-${m.id}`);
                         if (castEl && castEl.dataset.loaded !== 'true') {
                             castEl.dataset.loaded = 'true';
-                            castEl.innerHTML = '<span style="font-size:0.7rem;color:#666;">Loading cast...</span>';
+                            castEl.innerHTML = '<span style="font-size:0.7rem;color:#6e6e84;">Loading cast...</span>';
                             try {
                                 const res = await fetch(`/cast/${m.id}`, { headers: { 'X-Backend': getBackend() } });
                                 const data = await res.json();
@@ -646,9 +617,9 @@
                                     castEl.innerHTML = data.cast.map(actor => `
                                         <div class="cast-member">
                                             ${actor.profile_path
-                                                ? `<img src="${actor.profile_path}" alt="${actor.name}" loading="lazy" style="border-color:${color}">`
+                                                ? `<img src="${escapeHtml(actor.profile_path)}" alt="${escapeHtml(actor.name)}" loading="lazy">`
                                                 : `<div class="no-photo">🎬</div>`}
-                                            <span>${actor.name}</span>
+                                            <span>${escapeHtml(actor.name)}</span>
                                         </div>
                                     `).join('');
                                 } else {
@@ -684,6 +655,25 @@
             }
         }
 
+        function launchConfetti() {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const host = document.getElementById('confetti');
+            const style = getComputedStyle(document.documentElement);
+            const colors = [style.getPropertyValue('--accent-hi').trim(), style.getPropertyValue('--accent-lo').trim(), '#ffffff', '#ff4fa3', '#7c5cff', '#3ddc97'];
+            for (let i = 0; i < 46; i++) {
+                const p = document.createElement('i');
+                p.style.background = colors[i % colors.length];
+                p.style.setProperty('--x', `${(Math.random() * 2 - 1) * 48}vw`);
+                p.style.setProperty('--y', `${55 + Math.random() * 55}vh`);
+                p.style.setProperty('--r', `${Math.random() * 900 - 450}deg`);
+                p.style.setProperty('--d', `${1.5 + Math.random() * 1.1}s`);
+                p.style.width = `${6 + Math.random() * 6}px`;
+                p.style.height = `${10 + Math.random() * 8}px`;
+                p.addEventListener('animationend', () => p.remove());
+                host.appendChild(p);
+            }
+        }
+
         function presentMatchNotification(data) {
             if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
 
@@ -691,6 +681,8 @@
                 showSoloAddStamp();
                 return;
             }
+
+            launchConfetti();
 
             if (matchTimeoutToken) clearTimeout(matchTimeoutToken);
 
@@ -832,6 +824,7 @@
                 card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
                 if (Math.abs(globalCurrentX) > 120) {
                     const dir = globalCurrentX > 0 ? 'right' : 'left';
+                    card.dataset.swiping = '1';
                     card.style.transform = `translate(${globalCurrentX > 0 ? 1000 : -1000}px, 0px) rotate(${globalCurrentX / 5}deg)`;
                     card.style.opacity = '0';
                     const movieData = movieStack[0]; swipeHistory.push(movieData);
@@ -976,41 +969,19 @@
             };
         };
 
-        document.addEventListener('keydown', async (e) => {
+        function swipeTopCard(dir) {
             const card = document.querySelector('.movie-card:last-child');
-            if (!card) return;
+            if (!card || card.classList.contains('flipped') || card.dataset.swiping) return;
+            card.dataset.swiping = '1';
 
-            if (e.key === 'ArrowDown') {
-                card.classList.toggle('flipped');
-                return;
-            }
-
-            if (e.key === 'ArrowUp') {
-                if (swipeHistory.length === 0) return;
-                const lastMovie = swipeHistory.pop();
-                const headers = getMoviesHeaders();
-                headers['Content-Type'] = 'application/json';
-
-                await fetch('/undo', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ movie_id: lastMovie.id })
-                });
-                movieStack.unshift(lastMovie);
-                renderInitialDeck();
-                return;
-            }
-
-            let dir = null;
-            if (e.key === 'ArrowRight') dir = 'right';
-            if (e.key === 'ArrowLeft') dir = 'left';
-            if (!dir) return;
-
-            if (card.classList.contains('flipped')) return;
+            const stamp = card.querySelector(dir === 'right' ? '.stamp-yes' : '.stamp-no');
+            if (stamp) stamp.style.opacity = 1;
+            const inner = card.querySelector('.card-inner');
+            if (inner) inner.style.boxShadow = dir === 'right' ? '0 0 80px rgba(61, 220, 151, 0.9)' : '0 0 80px rgba(255, 77, 109, 0.9)';
 
             const moveX = dir === 'right' ? 1000 : -1000;
-            card.style.transition = 'transform 0.4s ease, opacity 0.3s ease';
-            card.style.transform = `translate(${moveX}px, 0px) rotate(${dir === 'right' ? 20 : -20}deg)`;
+            card.style.transition = 'transform 0.45s ease, opacity 0.35s ease';
+            card.style.transform = `translate(${moveX}px, 40px) rotate(${dir === 'right' ? 22 : -22}deg)`;
             card.style.opacity = '0';
 
             const movieData = movieStack[0];
@@ -1046,6 +1017,35 @@
                 initDrag(document.getElementById('swipe-deck').lastElementChild);
                 if (movieStack.length === 0) renderInitialDeck();
             }, 300);
+        }
+
+        document.addEventListener('keydown', async (e) => {
+            const card = document.querySelector('.movie-card:last-child');
+            if (!card) return;
+
+            if (e.key === 'ArrowDown') {
+                card.classList.toggle('flipped');
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                if (swipeHistory.length === 0) return;
+                const lastMovie = swipeHistory.pop();
+                const headers = getMoviesHeaders();
+                headers['Content-Type'] = 'application/json';
+
+                await fetch('/undo', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ movie_id: lastMovie.id })
+                });
+                movieStack.unshift(lastMovie);
+                renderInitialDeck();
+                return;
+            }
+
+            if (e.key === 'ArrowRight') swipeTopCard('right');
+            if (e.key === 'ArrowLeft') swipeTopCard('left');
         });
 
         const boot = async () => {

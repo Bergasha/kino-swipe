@@ -2,13 +2,13 @@
 <html>
 <head>
     <title>Kino-Swipe</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
     <link rel="icon" href="/static/favicon.ico">
-    
+
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#111111">
+    <meta name="theme-color" content="#07070b">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,114 +20,118 @@
 <body>
     <div id="toast"></div>
     <div id="solo-add-stamp" class="solo-add-stamp"></div>
-    <button id="matches-pill" class="pill-btn hidden">Shortlist</button>
-    <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
-    <button id="undo-btn" class="hidden">Undo</button>
+    <div id="confetti"></div>
 
     <div id="login-section" class="hidden">
         <h1 class="main-title">Kino-Swipe</h1>
-        <button id="login-btn" class="menu-btn" onclick="loginWithPlex()">Login with Plex</button>
-        <p id="login-or-divider" style="position:relative; z-index:2; margin: 8px 0; font-size: 1.1rem; color: #e5a00d; font-weight: bold; letter-spacing: 0.1em;">— or —</p>
-        <button id="jf-login-btn" class="menu-btn" style="background: #00a4dc; margin-top: 8px;" onclick="toggleJfModal()">Login with Jellyfin</button>
-        <p style="position:relative; z-index:2; margin: 12px 0 0 0; font-size: 0.95rem; color: #e5a00d; font-weight: bold; font-style: italic;">Then</p>
-        <div style="position:relative; z-index:2; margin: 8px auto 0 auto; text-align: center; width: 220px; line-height: 2;">
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">1. Host a session &amp; share code</p>
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">2. Swipe right to match</p>
-            <p class="plex-yellow" style="margin: 0; font-size: 0.85rem;">3. OR, Press Host & enable Solo Mode</p>
+        <p class="tagline">Swipe together. Match instantly.</p>
+        <div class="glass-card">
+            <button id="login-btn" class="menu-btn btn-plex" onclick="loginWithPlex()">Login with Plex</button>
+            <div id="login-or-divider" class="or-divider"><span>or</span></div>
+            <button id="jf-login-btn" class="menu-btn btn-jf" onclick="toggleJfModal()">Login with Jellyfin</button>
+        </div>
+        <ul class="steps">
+            <li><b>1</b>Host a session &amp; share the code</li>
+            <li><b>2</b>Swipe right to match</li>
+            <li><b>3</b>Or press Host &amp; enable Solo Mode</li>
+        </ul>
+    </div>
+
+    <div id="jellyfin-modal" class="hidden modal">
+        <div class="glass-card modal-card">
+            <h2 class="jellyfin-blue modal-title">Jellyfin Login</h2>
+            <div class="login-form">
+                <input type="text" id="jf-username" placeholder="Username" autocomplete="username">
+                <input type="password" id="jf-password" placeholder="Password" autocomplete="current-password">
+                <button class="menu-btn btn-jf" onclick="loginWithJellyfin()">Login</button>
+                <button class="menu-btn btn-ghost" onclick="toggleJfModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
-    <div id="jellyfin-modal" class="hidden">
-        <h2 class="jellyfin-blue">Jellyfin Login</h2>
-        <div class="login-form">
-            <input type="text" id="jf-username" placeholder="Username" autocomplete="username">
-            <input type="password" id="jf-password" placeholder="Password" autocomplete="current-password">
-            <button class="menu-btn" style="background: #00a4dc; width: 100%; margin: 10px 0;" onclick="loginWithJellyfin()">Login</button>
-            <button class="menu-btn" style="background: #333; color: white; width: 100%; margin: 0;" onclick="toggleJfModal()">Cancel</button>
+    <div id="plex-profile-modal" class="hidden modal">
+        <div class="glass-card modal-card">
+            <h2 class="plex-yellow modal-title">Who's watching?</h2>
+            <p class="modal-sub">Select a profile to apply their library restrictions</p>
+            <div id="plex-profile-list"></div>
+            <button class="menu-btn btn-ghost" onclick="skipProfileSelect()">Skip / Use Main Account</button>
         </div>
-    </div>
-
-    <div id="plex-profile-modal" class="hidden">
-        <h2 class="plex-yellow" style="margin-bottom: 16px;">Who's watching?</h2>
-        <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">Select a profile to apply their library restrictions</p>
-        <div id="plex-profile-list" style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin:0 auto;"></div>
-        <button class="menu-btn" style="background:#333; color:white; margin-top:20px;" onclick="skipProfileSelect()">Skip / Use Main Account</button>
     </div>
 
     <div id="main-menu" class="hidden">
         <div id="branding">
             <h1 class="main-title">Kino-Swipe</h1>
         </div>
-        <div id="controls-area">
-            <button id="host-btn" class="menu-btn" onmouseover="this.style.boxShadow=`0 0 20px rgba(${this.dataset.glowRgb || '229, 160, 13'}, 0.7)`;" onmouseout="this.style.boxShadow=`0 0 12px rgba(${this.dataset.glowRgb || '229, 160, 13'}, 0.4)`;" style="box-shadow: 0 0 12px rgba(229, 160, 13, 0.4); transition: 0.3s ease;">Host Session</button>
+        <div id="controls-area" class="glass-card">
+            <button id="host-btn" class="menu-btn">Host Session</button>
             <div id="session-info" class="hidden">
-                <div style="position:relative;">
-                    <p>Code: <span id="session-display" class="plex-yellow" style="font-size: 2.5rem;">----</span></p>
-                    <label style="position:absolute; top:0; right:-10px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;">
-                        <span style="font-size:0.7rem; color:#666; letter-spacing:0.05em;">SOLO</span>
-                        <div id="solo-toggle-track" style="position:relative; width:40px; height:22px; background:#333; border-radius:22px; transition:background 0.3s;">
-                            <div id="solo-toggle-thumb" style="position:absolute; top:3px; left:3px; width:16px; height:16px; background:#888; border-radius:50%; transition:transform 0.3s, background 0.3s;"></div>
-                        </div>
-                        <input type="checkbox" id="solo-toggle" onchange="handleSoloToggle(this)" style="display:none;">
-                    </label>
+                <div class="code-block">
+                    <div class="code-label">Your session code</div>
+                    <div class="code-value"><span id="session-display">----</span></div>
+                    <div class="code-wait"><span class="pulse-dot"></span>Waiting for partner...</div>
                 </div>
-                <p style="color:#888; margin: 0;">Waiting for partner...</p>
-            </div>
-            <div style="margin: 10px auto;">
-                <hr style="border:0; border-top:1px solid #333; width: 220px; margin: 15px auto;">
-                <input type="text" id="join-code" inputmode="numeric" maxlength="4" placeholder="Enter Host Code" style="padding:15px; width:180px; text-align:center; border-radius:8px; border:1px solid #444; background:#222; color:white; font-size:1.2rem;">
-                <br>
-                <button id="join-btn" class="menu-btn" onclick="joinRoom()" onmouseover="this.style.boxShadow=`0 0 20px rgba(${this.dataset.glowRgb || '229, 160, 13'}, 0.7)`;" onmouseout="this.style.boxShadow=`0 0 12px rgba(${this.dataset.glowRgb || '229, 160, 13'}, 0.4)`;" style="box-shadow: 0 0 12px rgba(229, 160, 13, 0.4); transition: 0.3s ease;">Join Session</button>
-                <br>
-            </div>
-            <div style="margin: 10px auto;">
-                <hr style="border:0; border-top:1px solid #333; width: 220px; margin: 15px auto;">    
-                <button id="history-btn" class="menu-btn" style="background: #120000; color: #ff3131; margin: 10px; border: 1px solid #ff3131; box-shadow: 0 0 5px #ff3131, 0 0 15px rgba(255, 49, 49, 0.5); transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center;" onmouseover="this.style.boxShadow='0 0 10px #ff3131, 0 0 30px rgba(255, 49, 49, 0.8)'; this.style.background='#250000';" onmouseout="this.style.boxShadow='0 0 5px #ff3131, 0 0 15px rgba(255, 49, 49, 0.5)'; this.style.background='#120000';" onclick="openMatches(true)">
-                    Match History 
-                </button>
-                <br>
-                <button id="switch-profile-btn" class="menu-btn hidden" style="background: #333; color: #e5a00d; border: 1px solid #e5a00d;" onclick="openProfileSwitcher()">Switch Profile</button>
-                <br>
-                <label id="homescreen-toggle-row" class="hidden" style="display:flex; align-items:center; justify-content:center; gap:10px; margin: 30px auto 10px; cursor:pointer; width:fit-content;">
-                    <span id="homescreen-toggle-label" style="font-size:0.8rem; color:#999;">Show matches on home screen</span>
-                    <div id="homescreen-toggle-track" style="position:relative; width:40px; height:22px; background:#333; border-radius:22px; transition:background 0.3s;">
-                        <div id="homescreen-toggle-thumb" style="position:absolute; top:3px; left:3px; width:16px; height:16px; background:#888; border-radius:50%; transition:transform 0.3s, background 0.3s;"></div>
-                    </div>
-                    <input type="checkbox" id="homescreen-toggle" onchange="handleHomescreenToggle(this)" style="display:none;">
+                <label class="switch-row">
+                    <span>Solo mode</span>
+                    <div id="solo-toggle-track" class="switch-track"><div id="solo-toggle-thumb" class="switch-thumb"></div></div>
+                    <input type="checkbox" id="solo-toggle" onchange="handleSoloToggle(this)" style="display:none;">
                 </label>
-                <br>
-                <button class="logout-btn" onclick="localStorage.clear(); location.reload();">Logout</button>
             </div>
+            <div class="divider"><span>or join a friend</span></div>
+            <div class="join-row">
+                <input type="text" id="join-code" inputmode="numeric" maxlength="4" placeholder="Host code">
+                <button id="join-btn" class="menu-btn" onclick="joinRoom()">Join Session</button>
+            </div>
+            <div class="divider"></div>
+            <div class="menu-secondary">
+                <button id="history-btn" class="menu-btn btn-history" onclick="openMatches(true)">Match History</button>
+                <button id="switch-profile-btn" class="menu-btn btn-ghost hidden" onclick="openProfileSwitcher()">Switch Profile</button>
+            </div>
+            <label id="homescreen-toggle-row" class="switch-row hidden">
+                <span id="homescreen-toggle-label">Show matches on home screen</span>
+                <div id="homescreen-toggle-track" class="switch-track"><div id="homescreen-toggle-thumb" class="switch-thumb"></div></div>
+                <input type="checkbox" id="homescreen-toggle" onchange="handleHomescreenToggle(this)" style="display:none;">
+            </label>
+            <button class="logout-btn" onclick="localStorage.clear(); location.reload();">Logout</button>
         </div>
         <div id="game-area" class="hidden">
-            <button id="genre-pill" onclick="toggleGenreModal()">Genres ▾</button>
+            <div id="game-topbar">
+                <button id="quit-pill" class="pill-btn hidden" onclick="confirmQuit()">End Session</button>
+                <span class="topbar-spacer"></span>
+                <button id="matches-pill" class="pill-btn hidden">Shortlist</button>
+                <button id="genre-pill" class="pill-btn" onclick="toggleGenreModal()">Genres ▾</button>
+            </div>
             <div id="solo-badge" class="hidden">Solo Mode</div>
             <div id="glow-left" class="glow-side"></div>
             <div id="glow-right" class="glow-side"></div>
             <div id="swipe-deck"></div>
             <div id="poster-instruction" class="match-instruction">Tap poster for full details</div>
+            <div id="action-dock" class="hidden">
+                <button id="nope-btn" class="dock-btn" aria-label="Pass"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                <button id="undo-btn" class="dock-btn hidden" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+                <button id="like-btn" class="dock-btn" aria-label="Like"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+            </div>
         </div>
     </div>
 
     <div class="signature">Shayno</div>
 
-    <div id="genre-modal" class="hidden">
+    <div id="genre-modal" class="hidden modal">
         <h1 class="plex-yellow" id="genre-title">Select Genre</h1>
         <div class="genre-list" id="genre-list">
             <div class="genre-item active" onclick="selectGenre('All')">All Movies</div>
             <div class="genre-item" onclick="selectGenre('Recently Added')">Recently Added</div>
         </div>
-        <button class="menu-btn" style="margin-top:20px;" onclick="toggleGenreModal()">Cancel</button>
+        <button class="menu-btn btn-ghost" onclick="toggleGenreModal()">Cancel</button>
     </div>
 
     <div id="match-overlay">
         <img id="match-popup-poster" class="match-poster-preview" src="">
         <div class="match-details-grid">
             <div class="match-heading-container">
-                <h1 class="plex-yellow" id="match-heading" style="font-size: 1.8rem; margin: 0; font-weight: bold; text-shadow: 0 0 12px rgba(229,160,13,0.4);">IT'S A MATCH!</h1>
+                <h1 id="match-heading">IT'S A MATCH!</h1>
             </div>
             <div class="match-text-info">
-                <h2 id="matched-movie-title" style="margin: 0; font-weight: bold; color: #f0e6d3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; word-break: break-word;"></h2>
+                <h2 id="matched-movie-title"></h2>
                 <p id="match-solo-label" class="hidden">Added to your shortlist</p>
             </div>
             <div class="avatar-frame">
@@ -136,16 +140,20 @@
         </div>
     </div>
 
-    <div id="matches-modal" class="hidden">
-        <h1 id="modal-title" class="plex-yellow">Your Matches</h1>
+    <div id="matches-modal" class="hidden modal">
+        <div class="modal-head">
+            <h1 id="modal-title">Your Matches</h1>
+            <div id="modal-instruction" class="match-instruction">Tap a poster for more options</div>
+        </div>
         <div id="matches-list"></div>
-        <div id="modal-instruction" class="match-instruction">Tap on match for more options</div>
-        <button id="delete-all-btn" class="hidden pill-modal-btn" style="position: fixed; bottom: 20px; left: 20px; background:#d32f2f; color:black;" onclick="deleteAllMatches()">Delete All</button>
-        <button class="pill-modal-btn" style="position: fixed; bottom: 20px; right: 20px;" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
+        <div class="modal-footer">
+            <button id="delete-all-btn" class="hidden pill-modal-btn danger" onclick="deleteAllMatches()">Delete All</button>
+            <button class="pill-modal-btn" onclick="document.getElementById('matches-modal').classList.add('hidden')">Close</button>
+        </div>
     </div>
 
-    <div id="quit-modal" class="hidden">
-        <img src="/static/sad.png" style="width:100px; margin-bottom:20px; opacity:1.0;">
+    <div id="quit-modal" class="hidden modal">
+        <img src="/static/sad.png">
         <h2>End Session?</h2>
         <p>Your matches will be saved to<br>Match History.</p>
         <div class="quit-btn-row">
