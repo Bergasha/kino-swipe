@@ -26,6 +26,24 @@
             document.documentElement.style.setProperty('--bloom-b-rgb', BLOOM_PALETTE[b]);
         })();
 
+        function syncAppHeight() {
+            document.documentElement.style.setProperty('--app-h', `${window.innerHeight}px`);
+        }
+        syncAppHeight();
+
+        function fitNeonTitles() {
+            document.querySelectorAll('.main-title').forEach(t => {
+                if (t.offsetParent === null) return;
+                t.style.fontSize = '';
+                const max = window.innerWidth * 0.8;
+                const width = t.getBoundingClientRect().width;
+                if (width > max) t.style.fontSize = `${parseFloat(getComputedStyle(t).fontSize) * max / width}px`;
+            });
+        }
+        window.addEventListener('resize', () => { syncAppHeight(); fitNeonTitles(); });
+        window.addEventListener('orientationchange', () => { syncAppHeight(); fitNeonTitles(); });
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitNeonTitles);
+
         function startNeonFlicker() {
             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             const variants = ['a', 'b', 'c'];
@@ -227,6 +245,7 @@
             root.setProperty('--accent-lo', palette.lo);
             root.setProperty('--accent-rgb', palette.rgb);
             document.documentElement.dataset.backend = backend;
+            fitNeonTitles();
 
             document.getElementById('switch-profile-btn').style.display = backend === 'jellyfin' ? 'none' : '';
 
@@ -1074,6 +1093,8 @@
         });
 
         const boot = async () => {
+            syncAppHeight();
+            fitNeonTitles();
             startNeonFlicker();
             _bindStaticHandlers();
             initMatchOverlaySwipeDismiss();
