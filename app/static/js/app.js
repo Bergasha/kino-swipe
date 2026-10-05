@@ -584,8 +584,8 @@
                                 ${m.duration ? `<span class="chip">${escapeHtml(m.duration)}</span>` : ''}
                             </div>
                         </div>
-                        <div class="stamp-yes">LIKE</div>
-                        <div class="stamp-no">NOPE</div>
+                        <div class="stamp-yes">👍</div>
+                        <div class="stamp-no">👎</div>
                     </div>
                     <div class="card-back">
                         <div class="movie-title">${escapeHtml(m.title)}</div>
