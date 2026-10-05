@@ -23,8 +23,10 @@
     <div id="confetti"></div>
 
     <div id="login-section" class="hidden">
-        <h1 class="main-title">Kino Beta</h1>
-        <p class="tagline">Swipe together. Match instantly.</p>
+        <div class="hero">
+            <h1 class="main-title">Kino Beta</h1>
+            <p class="tagline">Swipe together. Match instantly.</p>
+        </div>
         <div class="glass-card">
             <button id="login-btn" class="menu-btn btn-plex" onclick="loginWithPlex()">Login with Plex</button>
             <div id="login-or-divider" class="or-divider"><span>or</span></div>
@@ -76,7 +78,7 @@
                     <input type="checkbox" id="solo-toggle" onchange="handleSoloToggle(this)" style="display:none;">
                 </label>
             </div>
-            <div class="divider"><span>or join a friend</span></div>
+            <div class="divider"></div>
             <div class="join-row">
                 <input type="text" id="join-code" inputmode="numeric" maxlength="4" placeholder="Host code">
                 <button id="join-btn" class="menu-btn" onclick="joinRoom()">Join Session</button>

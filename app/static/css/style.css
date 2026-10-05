@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Allura&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Allura&family=Inter:wght@400;500;600;700;800&family=Permanent+Marker&display=swap');
 
 @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 
@@ -7,6 +7,8 @@
     --accent-hi: #ff7a7a;
     --accent-lo: #d61f1f;
     --accent-rgb: 255, 77, 77;
+    --bloom-a-rgb: 229, 160, 13;
+    --bloom-b-rgb: 140, 90, 255;
     --bg: #07070b;
     --text: #f5f5fa;
     --muted: #a3a3b8;
@@ -61,8 +63,8 @@ body::after {
     z-index: 1;
     pointer-events: none;
     background:
-        radial-gradient(circle 52vmax at 26% 24%, rgba(var(--accent-rgb), 0.26), transparent 70%),
-        radial-gradient(circle 46vmax at 78% 78%, rgba(var(--accent-rgb), 0.18), transparent 70%),
+        radial-gradient(circle 52vmax at 26% 24%, rgba(var(--bloom-a-rgb), 0.26), transparent 70%),
+        radial-gradient(circle 46vmax at 78% 78%, rgba(var(--bloom-b-rgb), 0.2), transparent 70%),
         radial-gradient(circle 38vmax at 74% 22%, rgba(124, 92, 255, 0.13), transparent 70%);
     animation: aurora 22s ease-in-out infinite alternate;
     will-change: transform;
@@ -87,7 +89,7 @@ body::after {
 #login-section, #main-menu {
     position: relative;
     z-index: 2;
-    padding: 36px 20px calc(36px + env(safe-area-inset-bottom));
+    padding: 24px 20px calc(60px + env(safe-area-inset-bottom));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -102,30 +104,70 @@ body::after {
 
 .main-title {
     --neon-color: #ff3131; --neon-dim: #8a0606; --neon-off: #330000;
-    font-size: clamp(4.2rem, 17vw, 6.8rem);
-    margin: 0 0 26px 0;
+    font-size: clamp(4.4rem, 23vw, 8.8rem);
+    margin: 0;
     font-weight: normal;
     color: var(--neon-color);
     font-family: 'Allura', cursive;
     white-space: nowrap;
     line-height: 0.9;
     text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px var(--neon-color), 0 0 40px var(--neon-color), 0 0 80px var(--neon-color), 0 0 120px var(--neon-color), 0 0 160px var(--neon-dim);
-    animation: neon-blink 5s infinite;
+    animation: hum 3.7s ease-in-out infinite;
+}
+.main-title.flicker[data-flick="a"] { animation: hum 3.7s ease-in-out infinite, flick-a 1.1s linear 1; }
+.main-title.flicker[data-flick="b"] { animation: hum 3.7s ease-in-out infinite, flick-b 1.7s linear 1; }
+.main-title.flicker[data-flick="c"] { animation: hum 3.7s ease-in-out infinite, flick-c 2.3s linear 1; }
+
+@keyframes hum {
+    0%, 100% { filter: brightness(1); }
+    35% { filter: brightness(0.93); }
+    60% { filter: brightness(1.04); }
+    80% { filter: brightness(0.97); }
+}
+@keyframes flick-a {
+    0%, 100% { opacity: 1; }
+    6% { opacity: 0.25; }
+    9% { opacity: 1; }
+    14% { opacity: 0.45; }
+    17% { opacity: 1; }
+    20% { opacity: 0.15; }
+    24% { opacity: 0.9; }
+    30% { opacity: 1; }
+}
+@keyframes flick-b {
+    0%, 100% { opacity: 1; }
+    10% { opacity: 0.55; }
+    14% { opacity: 0.92; }
+    18% { opacity: 0.3; }
+    27% { opacity: 0.95; }
+    31% { opacity: 0.7; }
+    38% { opacity: 1; }
+}
+@keyframes flick-c {
+    0%, 100% { opacity: 1; }
+    4% { opacity: 0.2; }
+    8% { opacity: 0.8; }
+    10% { opacity: 0.1; }
+    19% { opacity: 0.12; }
+    21% { opacity: 0.65; }
+    25% { opacity: 0.2; }
+    30% { opacity: 1; }
+    42% { opacity: 0.85; }
+    47% { opacity: 1; }
 }
 
-@keyframes neon-blink {
-    0%, 18%, 22%, 25%, 53%, 57%, 100% {
-        text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px var(--neon-color), 0 0 40px var(--neon-color), 0 0 80px var(--neon-color), 0 0 120px var(--neon-color), 0 0 160px var(--neon-dim);
-        color: var(--neon-color);
-    }
-    19%, 21%, 23%, 24%, 54%, 56% {
-        text-shadow: none;
-        color: var(--neon-off);
-    }
+#branding, .hero {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 200px;
 }
 
 .tagline {
-    margin: -8px 0 24px;
+    margin: 10px 0 0;
     font-size: 0.95rem;
     letter-spacing: 0.05em;
     color: var(--muted);
@@ -334,7 +376,31 @@ body::after {
 }
 .logout-btn:hover { color: var(--text); border-color: var(--border-strong); background: rgba(255, 255, 255, 0.05); }
 
-.signature { position: fixed; bottom: 8px; width: 100%; font-family: 'Allura', cursive; color: rgba(255, 255, 255, 0.2); font-size: 1.6rem; pointer-events: none; z-index: 2; }
+.signature {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) rotate(-4deg);
+    font-family: 'Permanent Marker', 'Rock Salt', cursive;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    color: rgba(var(--bloom-b-rgb), 0.75);
+    text-shadow: 0 0 2px rgba(var(--bloom-b-rgb), 0.6), 0 0 9px rgba(var(--bloom-b-rgb), 0.35), 1px 1px 0 rgba(0, 0, 0, 0.45);
+    filter: blur(0.3px);
+    pointer-events: none;
+    z-index: 2;
+    user-select: none;
+}
+.signature::before, .signature::after {
+    content: "";
+    position: absolute;
+    top: 82%;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(rgba(var(--bloom-b-rgb), 0.7), rgba(var(--bloom-b-rgb), 0));
+}
+.signature::before { left: 22%; height: 11px; }
+.signature::after { left: 64%; height: 7px; }
 body:has(#game-area:not(.hidden)) .signature { display: none; }
 
 .modal {

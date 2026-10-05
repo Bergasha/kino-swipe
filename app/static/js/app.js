@@ -17,6 +17,31 @@
             { color: '#ff2fa0', dim: '#8a1055', off: '#330018' },
             { color: '#ff8c00', dim: '#7a3c00', off: '#331900' },
         ];
+        const BLOOM_PALETTE = ['140, 90, 255', '255, 60, 60', '40, 220, 120', '255, 60, 160', '255, 140, 0', '0, 160, 255', '0, 210, 200', '229, 160, 13'];
+        (function pickBlooms() {
+            const a = Math.floor(Math.random() * BLOOM_PALETTE.length);
+            let b = Math.floor(Math.random() * BLOOM_PALETTE.length);
+            while (b === a) b = Math.floor(Math.random() * BLOOM_PALETTE.length);
+            document.documentElement.style.setProperty('--bloom-a-rgb', BLOOM_PALETTE[a]);
+            document.documentElement.style.setProperty('--bloom-b-rgb', BLOOM_PALETTE[b]);
+        })();
+
+        function startNeonFlicker() {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const variants = ['a', 'b', 'c'];
+            const run = () => {
+                document.querySelectorAll('.main-title').forEach(t => {
+                    if (t.offsetParent === null) return;
+                    t.classList.remove('flicker');
+                    void t.offsetWidth;
+                    t.dataset.flick = variants[Math.floor(Math.random() * variants.length)];
+                    t.classList.add('flicker');
+                });
+                setTimeout(run, 3500 + Math.random() * 9000);
+            };
+            setTimeout(run, 1200 + Math.random() * 2500);
+        }
+
         let plexNeonPick = null;
         function getPlexNeonPick() {
             if (!plexNeonPick) {
@@ -1049,6 +1074,7 @@
         });
 
         const boot = async () => {
+            startNeonFlicker();
             _bindStaticHandlers();
             initMatchOverlaySwipeDismiss();
 
