@@ -89,7 +89,7 @@ body::after {
 #login-section, #main-menu {
     position: relative;
     z-index: 2;
-    padding: 24px 20px calc(60px + env(safe-area-inset-bottom));
+    padding: 24px 20px calc(88px + env(safe-area-inset-bottom));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
