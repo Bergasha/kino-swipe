@@ -535,20 +535,15 @@ body:has(#game-area:not(.hidden)) .signature { display: none; }
 
 .stamp-yes, .stamp-no {
     position: absolute;
-    top: 34px;
-    padding: 6px 14px;
-    border: 3px solid;
-    border-radius: 10px;
-    font-weight: 800;
-    font-size: 1.7rem;
-    letter-spacing: 0.08em;
-    background: rgba(0, 0, 0, 0.28);
+    top: 26px;
+    font-size: 4.4rem;
+    line-height: 1;
     opacity: 0;
     pointer-events: none;
     z-index: 5;
 }
-.stamp-yes { left: 22px; color: var(--like); border-color: var(--like); transform: rotate(-14deg); text-shadow: 0 0 14px rgba(61, 220, 151, 0.6); box-shadow: 0 0 22px rgba(61, 220, 151, 0.35); }
-.stamp-no { right: 22px; color: var(--nope); border-color: var(--nope); transform: rotate(14deg); text-shadow: 0 0 14px rgba(255, 77, 109, 0.6); box-shadow: 0 0 22px rgba(255, 77, 109, 0.35); }
+.stamp-yes { left: 22px; transform: rotate(-12deg); filter: drop-shadow(0 0 18px rgba(61, 220, 151, 0.85)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
+.stamp-no { right: 22px; transform: rotate(12deg); filter: drop-shadow(0 0 18px rgba(255, 77, 109, 0.85)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
 
 .card-back, .mini-back {
     transform: rotateY(180deg);
