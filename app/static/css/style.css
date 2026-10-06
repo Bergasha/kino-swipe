@@ -646,11 +646,11 @@ body:has(#game-area:not(.hidden)) .signature { display: none; }
 .back-content p { font-size: 0.9rem; line-height: 1.55; color: #d6d6e2; margin: 0; }
 .flip-hint { margin-top: auto; padding-top: 6px; text-align: center; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); flex-shrink: 0; }
 
-.cast-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 4px 0 0; width: 100%; box-sizing: border-box; flex-shrink: 0; }
-.cast-member { display: flex; flex-direction: column; align-items: center; width: 56px; flex-shrink: 0; }
-.cast-member img { position: static; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(var(--accent-rgb), 0.7); background: #333; }
-.cast-member .no-photo { width: 48px; height: 48px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-.cast-member span { font-size: 0.58rem; color: #c6c6d6; text-align: center; margin-top: 4px; line-height: 1.2; word-break: break-word; }
+.cast-row { display: grid; grid-template-columns: repeat(auto-fit, 54px); grid-template-rows: repeat(2, auto); grid-auto-rows: 0; justify-content: center; gap: 8px 6px; overflow: hidden; padding: 6px 0 4px; width: 100%; box-sizing: border-box; flex-shrink: 0; }
+.cast-member { display: flex; flex-direction: column; align-items: center; width: 54px; }
+.cast-member img { position: static; width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(var(--accent-rgb), 0.7); background: #333; }
+.cast-member .no-photo { width: 42px; height: 42px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.cast-member span { font-size: 0.56rem; color: #c6c6d6; text-align: center; margin-top: 4px; line-height: 1.2; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .glow-side { position: absolute; top: 0; width: 40%; height: 100%; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s; }
 #glow-left { left: 0; background: linear-gradient(to right, rgba(255, 77, 109, 0.4), transparent); }
