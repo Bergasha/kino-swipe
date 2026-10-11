@@ -4,14 +4,6 @@ services:
     container_name: kino-swipe
     ports:
       - "5005:5005"
-    environment:
-      - PLEX_URL=https://YOUR_PLEX_IP:32400        
-      - PLEX_TOKEN=YOUR_PLEX_TOKEN                  
-      - JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096   
-      - JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY      
-      - APP_LOCALE=en                               
-      - FLASK_SECRET=SomeRandomString
-      - TMDB_API_KEY=your_tmdb_key_here
     volumes:
       - ./data:/app/data
       - ./static:/app/static

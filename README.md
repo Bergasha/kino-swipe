@@ -70,24 +70,18 @@ When you click **Host Session** or select a new genre for the absolute first tim
 
 ## Requirements
 
-**Plex**
-- Plex Media Server
-- Plex Auth Token
-
-**Jellyfin**
-- Jellyfin Media Server
-- Jellyfin API Key
-
-**Both**
-- TMDB API Key *(optional — required for trailers and cast)*
+- Plex Media Server and/or Jellyfin Media Server
+- A TMDB API Key *(optional, only needed for trailers and cast)*
 - HTTPS/Reverse Proxy *(required to install as a PWA on your phone)*
 
-> You only need one media server configured. Both can run side by side on the same instance — users pick which one to log into at the login screen.
+> You only need one media server. Both can run side by side on the same instance, and users pick which one to log into at the login screen.
+
+No tokens or API keys need to go in the container config. Everything is entered in the setup page the first time you open the app (see [First-Time Setup](#first-time-setup)).
 
 ---
 
 ## TMDB API Setup
-Only required if you want trailers and cast to work on the rear of the movie posters.
+Only required if you want trailers and cast to work on the rear of the movie posters. Paste the key into the setup page (or set `TMDB_API_KEY`).
 
 <details>
 <summary>Click to expand TMDB setup instructions</summary>
@@ -121,14 +115,6 @@ services:
     container_name: kino-swipe
     ports:
       - "5005:5005"
-    environment:
-      - PLEX_URL=https://YOUR_PLEX_IP:32400        # Optional
-      - PLEX_TOKEN=YOUR_PLEX_TOKEN                  # Optional
-      - JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096   # Optional
-      - JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY      # Optional
-      - APP_LOCALE=en                               # Optional: use de for Plex library "Filme"
-      - FLASK_SECRET=SomeRandomString
-      - TMDB_API_KEY=your_tmdb_key_here
     volumes:
       - ./data:/app/data
       - ./static:/app/static
@@ -141,22 +127,55 @@ services:
 docker run -d \
   --name kino-swipe \
   -p 5005:5005 \
-  -e PLEX_URL=https://YOUR_PLEX_IP:32400 \          # Optional
-  -e PLEX_TOKEN=YOUR_PLEX_TOKEN \                   # Optional
-  -e JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096 \    # Optional
-  -e JELLYFIN_API_KEY=YOUR_JELLYFIN_API_KEY \       # Optional
-  -e APP_LOCALE=en \                                # Optional: use de for Plex library "Filme"
-  -e FLASK_SECRET=SomeRandomString \
-  -e TMDB_API_KEY=your_tmdb_key_here \
   -v ./data:/app/data \
   -v ./static:/app/static \
   --restart unless-stopped \
   bergasha/kino-swipe:latest
 ```
 
-> At least Plex or Jellyfin must be configured. Both can be also set at the same time.
+### Option 3: Unraid
 
-**Plex library locale (optional):** defaults to `en` (`Movies`). Set `APP_LOCALE=de` if your Plex movie library is named `Filme`.
+Install **Kino Swipe** from Community Applications. Every variable is optional, so you can leave them all blank and finish the setup in the app.
+
+> Keep `/app/data` mapped to a persistent folder. Your settings, matches and library cache are stored there.
+
+---
+
+## First-Time Setup
+
+Open `http://YOUR_SERVER_IP:5005`. If nothing is configured yet you are taken straight to the setup page (it is always available later at `/setup`, or via the cog on the login screen).
+
+1. **Sign in** as the server owner. This is how the app knows you are allowed to change settings, so there is no setup code to find in the logs.
+   - **Plex:** sign in with Plex. You must be the owner of a Plex server. Your server is found automatically.
+   - **Jellyfin:** enter the URL of your server and sign in as an administrator. Kino-Swipe creates its own "KinoSwipe" API key, and your password is not stored.
+2. **TMDB (optional):** paste your TMDB API key to enable trailers and cast.
+3. **Plex library language (optional):** choose the language your Plex movie library is named in (`Movies`, `Filme`, ...).
+4. Press **Open Kino**. Friends and family just use the normal login screen, no setup needed.
+
+Once a server is connected, the setup page is locked to its owner or admin. Use **Sign out of settings** at the bottom of the setup page to lock it again. Signing back in at `/setup` as the Plex owner or a Jellyfin admin unlocks it for 6 hours.
+
+> **Important:** complete the setup (sign in as the server owner) **before** exposing Kino-Swipe to the internet. Until a server is connected anyone who can reach the app can open the setup page.
+
+**Locked out or changed servers?** Start the container once with `KINO_RESET_SETUP=1`, finish the setup again, then remove the variable.
+
+---
+
+## Environment Variables (Optional)
+
+Everything above can still be set through environment variables, which is handy for automated or locked-down deployments. A value set this way always wins and is shown as locked in the setup page.
+
+| Variable | Description |
+|---|---|
+| `PLEX_URL` | URL of your Plex server, e.g. `https://YOUR_PLEX_IP:32400` |
+| `PLEX_TOKEN` | Your Plex auth token |
+| `JELLYFIN_URL` | URL of your Jellyfin server, e.g. `http://YOUR_JELLYFIN_IP:8096` |
+| `JELLYFIN_API_KEY` | A Jellyfin API key |
+| `TMDB_API_KEY` | TMDB API key for trailers and cast |
+| `APP_LOCALE` | Plex library language, `en` (`Movies`, default) or `de` (`Filme`) |
+| `FLASK_SECRET` | Session secret. Generated and stored automatically if not set |
+| `KINO_RESET_SETUP` | Set to `1` for one start to clear the stored setup and admin |
+
+If you upgrade from an older version that used these variables, nothing changes: the app is treated as already set up.
 
 ---
 
