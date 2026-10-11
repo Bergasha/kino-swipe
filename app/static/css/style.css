@@ -403,6 +403,25 @@ body::after {
 .signature::after { left: 64%; height: 7px; }
 body:has(#game-area:not(.hidden)) .signature { display: none; }
 
+.setup-cog {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top));
+    right: 12px;
+    z-index: 5;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--faint);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    opacity: 0.7;
+    transition: opacity 0.2s, color 0.2s, background 0.2s, transform 0.4s var(--ease);
+}
+.setup-cog svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.setup-cog:hover, .setup-cog:focus-visible { opacity: 1; color: var(--text); background: rgba(255, 255, 255, 0.1); transform: rotate(60deg); outline: none; }
+
 .modal {
     position: fixed;
     inset: 0;
