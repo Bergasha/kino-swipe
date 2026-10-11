@@ -6,6 +6,7 @@ import requests
 import threading
 from flask import Blueprint, render_template, jsonify, request, session, Response, abort, send_from_directory, redirect, url_for
 from plexapi.myplex import MyPlexAccount
+from plexapi.server import PlexServer
 from gevent.queue import Queue
 
 from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
@@ -229,8 +230,8 @@ def plex_switch_user():
             account = MyPlexAccount(token=switched_token)
             server_resource = account.resource(PlexServer(plex_url(), plex_token()).machineIdentifier)
             switched_token = server_resource.accessToken
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[plex] Couldn't swap profile token for a server token, using account token ({e})", flush=True)
             
         return jsonify({'authToken': switched_token})
     except Exception as e:
