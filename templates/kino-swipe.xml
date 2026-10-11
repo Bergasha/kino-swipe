@@ -9,7 +9,7 @@
   
   <WebUI>http://[IP]:[PORT:5005]</WebUI>
 
-  <Overview>Swipe and match movies for Plex and Jellyfin. Basic dating app rules: swipe left if it is a no and swipe right if it is a yes. Two right swipes and it's a match. All matches are stored in your match history for later viewing.</Overview>
+  <Overview>Swipe and match movies for Plex and Jellyfin. Open the WebUI after installing to connect your server, no keys needed here. Basic dating app rules: swipe left if it is a no and swipe right if it is a yes. Two right swipes and it's a match. All matches are stored in your match history for later viewing.</Overview>
 
   <Support>https://github.com/Bergasha/kino-swipe/issues</Support>
   
@@ -45,12 +45,12 @@
   <Description>Swipe and match movies for Plex and Jellyfin</Description>
 
   <Config Name="WebUI Port" Target="5005" Default="5005" Mode="tcp" Description="Port used to access Kino Swipe" Type="Port" Display="always" Required="true" Mask="false">5005</Config>
-  <Config Name="PLEX_URL" Target="PLEX_URL" Default="" Description="URL of your Plex server (Optional)" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="PLEX_TOKEN" Target="PLEX_TOKEN" Default="" Description="Your Plex token (Optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="JELLYFIN_URL" Target="JELLYFIN_URL" Default="" Description="URL of your Jellyfin server (Optional)" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="JELLYFIN_API_KEY" Target="JELLYFIN_API_KEY" Default="" Description="Your Jellyfin API Key (Optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="TMDB_API_KEY" Target="TMDB_API_KEY" Default="" Description="TMDB API key for trailers and metadata to work" Type="Variable" Display="always" Required="true" Mask="true"/>
-  <Config Name="FLASK_SECRET" Target="FLASK_SECRET" Default="" Description="Random secret string for session security" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="PLEX_URL" Target="PLEX_URL" Default="" Description="URL of your Plex server (Optional, can be set in the setup page)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="PLEX_TOKEN" Target="PLEX_TOKEN" Default="" Description="Your Plex token (Optional, can be set in the setup page)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="JELLYFIN_URL" Target="JELLYFIN_URL" Default="" Description="URL of your Jellyfin server (Optional, can be set in the setup page)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="JELLYFIN_API_KEY" Target="JELLYFIN_API_KEY" Default="" Description="Your Jellyfin API Key (Optional, can be set in the setup page)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="TMDB_API_KEY" Target="TMDB_API_KEY" Default="" Description="TMDB API key for trailers and cast (Optional, can be set in the setup page)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="FLASK_SECRET" Target="FLASK_SECRET" Default="" Description="Session secret (Optional, generated automatically if blank)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="AppData Config Path" Target="/app/data" Default="/mnt/user/appdata/kino-swipe/data" Mode="rw" Description="Persistent storage for Kino Swipe data" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/kino-swipe/data</Config>
   <Config Name="Static Content Path" Target="/app/static" Default="/mnt/user/appdata/kino-swipe/static" Mode="rw" Description="Persistent storage for local static files" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/kino-swipe/static</Config>
 </Container>
