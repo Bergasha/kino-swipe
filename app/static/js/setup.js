@@ -530,7 +530,9 @@
                     try { await loadState(); } catch (e) { state = { admin: false, signin: {} }; }
                     renderAll();
                 })) : null,
-            note('You can come back to /setup any time to change these.'));
+            note(state.claimed
+                ? 'Signing out locks these settings. To change them later, visit /setup and sign in again as the Plex owner or a Jellyfin admin.'
+                : 'You can come back to /setup any time to change these.'));
     };
 
     (async function boot() {

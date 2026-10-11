@@ -619,15 +619,15 @@
             c.innerHTML = `
                 <div class="card-inner">
                     <div class="card-front">
-                        <img src="${escapeHtml(m.thumb)}" draggable="false" ondragstart="return false;">
+                        <img src="${escapeHtml(m.thumb)}" alt="${escapeHtml(m.title)}" draggable="false" ondragstart="return false;" onerror="this.closest('.movie-card').classList.add('no-poster')">
                         <div class="card-meta">
-                            <h3>${escapeHtml(m.title)}</h3>
                             <div class="meta-chips">
                                 ${m.rating ? `<span class="chip rating">${star}${escapeHtml(m.rating)}</span>` : ''}
                                 ${m.year ? `<span class="chip">${escapeHtml(m.year)}</span>` : ''}
                                 ${m.duration ? `<span class="chip">${escapeHtml(m.duration)}</span>` : ''}
                             </div>
                         </div>
+                        <h3 class="poster-fallback-title">${escapeHtml(m.title)}</h3>
                         <div class="stamp-yes">👍</div>
                         <div class="stamp-no">👎</div>
                     </div>
@@ -831,6 +831,7 @@
                 card.style.transform = `translate(${globalCurrentX}px, ${Math.abs(globalCurrentX)/10}px) rotate(${globalCurrentX / 10}deg)`;
             
                 const cardInner = card.querySelector('.card-inner');
+                card.classList.toggle('swiping', Math.abs(globalCurrentX) > 10);
                 if (cardInner) {
                     if (globalCurrentX > 10) {
                         const intensity = Math.min(Math.abs(globalCurrentX) / 30, 1);
@@ -890,7 +891,7 @@
                         } 
                     });
                     setTimeout(() => { card.remove(); movieStack.shift(); if (movieStack[4]) document.getElementById('swipe-deck').prepend(createCard(movieStack[4])); initDrag(document.getElementById('swipe-deck').lastElementChild); globalCurrentX = 0; if (movieStack.length === 0) renderInitialDeck(); }, 300);
-                } else { card.style.transform = ''; setTimeout(() => globalCurrentX = 0, 50); }
+                } else { card.style.transform = ''; card.classList.remove('swiping'); setTimeout(() => globalCurrentX = 0, 50); }
             };
             card.onpointerdown = (e) => {
                 if (e.target.tagName === 'BUTTON') return;
@@ -1017,6 +1018,7 @@
             const card = document.querySelector('.movie-card:last-child');
             if (!card || card.classList.contains('flipped') || card.dataset.swiping) return;
             card.dataset.swiping = '1';
+            card.classList.add('swiping');
 
             const stamp = card.querySelector(dir === 'right' ? '.stamp-yes' : '.stamp-no');
             if (stamp) stamp.style.opacity = 1;

@@ -174,6 +174,41 @@ body::after {
     animation: rise 0.8s var(--ease) 0.1s both;
 }
 
+.tagline-words {
+    --track: 0.34em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 3.4vw, 16px);
+    margin: 14px 0 0;
+    font-size: clamp(0.78rem, 3.7vw, 0.98rem);
+    font-weight: 600;
+    letter-spacing: var(--track);
+    text-transform: uppercase;
+    color: #e4e4ef;
+    text-shadow: 0 0 16px rgba(var(--bloom-b-rgb), 0.5);
+    animation: none;
+}
+.tagline-words span {
+    margin-right: calc(var(--track) * -1);
+    white-space: nowrap;
+    animation: rise 0.7s var(--ease) both;
+}
+.tagline-words span:nth-child(1) { animation-delay: 0.15s; }
+.tagline-words span:nth-child(2) { animation-delay: 0.3s; }
+.tagline-words span:nth-child(3) { animation-delay: 0.45s; }
+.tagline-words span + span::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: clamp(10px, 3.4vw, 16px);
+    vertical-align: middle;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 4px #fff, 0 0 10px rgb(var(--bloom-a-rgb)), 0 0 22px rgb(var(--bloom-a-rgb));
+}
+
 .glass-card {
     width: 100%;
     max-width: 380px;
@@ -585,20 +620,46 @@ body:has(#game-area:not(.hidden)) .signature { display: none; }
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0) 48%, rgba(0, 0, 0, 0.6) 72%, rgba(0, 0, 0, 0.94) 100%),
-        linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 22%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 28%);
 }
-.card-meta { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px; text-align: left; z-index: 3; pointer-events: none; }
-.card-meta h3 {
-    margin: 0 0 10px;
+.movie-card.no-poster .card-front::after {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.6) 72%, rgba(0, 0, 0, 0.94) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 28%);
+}
+.card-meta { position: absolute; top: 0; right: 0; padding: 16px; text-align: right; z-index: 3; pointer-events: none; transition: opacity 0.15s ease; }
+.movie-card.swiping .card-meta { opacity: 0; }
+.card-meta .meta-chips { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; gap: 8px; }
+.card-meta .chip {
+    background: rgba(8, 8, 14, 0.62);
+    border-color: rgba(255, 255, 255, 0.2);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.card-meta .chip.rating {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    background: linear-gradient(rgba(var(--accent-rgb), 0.22), rgba(var(--accent-rgb), 0.22)), rgba(8, 8, 14, 0.62);
+}
+.movie-card.no-poster .card-front img { visibility: hidden; }
+.poster-fallback-title { display: none; }
+.movie-card.no-poster .poster-fallback-title {
+    display: -webkit-box;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 22px;
+    text-align: left;
+    z-index: 3;
+    pointer-events: none;
     font-size: clamp(1.25rem, 5.6vw, 1.75rem);
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -0.01em;
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
