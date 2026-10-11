@@ -651,7 +651,7 @@
                     c.classList.toggle('flipped');
                     if (c.classList.contains('flipped')) {
                         const castEl = document.getElementById(`cast-${m.id}`);
-                        if (castEl && castEl.dataset.loaded !== 'true') {
+                        if (castEl && castEl.dataset.loaded !== 'true' && !document.documentElement.classList.contains('no-tmdb')) {
                             castEl.dataset.loaded = 'true';
                             castEl.innerHTML = '<span style="font-size:0.7rem;color:#6e6e84;">Loading cast...</span>';
                             try {

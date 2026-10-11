@@ -1,66 +1,133 @@
-import os
 import json
 import requests
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount
 from plexapi.exceptions import NotFound
 
-PLEX_URL = os.getenv('PLEX_URL', '').rstrip('/')
-ADMIN_TOKEN = os.getenv('PLEX_TOKEN')
-TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+from app import config
+
 CLIENT_ID = 'KinoSwipe-Bergasha-2026'
-
-JELLYFIN_URL = os.getenv('JELLYFIN_URL', '').rstrip('/')
-JELLYFIN_API_KEY = os.getenv('JELLYFIN_API_KEY', '')
-
-APP_LOCALE = os.getenv('APP_LOCALE', 'en').lower()
 
 PLEX_LIBRARY_BY_LOCALE = {
     'en': 'Movies',
     'de': 'Filme',
 }
 
-plex_ready = bool(PLEX_URL and ADMIN_TOKEN)
-jellyfin_ready = bool(JELLYFIN_URL and JELLYFIN_API_KEY)
+
+def plex_url():
+    return (config.get('PLEX_URL') or '').rstrip('/')
+
+
+def plex_token():
+    return config.get('PLEX_TOKEN')
+
+
+def jellyfin_url():
+    return (config.get('JELLYFIN_URL') or '').rstrip('/')
+
+
+def jellyfin_key():
+    return config.get('JELLYFIN_API_KEY') or ''
+
+
+def tmdb_key():
+    return config.get('TMDB_API_KEY')
+
+
+def app_locale():
+    return (config.get('APP_LOCALE') or 'en').lower()
+
+
+def is_plex_ready():
+    return bool(plex_url() and plex_token())
+
+
+def is_jellyfin_ready():
+    return bool(jellyfin_url() and jellyfin_key())
+
+
+def is_tmdb_ready():
+    return bool(tmdb_key())
+
+
+def create_plex_pin_auth(forward_template):
+    headers = {'X-Plex-Product': 'KinoSwipe', 'X-Plex-Client-Identifier': CLIENT_ID, 'Accept': 'application/json'}
+    res = requests.post('https://plex.tv/api/v2/pins?strong=true', headers=headers, timeout=10).json()
+    forward = forward_template.format(pin_id=res['id'])
+    auth_url = (
+        f"https://app.plex.tv/auth/#!?clientID={CLIENT_ID}"
+        f"&code={res['code']}"
+        f"&context%5Bdevice%5D%5Bproduct%5D=KinoSwipe"
+        f"&forwardUrl={requests.utils.quote(forward, safe='')}"
+    )
+    return res['id'], auth_url
+
 
 _plex_genre_cache = None
 _plex_instance = None
 _jellyfin_genre_cache = None
 
+
+def _clear_backend_caches(backend):
+    from app.database import db_session
+    with db_session() as conn:
+        conn.execute('DELETE FROM library_cache WHERE backend = ?', (backend,))
+        conn.execute('DELETE FROM genre_cache WHERE backend = ?', (backend,))
+
+
+def _on_config_change(changed):
+    global _plex_genre_cache, _jellyfin_genre_cache
+    if changed & {'PLEX_URL', 'PLEX_TOKEN', 'APP_LOCALE'}:
+        reset_plex()
+        _plex_genre_cache = None
+        _clear_backend_caches('plex')
+    if changed & {'JELLYFIN_URL', 'JELLYFIN_API_KEY'}:
+        _jellyfin_genre_cache = None
+        _clear_backend_caches('jellyfin')
+    if 'TMDB_API_KEY' in changed:
+        from app.database import db_session
+        with db_session() as conn:
+            conn.execute('DELETE FROM tmdb_cache WHERE tmdb_id IS NULL')
+
+
+config.on_change(_on_config_change)
+
+
 def get_plex(user_token=None):
-    token = user_token or ADMIN_TOKEN
+    admin_token = plex_token()
+    token = user_token or admin_token
     if not token:
-        raise ValueError("No Plex token provided and ADMIN_TOKEN is missing.")
-    
-    if token == ADMIN_TOKEN:
+        raise ValueError("No Plex token provided and the admin token is missing.")
+
+    if token == admin_token:
         global _plex_instance
         if _plex_instance is not None:
             return _plex_instance
-        _plex_instance = PlexServer(PLEX_URL, ADMIN_TOKEN)
+        _plex_instance = PlexServer(plex_url(), admin_token)
         return _plex_instance
-        
+
     try:
-        return PlexServer(PLEX_URL, token)
+        return PlexServer(plex_url(), token)
     except Exception:
         try:
-            admin_server = get_plex(ADMIN_TOKEN)
+            admin_server = get_plex(admin_token)
             target_uuid = admin_server.machineIdentifier
-            
+
             account = MyPlexAccount(token=token)
             for resource in account.resources():
                 if resource.clientIdentifier == target_uuid or resource.name == admin_server.friendlyName:
-                    return PlexServer(PLEX_URL, resource.accessToken)
-            
+                    return PlexServer(plex_url(), resource.accessToken)
+
             raise NotFound("Could not find matching local server resource for home profile token.")
         except Exception:
-            return PlexServer(PLEX_URL, token)
+            return PlexServer(plex_url(), token)
 
 def reset_plex():
     global _plex_instance
     _plex_instance = None
 
 def get_plex_movie_section(plex):
-    library_name = PLEX_LIBRARY_BY_LOCALE.get(APP_LOCALE, PLEX_LIBRARY_BY_LOCALE['en'])
+    library_name = PLEX_LIBRARY_BY_LOCALE.get(app_locale(), PLEX_LIBRARY_BY_LOCALE['en'])
     try:
         return plex.library.section(library_name)
     except NotFound:
@@ -164,7 +231,7 @@ def _jf_auth_header(token):
 
 def _jf_headers(token=None):
     return {
-        'Authorization': _jf_auth_header(token or JELLYFIN_API_KEY),
+        'Authorization': _jf_auth_header(token or jellyfin_key()),
         'Content-Type': 'application/json',
     }
 
@@ -192,7 +259,7 @@ def get_jellyfin_genres():
             'EnableImages': 'false',
             'EnableUserData': 'false',
         }
-        r = requests.get(f"{JELLYFIN_URL}/Items", headers=_jf_headers(), params=params, timeout=10)
+        r = requests.get(f"{jellyfin_url()}/Items", headers=_jf_headers(), params=params, timeout=10)
         r.raise_for_status()
         
         movie_genres = set()
@@ -235,10 +302,10 @@ def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
         params['Genres'] = genre_name
 
     if user_id and user_token:
-        url = f"{JELLYFIN_URL}/Users/{user_id}/Items"
+        url = f"{jellyfin_url()}/Users/{user_id}/Items"
         headers = _jf_headers(user_token)
     else:
-        url = f"{JELLYFIN_URL}/Items"
+        url = f"{jellyfin_url()}/Items"
         headers = _jf_headers()
 
     r = requests.get(url, headers=headers, params=params, timeout=15)
@@ -264,7 +331,7 @@ def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
 
 def get_jellyfin_item(item_id):
     r = requests.get(
-        f"{JELLYFIN_URL}/Items",
+        f"{jellyfin_url()}/Items",
         headers=_jf_headers(),
         params={
             'Ids': item_id,
@@ -295,8 +362,12 @@ def tmdb_search(title, year, movie_id=None, backend=None):
             if row is not None:
                 return row['tmdb_id']
 
+    api_key = tmdb_key()
+    if not api_key:
+        return None
+
     tmdb_id = None
-    base = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(title)}"
+    base = f"https://api.themoviedb.org/3/search/movie?api_key={api_key}&query={requests.utils.quote(title)}"
     try:
         if year:
             r = requests.get(f"{base}&year={year}", timeout=10).json()
