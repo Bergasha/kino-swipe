@@ -4,8 +4,9 @@ import traceback
 
 import requests
 
+from app import config
 from app.database import db_session
-from app.services import get_plex, get_plex_movie_section, ADMIN_TOKEN
+from app.services import get_plex, get_plex_movie_section, plex_token
 
 COLLECTION_TITLE = "Kino Swipe Matches"
 LABEL_PREFIX = "KSH-hide-"
@@ -34,9 +35,20 @@ def _get_admin_account():
     with _account_lock:
         if _admin_account is None:
             from plexapi.myplex import MyPlexAccount
-            _admin_account = MyPlexAccount(token=ADMIN_TOKEN)
+            _admin_account = MyPlexAccount(token=plex_token())
             _admin_id = str(_admin_account.id)
         return _admin_account
+
+
+def _reset_admin_account(changed):
+    global _admin_account, _admin_id
+    if 'PLEX_TOKEN' in changed:
+        with _account_lock:
+            _admin_account = None
+            _admin_id = None
+
+
+config.on_change(_reset_admin_account)
 
 
 def _get_display_name(plex_id):
@@ -143,7 +155,7 @@ def _apply_filter_exclusion(user_id, label):
         "https://clients.plex.tv/api/v2/sharing_settings"
         "?X-Plex-Product=Kino+Swipe&X-Plex-Client-Identifier=KinoSwipe-Bergasha-2026"
     )
-    headers = {"Accept": "application/json", "X-Plex-Token": ADMIN_TOKEN}
+    headers = {"Accept": "application/json", "X-Plex-Token": plex_token()}
 
     try:
         resp = requests.get(f"{base_url}&invitedId={user_id}", headers=headers, timeout=10)

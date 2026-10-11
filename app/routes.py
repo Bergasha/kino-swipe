@@ -4,15 +4,15 @@ import secrets
 import random
 import requests
 import threading
-from flask import Blueprint, render_template, jsonify, request, session, Response, abort, send_from_directory
+from flask import Blueprint, render_template, jsonify, request, session, Response, abort, send_from_directory, redirect, url_for
 from plexapi.myplex import MyPlexAccount
 from gevent.queue import Queue
 
 from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
 from app.services import (
-    CLIENT_ID, JELLYFIN_URL, PLEX_URL, ADMIN_TOKEN, TMDB_API_KEY,
-    plex_ready, jellyfin_ready, fetch_jellyfin_movies, fetch_plex_movies,
-    get_jellyfin_item, get_plex, reset_plex, tmdb_search, _jf_headers, _jf_client_auth
+    CLIENT_ID, jellyfin_url, plex_url, plex_token, tmdb_key,
+    is_plex_ready, is_jellyfin_ready, is_tmdb_ready, fetch_jellyfin_movies, fetch_plex_movies,
+    get_jellyfin_item, get_plex, reset_plex, tmdb_search, create_plex_pin_auth, _jf_headers, _jf_client_auth
 )
 from app import plex_homescreen
 from app import jellyfin_homescreen
@@ -140,22 +140,16 @@ def get_genres():
 
 @main_bp.route('/')
 def index():
-    return render_template('index.html')
+    if not (is_plex_ready() or is_jellyfin_ready()):
+        return redirect(url_for('setup.setup_page'))
+    return render_template('index.html', tmdb_enabled=is_tmdb_ready())
 
 
 @main_bp.route('/auth/plex-url')
 def get_plex_url():
     REDIRECT_URL = f"{request.scheme}://{request.host}"
-    headers = {'X-Plex-Product': 'KinoSwipe', 'X-Plex-Client-Identifier': CLIENT_ID, 'Accept': 'application/json'}
     try:
-        res = requests.post('https://plex.tv/api/v2/pins?strong=true', headers=headers, timeout=10).json()
-        forward = f"{REDIRECT_URL}?pin_id={res['id']}"
-        auth_url = (
-            f"https://app.plex.tv/auth/#!?clientID={CLIENT_ID}"
-            f"&code={res['code']}"
-            f"&context%5Bdevice%5D%5Bproduct%5D=KinoSwipe"
-            f"&forwardUrl={requests.utils.quote(forward, safe='')}"
-        )
+        _, auth_url = create_plex_pin_auth(f"{REDIRECT_URL}?pin_id={{pin_id}}")
         return jsonify({'auth_url': auth_url})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -233,7 +227,7 @@ def plex_switch_user():
             
         try:
             account = MyPlexAccount(token=switched_token)
-            server_resource = account.resource(PlexServer(PLEX_URL, ADMIN_TOKEN).machineIdentifier)
+            server_resource = account.resource(PlexServer(plex_url(), plex_token()).machineIdentifier)
             switched_token = server_resource.accessToken
         except Exception:
             pass
@@ -245,7 +239,7 @@ def plex_switch_user():
 
 @main_bp.route('/auth/jellyfin-login', methods=['POST'])
 def jellyfin_login():
-    if not jellyfin_ready:
+    if not is_jellyfin_ready():
         return jsonify({'error': 'Jellyfin not configured on this server'}), 503
     data = request.json or {}
     username = data.get('username', '').strip()
@@ -258,7 +252,7 @@ def jellyfin_login():
             'Content-Type': 'application/json',
         }
         res = requests.post(
-            f"{JELLYFIN_URL}/Users/AuthenticateByName",
+            f"{jellyfin_url()}/Users/AuthenticateByName",
             headers=auth_headers,
             json={'Username': username, 'Pw': password},
             timeout=10,
@@ -283,8 +277,9 @@ def jellyfin_login():
 @main_bp.route('/auth/available-backends')
 def available_backends():
     return jsonify({
-        'plex': plex_ready,
-        'jellyfin': jellyfin_ready,
+        'plex': is_plex_ready(),
+        'jellyfin': is_jellyfin_ready(),
+        'tmdb': is_tmdb_ready(),
     })
 
 
@@ -301,7 +296,7 @@ def add_to_watchlist():
             return jsonify({'error': 'Unauthorized'}), 401
         try:
             r = requests.post(
-                f"{JELLYFIN_URL}/Users/{user_id}/FavoriteItems/{movie_id}",
+                f"{jellyfin_url()}/Users/{user_id}/FavoriteItems/{movie_id}",
                 headers=_jf_headers(user_token),
                 timeout=10,
             )
@@ -351,7 +346,7 @@ def get_server_info():
     backend = current_backend()
     try:
         if backend == 'jellyfin':
-            r = requests.get(f"{JELLYFIN_URL}/System/Info/Public", headers=_jf_headers(), timeout=10)
+            r = requests.get(f"{jellyfin_url()}/System/Info/Public", headers=_jf_headers(), timeout=10)
             r.raise_for_status()
             info = r.json()
             return jsonify({'name': info.get('ServerName', 'Jellyfin'), 'backend': 'jellyfin'})
@@ -373,13 +368,15 @@ def plex_server_info_compat():
 
 @main_bp.route('/get-trailer/<movie_id>')
 def get_trailer(movie_id):
+    if not is_tmdb_ready():
+        return jsonify({'error': 'Not found'}), 404
     try:
         backend_override = request.headers.get('X-Backend')
         backend = backend_override or current_backend()
         title, year = get_item_meta(movie_id, backend_override)
         tmdb_id = tmdb_search(title, year, movie_id=movie_id, backend=backend)
         if tmdb_id:
-            v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={TMDB_API_KEY}").json()
+            v_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos?api_key={tmdb_key()}", timeout=10).json()
             trailers = [v for v in v_res.get('results', []) if v['site'] == 'YouTube' and v['type'] == 'Trailer']
             if trailers:
                 return jsonify({'youtube_key': trailers[0]['key']})
@@ -390,13 +387,15 @@ def get_trailer(movie_id):
 
 @main_bp.route('/cast/<movie_id>')
 def get_cast(movie_id):
+    if not is_tmdb_ready():
+        return jsonify({'cast': []})
     try:
         backend_override = request.headers.get('X-Backend')
         backend = backend_override or current_backend()
         title, year = get_item_meta(movie_id, backend_override)
         tmdb_id = tmdb_search(title, year, movie_id=movie_id, backend=backend)
         if tmdb_id:
-            c_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}").json()
+            c_res = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={tmdb_key()}", timeout=10).json()
             cast = []
             for actor in c_res.get('cast', [])[:10]:
                 cast.append({
@@ -718,7 +717,7 @@ def proxy():
         item_id = request.args.get('item_id')
         if not item_id:
             abort(400)
-        img_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
+        img_url = f"{jellyfin_url()}/Items/{item_id}/Images/Primary"
         res = requests.get(img_url, headers=_jf_headers(), stream=True, timeout=10)
         
         
@@ -729,7 +728,7 @@ def proxy():
         path = request.args.get('path')
         if not path or not path.startswith("/library/metadata/"):
             abort(403)
-        res = requests.get(f"{PLEX_URL}{path}?X-Plex-Token={ADMIN_TOKEN}", stream=True, timeout=10)
+        res = requests.get(f"{plex_url()}{path}?X-Plex-Token={plex_token()}", stream=True, timeout=10)
         
        
         response = Response(res.content, content_type=res.headers['Content-Type'])

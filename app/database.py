@@ -3,7 +3,7 @@ import os
 from contextlib import contextmanager
 from gevent.queue import Queue
 
-DB_PATH = '/app/data/kinoswipe.db'
+DB_PATH = os.environ.get('KINO_DB_PATH') or '/app/data/kinoswipe.db'
 
 
 ROOM_CHANNELS = {}
@@ -64,6 +64,7 @@ def init_db():
             rating_key INTEGER,
             targeting_applied INTEGER DEFAULT 0
         )''')
+        conn.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
         conn.execute('''CREATE TABLE IF NOT EXISTS homescreen_items (
             plex_id TEXT, movie_id TEXT, added_at REAL,
             PRIMARY KEY (plex_id, movie_id)

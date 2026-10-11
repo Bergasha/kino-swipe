@@ -4,7 +4,7 @@ import time
 import requests
 
 from app.database import db_session
-from app.services import JELLYFIN_URL, _jf_headers
+from app.services import jellyfin_url, _jf_headers
 
 
 def _is_homescreen_enabled(user_id):
@@ -59,7 +59,7 @@ def _set_favorite(user_id, movie_id, favorite):
     method = requests.post if favorite else requests.delete
     try:
         r = method(
-            f"{JELLYFIN_URL}/Users/{user_id}/FavoriteItems/{movie_id}",
+            f"{jellyfin_url()}/Users/{user_id}/FavoriteItems/{movie_id}",
             headers=_jf_headers(), timeout=10,
         )
         r.raise_for_status()
