@@ -1,4 +1,5 @@
 import json
+import re
 import time
 import secrets
 import random
@@ -746,31 +747,42 @@ def undo_swipe():
     return jsonify({'status': 'undone'})
 
 
+# The proxy adds the server's admin credentials to the upstream request, so it
+# must only ever reach a poster image. Inputs are matched against the exact shapes
+# the library code produces: anything looser (e.g. a prefix check) lets "../"
+# segments, which requests collapses, steer the request to any other endpoint.
+_JF_ITEM_ID_RE = re.compile(r'^[0-9a-fA-F]{32}$')
+_PLEX_IMAGE_PATH_RE = re.compile(r'^/library/metadata/\d+/(?:thumb|art)/\d+$')
+
+
+def _image_response(res):
+    content_type = res.headers.get('Content-Type', '')
+    if res.status_code != 200 or not content_type.startswith('image/'):
+        res.close()
+        abort(404)
+    response = Response(res.content, content_type=content_type)
+    response.headers['Cache-Control'] = 'public, max-age=604800'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
 @main_bp.route('/proxy')
 def proxy():
     backend = request.args.get('backend', 'plex')
 
     if backend == 'jellyfin':
-        item_id = request.args.get('item_id')
-        if not item_id:
+        item_id = request.args.get('item_id') or ''
+        if not _JF_ITEM_ID_RE.match(item_id):
             abort(400)
-        img_url = f"{jellyfin_url()}/Items/{item_id}/Images/Primary"
-        res = requests.get(img_url, headers=_jf_headers(), stream=True, timeout=10)
-        
-        
-        response = Response(res.content, content_type=res.headers.get('Content-Type', 'image/jpeg'))
-        response.headers['Cache-Control'] = 'public, max-age=604800'
-        return response
+        res = requests.get(f"{jellyfin_url()}/Items/{item_id}/Images/Primary",
+                           headers=_jf_headers(), timeout=10)
+        return _image_response(res)
     else:
-        path = request.args.get('path')
-        if not path or not path.startswith("/library/metadata/"):
-            abort(403)
-        res = requests.get(f"{plex_url()}{path}?X-Plex-Token={plex_token()}", stream=True, timeout=10)
-        
-       
-        response = Response(res.content, content_type=res.headers['Content-Type'])
-        response.headers['Cache-Control'] = 'public, max-age=604800'
-        return response
+        path = request.args.get('path') or ''
+        if not _PLEX_IMAGE_PATH_RE.match(path):
+            abort(400)
+        res = requests.get(f"{plex_url()}{path}", headers={'X-Plex-Token': plex_token()}, timeout=10)
+        return _image_response(res)
 
 
 @main_bp.route('/manifest.json')
