@@ -96,11 +96,50 @@
         }
         function getAuthToken() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_token' : 'plex_token'); }
         function getUserId() { return localStorage.getItem(getBackend() === 'jellyfin' ? 'jf_user_id' : 'plex_id'); }
+        // Jellyfin allows one token per user per device id, so every browser signs in
+        // with its own id; a shared id let one login sign the user out everywhere else.
+        // getRandomValues (unlike randomUUID) also works over plain-http LAN addresses.
+        function getJellyfinDeviceId() { return localStorage.getItem('jf_device_id'); }
+        function newJellyfinDeviceId() {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            return 'KinoSwipe-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+        }
+        function addJellyfinAuthHeaders(headers) {
+            headers['X-Jellyfin-Token'] = getAuthToken();
+            headers['X-Jellyfin-User-ID'] = getUserId();
+            const deviceId = getJellyfinDeviceId();
+            if (deviceId) headers['X-Jellyfin-Device-ID'] = deviceId;
+            return headers;
+        }
+
+        // Clears the stored sign-in but keeps this browser's Jellyfin device id, so the
+        // next login replaces this browser's own token instead of adding a new device.
+        function clearSignIn() {
+            const deviceId = getJellyfinDeviceId();
+            localStorage.clear();
+            if (deviceId) localStorage.setItem('jf_device_id', deviceId);
+        }
+        function signOut() {
+            clearSignIn();
+            location.reload();
+        }
+
+        // Returns true (and sends the user back to the login screen) when the server
+        // says the stored Jellyfin token is no longer accepted.
+        async function handleExpiredSignIn(res) {
+            if (res.status !== 401) return false;
+            const data = await res.clone().json().catch(() => ({}));
+            if (!data.reauth) return false;
+            alert(data.error || 'Your sign-in has expired. Please sign in again.');
+            signOut();
+            return true;
+        }
+
         function getMoviesHeaders() {
             const headers = { 'X-Backend': getBackend() };
             if (getBackend() === 'jellyfin') {
-                headers['X-Jellyfin-Token'] = getAuthToken();
-                headers['X-Jellyfin-User-ID'] = getUserId();
+                addJellyfinAuthHeaders(headers);
             } else {
                 headers['X-Plex-Token'] = getAuthToken();
                 headers['X-Plex-User-ID'] = getUserId();
@@ -307,15 +346,17 @@
         async function loginWithJellyfin() {
             const username = document.getElementById('jf-username').value;
             const password = document.getElementById('jf-password').value;
+            const deviceId = getJellyfinDeviceId() || newJellyfinDeviceId();
             const res = await fetch('/auth/jellyfin-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password, deviceId })
             });
             const data = await res.json();
             if (res.ok) {
                 localStorage.setItem('jf_token', data.accessToken);
                 localStorage.setItem('jf_user_id', data.userId);
+                localStorage.setItem('jf_device_id', data.deviceId || deviceId);
                 localStorage.setItem('backend', 'jellyfin');
                 location.reload();
             } else showToast(data.error || "Wrong username or password");
@@ -344,6 +385,7 @@
             toggleGenreModal();
             const url = genre === 'All' ? '/movies?genre=All' : `/movies?genre=${encodeURIComponent(genre)}`;
             const res = await fetch(url, { headers: getMoviesHeaders() });
+            if (await handleExpiredSignIn(res)) return;
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 alert(`Unable to reach server: ${err.error || res.status}`);
@@ -365,8 +407,7 @@
             
             const headers = { "Content-Type": "application/json" };
             if (getBackend() === 'jellyfin') {
-                headers["X-Jellyfin-Token"] = getAuthToken();
-                headers["X-Jellyfin-User-ID"] = getUserId();
+                addJellyfinAuthHeaders(headers);
             } else {
                 headers["X-Plex-Token"] = getAuthToken();
             }
@@ -377,6 +418,7 @@
                     headers: headers,
                     body: JSON.stringify({ movie_id: id })
                 });
+                if (await handleExpiredSignIn(res)) return;
                 if (res.ok) {
                     btn.innerText = "ADDED";
                     btn.classList.add('added');
@@ -429,6 +471,7 @@
             isSoloMode = solo;
             lastSeenMatchTs = Date.now() / 1000;
             const res = await fetch('/movies', { headers: getMoviesHeaders() });
+            if (await handleExpiredSignIn(res)) return;
             movieStack = await res.json();
             document.getElementById('branding').classList.add('hidden');
             document.getElementById('controls-area').classList.add('hidden');
@@ -911,6 +954,7 @@
                 method: 'POST',
                 headers: createHeaders
             });
+            if (await handleExpiredSignIn(res)) return;
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 alert(`Unable to reach server: ${err.error || res.status}`);
@@ -940,8 +984,9 @@
             const res = await fetch('/room/join', { 
                 method: 'POST', 
                 headers: joinHeaders, 
-                body: JSON.stringify({ code }) 
+                body: JSON.stringify({ code })
             });
+            if (await handleExpiredSignIn(res)) return;
             if (res.ok) { localStorage.setItem('active_room', 'joined'); loadMovies(false); }
             else {
                 const data = await res.json();

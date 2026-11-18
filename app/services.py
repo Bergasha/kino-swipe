@@ -1,4 +1,6 @@
 import json
+import re
+import secrets
 import requests
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount
@@ -218,20 +220,41 @@ def fetch_plex_movies(genre_name=None, user_token=None):
         })
     return movie_list
 
-_JF_CLIENT_PARAMS = f'Client="KinoSwipe", Device="Browser", DeviceId="{CLIENT_ID}", Version="1.0.0"'
+class JellyfinAuthError(Exception):
+    """Jellyfin rejected a user's access token (signed out, expired or revoked)."""
 
 
-def _jf_client_auth():
-    return f'MediaBrowser {_JF_CLIENT_PARAMS}'
+# Jellyfin keeps one access token per user per DeviceId: signing in again from the
+# same DeviceId logs the previous token out. Each browser therefore signs in with
+# its own DeviceId, and CLIENT_ID is only the fallback for server-side calls and
+# for tokens issued before per-browser ids existed.
+_JF_DEVICE_ID_RE = re.compile(r'^[A-Za-z0-9_-]{8,64}$')
 
 
-def _jf_auth_header(token):
-    return f'MediaBrowser Token="{token}", {_JF_CLIENT_PARAMS}'
+def clean_jf_device_id(value):
+    value = (value or '').strip()
+    return value if _JF_DEVICE_ID_RE.match(value) else None
 
 
-def _jf_headers(token=None):
+def new_jf_device_id():
+    return f'KinoSwipe-{secrets.token_hex(16)}'
+
+
+def _jf_client_params(device_id=None):
+    return f'Client="KinoSwipe", Device="Browser", DeviceId="{device_id or CLIENT_ID}", Version="1.0.0"'
+
+
+def _jf_client_auth(device_id=None):
+    return f'MediaBrowser {_jf_client_params(device_id)}'
+
+
+def _jf_auth_header(token, device_id=None):
+    return f'MediaBrowser Token="{token}", {_jf_client_params(device_id)}'
+
+
+def _jf_headers(token=None, device_id=None):
     return {
-        'Authorization': _jf_auth_header(token or jellyfin_key()),
+        'Authorization': _jf_auth_header(token or jellyfin_key(), device_id),
         'Content-Type': 'application/json',
     }
 
@@ -285,7 +308,7 @@ def get_jellyfin_genres():
                 return json.loads(row['genre_data'])
         return []
 
-def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
+def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None, device_id=None):
     params = {
         'IncludeItemTypes': 'Movie',
         'Recursive': 'true',
@@ -303,12 +326,14 @@ def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None):
 
     if user_id and user_token:
         url = f"{jellyfin_url()}/Users/{user_id}/Items"
-        headers = _jf_headers(user_token)
+        headers = _jf_headers(user_token, device_id)
     else:
         url = f"{jellyfin_url()}/Items"
         headers = _jf_headers()
 
     r = requests.get(url, headers=headers, params=params, timeout=15)
+    if r.status_code == 401 and user_token:
+        raise JellyfinAuthError('Your Jellyfin sign-in has expired. Please sign in again.')
     r.raise_for_status()
     items = r.json().get('Items', [])
 

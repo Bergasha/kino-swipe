@@ -13,7 +13,8 @@ from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
 from app.services import (
     CLIENT_ID, jellyfin_url, plex_url, plex_token, tmdb_key,
     is_plex_ready, is_jellyfin_ready, is_tmdb_ready, fetch_jellyfin_movies, fetch_plex_movies,
-    get_jellyfin_item, get_plex, reset_plex, tmdb_search, create_plex_pin_auth, _jf_headers, _jf_client_auth
+    get_jellyfin_item, get_plex, reset_plex, tmdb_search, create_plex_pin_auth, _jf_headers, _jf_client_auth,
+    JellyfinAuthError, clean_jf_device_id, new_jf_device_id
 )
 from app import plex_homescreen
 from app import jellyfin_homescreen
@@ -78,7 +79,15 @@ def current_backend():
     return session.get('backend', 'plex')
 
 
-def fetch_movies(genre_name=None, user_id=None, user_token=None):
+def jellyfin_device_id():
+    return clean_jf_device_id(request.headers.get('X-Jellyfin-Device-ID'))
+
+
+def reauth_response(e):
+    return jsonify({'error': str(e), 'reauth': True}), 401
+
+
+def fetch_movies(genre_name=None, user_id=None, user_token=None, device_id=None):
     backend = current_backend()
     genre_name = genre_name or "All"
     cache_user_id = user_id or user_token or ''
@@ -93,21 +102,21 @@ def fetch_movies(genre_name=None, user_id=None, user_token=None):
     ttl = CACHE_TTL_RECENT if genre_name == "Recently Added" else CACHE_TTL
 
     if not cache:
-        movie_list = build_and_cache_library(backend, genre_name, user_id, user_token, raise_on_error=True)
+        movie_list = build_and_cache_library(backend, genre_name, user_id, user_token, device_id, raise_on_error=True)
     else:
         movie_list = json.loads(cache['movie_data'])
         if now - cache['updated_at'] > ttl:
-            threading.Thread(target=build_and_cache_library, args=(backend, genre_name, user_id, user_token), daemon=True).start()
+            threading.Thread(target=build_and_cache_library, args=(backend, genre_name, user_id, user_token, device_id), daemon=True).start()
 
     if genre_name != "Recently Added":
         random.shuffle(movie_list)
     return movie_list
 
 
-def build_and_cache_library(backend, genre_name, user_id=None, user_token=None, raise_on_error=False):
+def build_and_cache_library(backend, genre_name, user_id=None, user_token=None, device_id=None, raise_on_error=False):
     try:
         if backend == 'jellyfin':
-            movies = fetch_jellyfin_movies(genre_name, user_id=user_id, user_token=user_token)
+            movies = fetch_jellyfin_movies(genre_name, user_id=user_id, user_token=user_token, device_id=device_id)
         else:
             movies = fetch_plex_movies(genre_name, user_token=user_token)
 
@@ -122,6 +131,11 @@ def build_and_cache_library(backend, genre_name, user_id=None, user_token=None, 
                 VALUES (?, ?, ?, ?, ?)
             ''', (backend, genre_name, cache_user_id, json.dumps(movies), time.time()))
         return movies
+    except JellyfinAuthError:
+        print(f"[library] Jellyfin rejected the token for user_id={user_id}; the user needs to sign in again", flush=True)
+        if raise_on_error:
+            raise
+        return []
     except Exception as e:
         import traceback
         print(f"[library] ERROR building cache for backend={backend} genre={genre_name} user_id={user_id}: {e}", flush=True)
@@ -247,9 +261,12 @@ def jellyfin_login():
     password = data.get('password', '')
     if not username:
         return jsonify({'error': 'Username required'}), 400
+    # Reuse the browser's own device id so a re-login only replaces that browser's
+    # token and never signs the same user out on another device.
+    device_id = clean_jf_device_id(data.get('deviceId')) or new_jf_device_id()
     try:
         auth_headers = {
-            'Authorization': _jf_client_auth(),
+            'Authorization': _jf_client_auth(device_id),
             'Content-Type': 'application/json',
         }
         res = requests.post(
@@ -268,6 +285,7 @@ def jellyfin_login():
             'accessToken': body.get('AccessToken'),
             'userId': user.get('Id'),
             'username': user.get('Name'),
+            'deviceId': device_id,
         })
     except requests.HTTPError as e:
         return jsonify({'error': str(e)}), 500
@@ -298,9 +316,11 @@ def add_to_watchlist():
         try:
             r = requests.post(
                 f"{jellyfin_url()}/Users/{user_id}/FavoriteItems/{movie_id}",
-                headers=_jf_headers(user_token),
+                headers=_jf_headers(user_token, jellyfin_device_id()),
                 timeout=10,
             )
+            if r.status_code == 401:
+                return reauth_response(JellyfinAuthError('Your Jellyfin sign-in has expired. Please sign in again.'))
             r.raise_for_status()
             return jsonify({'status': 'success'})
         except Exception as e:
@@ -414,15 +434,19 @@ def get_cast(movie_id):
 def create_room():
     backend = session.get('backend', 'plex')
     pairing_code = str(random.randint(1000, 9999))
+    device_id = None
     if backend == 'jellyfin':
         user_id = request.headers.get('X-Jellyfin-User-ID')
         user_token = request.headers.get('X-Jellyfin-Token')
+        device_id = jellyfin_device_id()
     else:
         user_id = request.headers.get('X-Plex-User-ID') or ''
         user_token = request.headers.get('X-Plex-Token')
-        
+
     try:
-        movie_list = fetch_movies(user_id=user_id, user_token=user_token)
+        movie_list = fetch_movies(user_id=user_id, user_token=user_token, device_id=device_id)
+    except JellyfinAuthError as e:
+        return reauth_response(e)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     with get_db() as conn:
@@ -452,9 +476,11 @@ def go_solo():
 def join_room():
     code = request.json.get('code')
     joiner_backend = session.get('backend', 'plex')
+    joiner_device_id = None
     if joiner_backend == 'jellyfin':
         joiner_uid = request.headers.get('X-Jellyfin-User-ID')
         joiner_token = request.headers.get('X-Jellyfin-Token')
+        joiner_device_id = jellyfin_device_id()
     else:
         joiner_uid = request.headers.get('X-Plex-User-ID') or ''
         joiner_token = request.headers.get('X-Plex-Token')
@@ -467,7 +493,13 @@ def join_room():
                     'error': f"This room uses {room['backend'].capitalize()}. Please log in with {room['backend'].capitalize()} to join."
                 }), 409
                 
-            joiner_movies = fetch_movies(genre_name=room['current_genre'], user_id=joiner_uid, user_token=joiner_token)
+            try:
+                joiner_movies = fetch_movies(genre_name=room['current_genre'], user_id=joiner_uid,
+                                             user_token=joiner_token, device_id=joiner_device_id)
+            except JellyfinAuthError as e:
+                return reauth_response(e)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
             host_movies = json.loads(room['movie_data'])
             
             joiner_lookup = {str(m['id']): m for m in joiner_movies}
@@ -604,25 +636,29 @@ def get_movies():
     code = session.get('active_room')
     genre = request.args.get('genre')
     backend = current_backend()
+    device_id = None
     if backend == 'jellyfin':
         user_id = request.headers.get('X-Jellyfin-User-ID')
         user_token = request.headers.get('X-Jellyfin-Token')
+        device_id = jellyfin_device_id()
     else:
         user_id = request.headers.get('X-Plex-User-ID')
         user_token = request.headers.get('X-Plex-Token')
-        
+
     if not code:
         return jsonify([])
     try:
         with get_db() as conn:
             if genre:
-                new_list = fetch_movies(genre, user_id=user_id, user_token=user_token)
+                new_list = fetch_movies(genre, user_id=user_id, user_token=user_token, device_id=device_id)
                 conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?',
                              (json.dumps(new_list), genre, code))
                 announce_room_update(code, {'genre': genre})
                 return jsonify(new_list)
             room = conn.execute('SELECT movie_data FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
             return Response(room['movie_data'], mimetype='application/json') if room else jsonify([])
+    except JellyfinAuthError as e:
+        return reauth_response(e)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
