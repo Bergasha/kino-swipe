@@ -12,7 +12,8 @@ from flask import Blueprint, abort, jsonify, render_template, request, session
 from app import config
 from app.services import (
     CLIENT_ID, app_locale, create_plex_pin_auth, is_jellyfin_ready, is_plex_ready,
-    is_tmdb_ready, jellyfin_url, plex_token, plex_url, _jf_client_auth, _jf_headers
+    is_tmdb_ready, jellyfin_url, plex_token, plex_url, _jf_client_auth, _jf_headers,
+    new_jf_device_id
 )
 
 setup_bp = Blueprint('setup', __name__)
@@ -404,10 +405,17 @@ def _jellyfin_public_info(url):
 
 
 def _jellyfin_authenticate(url, username, password):
+    """Sign in for a one-off admin check.
+
+    Uses a throwaway DeviceId: Jellyfin logs out any earlier token for the same
+    user and DeviceId, so sharing an id with the app would sign the admin out of
+    Kino-Swipe in their browser. Returns (token, is_admin, device_id).
+    """
+    device_id = new_jf_device_id()
     try:
         response = requests.post(
             f'{url}/Users/AuthenticateByName',
-            headers={'Authorization': _jf_client_auth(), 'Content-Type': 'application/json'},
+            headers={'Authorization': _jf_client_auth(device_id), 'Content-Type': 'application/json'},
             json={'Username': username, 'Pw': password},
             timeout=10,
         )
@@ -422,12 +430,12 @@ def _jellyfin_authenticate(url, username, password):
     if not token:
         raise ValueError("Jellyfin signed you in but didn't return a session.")
     policy = (body.get('User') or {}).get('Policy') or {}
-    return token, bool(policy.get('IsAdministrator'))
+    return token, bool(policy.get('IsAdministrator')), device_id
 
 
-def _jellyfin_logout(url, token):
+def _jellyfin_logout(url, token, device_id):
     try:
-        requests.post(f'{url}/Sessions/Logout', headers=_jf_headers(token), timeout=5)
+        requests.post(f'{url}/Sessions/Logout', headers=_jf_headers(token, device_id), timeout=5)
     except Exception:
         pass
 
@@ -444,8 +452,8 @@ def _find_jellyfin_key(url, headers):
     return mine[-1]['AccessToken']
 
 
-def _ensure_jellyfin_key(url, token):
-    headers = _jf_headers(token)
+def _ensure_jellyfin_key(url, token, device_id):
+    headers = _jf_headers(token, device_id)
     existing = _find_jellyfin_key(url, headers)
     if existing:
         return existing
@@ -471,11 +479,11 @@ def signin_jellyfin():
         return jsonify({'error': 'Enter your Jellyfin username.'}), 400
     url = jellyfin_url()
     try:
-        token, is_admin = _jellyfin_authenticate(url, username, password)
+        token, is_admin, device_id = _jellyfin_authenticate(url, username, password)
     except ValueError as e:
         _record_failure()
         return jsonify({'error': str(e)}), 403
-    _jellyfin_logout(url, token)
+    _jellyfin_logout(url, token, device_id)
     if not is_admin:
         _record_failure()
         return jsonify({'error': "That account isn't a Jellyfin administrator."}), 403
@@ -499,13 +507,13 @@ def jellyfin_connect():
         return jsonify({'error': 'Enter a Jellyfin administrator username.'}), 400
     try:
         info = _jellyfin_public_info(url)
-        token, is_admin = _jellyfin_authenticate(url, username, password)
+        token, is_admin, device_id = _jellyfin_authenticate(url, username, password)
         try:
             if not is_admin:
                 raise ValueError("That account isn't a Jellyfin administrator. Sign in with an admin account.")
-            api_key = _ensure_jellyfin_key(url, token)
+            api_key = _ensure_jellyfin_key(url, token, device_id)
         finally:
-            _jellyfin_logout(url, token)
+            _jellyfin_logout(url, token, device_id)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     name = info.get('ServerName') or 'Jellyfin'
