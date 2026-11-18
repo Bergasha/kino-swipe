@@ -10,12 +10,15 @@ from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 from gevent.queue import Queue
 
-from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update
+import sqlite3
+
+from app.database import get_db, db_session, ROOM_CHANNELS, announce_room_update, expire_idle_rooms
 from app.services import (
     CLIENT_ID, jellyfin_url, plex_url, plex_token, tmdb_key,
     is_plex_ready, is_jellyfin_ready, is_tmdb_ready, fetch_jellyfin_movies, fetch_plex_movies,
     get_jellyfin_item, get_plex, reset_plex, tmdb_search, create_plex_pin_auth, _jf_headers, _jf_client_auth,
-    JellyfinAuthError, clean_jf_device_id, new_jf_device_id
+    SignInRequired, JellyfinAuthError, PlexAuthError, clean_jf_device_id, new_jf_device_id,
+    jellyfin_user_id, plex_user_id,
 )
 from app import plex_homescreen
 from app import jellyfin_homescreen
@@ -84,14 +87,76 @@ def jellyfin_device_id():
     return clean_jf_device_id(request.headers.get('X-Jellyfin-Device-ID'))
 
 
-def reauth_response(e):
+class UpstreamUnavailable(Exception):
+    pass
+
+
+@main_bp.errorhandler(SignInRequired)
+def _sign_in_required(e):
     return jsonify({'error': str(e), 'reauth': True}), 401
 
 
+@main_bp.errorhandler(UpstreamUnavailable)
+def _upstream_unavailable(e):
+    return jsonify({'error': str(e)}), 502
+
+
+def signed_in_user(backend=None):
+    """(user_id, token, device_id) for the request's sign-in, checked upstream.
+
+    The user id comes from Jellyfin or Plex, never from the browser, and a request
+    without a sign-in is refused instead of falling back to the admin credentials.
+    Raises SignInRequired (answered as 401 + reauth) or UpstreamUnavailable.
+    """
+    backend = backend or current_backend()
+    try:
+        if backend == 'jellyfin':
+            token = request.headers.get('X-Jellyfin-Token') or ''
+            if not token:
+                raise JellyfinAuthError('Please sign in with Jellyfin.')
+            device_id = jellyfin_device_id()
+            return jellyfin_user_id(token, device_id), token, device_id
+        token = request.headers.get('X-Plex-Token') or ''
+        if not token:
+            raise PlexAuthError('Please sign in with Plex.')
+        return plex_user_id(token, request.headers.get('X-Plex-User-ID')), token, None
+    except requests.RequestException as e:
+        raise UpstreamUnavailable(f"Couldn't reach your media server to check your sign-in ({e.__class__.__name__}).")
+
+
+_MOVIE_ID_RE = re.compile(r'^(?:[0-9a-f]{32}|\d{1,20})$')
+
+
+def valid_movie_id(movie_id):
+    """Jellyfin item ids are 32 hex chars, Plex rating keys are numbers."""
+    return bool(_MOVIE_ID_RE.match(str(movie_id or '')))
+
+
+def touch_room(conn, code):
+    conn.execute('UPDATE rooms SET last_active = ? WHERE pairing_code = ?', (time.time(), code))
+
+
+_last_room_sweep = 0.0
+
+
+def sweep_idle_rooms():
+    """Expire idle rooms at most every 10 minutes, piggybacking on room creation."""
+    global _last_room_sweep
+    if time.time() - _last_room_sweep < 600:
+        return
+    _last_room_sweep = time.time()
+    try:
+        expire_idle_rooms()
+    except Exception as e:
+        print(f"[rooms] Idle room cleanup failed: {e}", flush=True)
+
+
 def fetch_movies(genre_name=None, user_id=None, user_token=None, device_id=None):
+    if not (user_id and user_token):
+        raise SignInRequired()
     backend = current_backend()
     genre_name = genre_name or "All"
-    cache_user_id = user_id or user_token or ''
+    cache_user_id = user_id
 
     with db_session() as conn:
         cache = conn.execute(
@@ -125,15 +190,15 @@ def build_and_cache_library(backend, genre_name, user_id=None, user_token=None, 
             print(f"[library] WARNING: No movies returned for backend={backend} genre={genre_name} user_id={user_id}", flush=True)
             return []
 
-        cache_user_id = user_id or user_token or ''
+        cache_user_id = user_id
         with db_session() as conn:
             conn.execute('''
                 INSERT OR REPLACE INTO library_cache (backend, genre, user_id, movie_data, updated_at)
                 VALUES (?, ?, ?, ?, ?)
             ''', (backend, genre_name, cache_user_id, json.dumps(movies), time.time()))
         return movies
-    except JellyfinAuthError:
-        print(f"[library] Jellyfin rejected the token for user_id={user_id}; the user needs to sign in again", flush=True)
+    except SignInRequired:
+        print(f"[library] {backend} rejected the token for user_id={user_id}; the user needs to sign in again", flush=True)
         if raise_on_error:
             raise
         return []
@@ -305,33 +370,31 @@ def available_backends():
 
 @main_bp.route('/watchlist/add', methods=['POST'])
 def add_to_watchlist():
-    data = request.json
-    movie_id = data.get('movie_id')
+    data = request.json or {}
+    movie_id = str(data.get('movie_id') or '')
     backend = current_backend()
+    if not valid_movie_id(movie_id):
+        return jsonify({'error': 'Unknown movie'}), 400
+    user_id, user_token, device_id = signed_in_user(backend)
 
     if backend == 'jellyfin':
-        user_token = request.headers.get('X-Jellyfin-Token')
-        user_id = request.headers.get('X-Jellyfin-User-ID')
-        if not user_token or not user_id:
-            return jsonify({'error': 'Unauthorized'}), 401
         try:
             r = requests.post(
-                f"{jellyfin_url()}/Users/{user_id}/FavoriteItems/{movie_id}",
-                headers=_jf_headers(user_token, jellyfin_device_id()),
+                f"{jellyfin_url()}/UserFavoriteItems/{movie_id}",
+                params={'userId': user_id},
+                headers=_jf_headers(user_token, device_id),
                 timeout=10,
             )
             if r.status_code == 401:
-                return reauth_response(JellyfinAuthError('Your Jellyfin sign-in has expired. Please sign in again.'))
+                raise JellyfinAuthError('Your Jellyfin sign-in has expired. Please sign in again.')
             r.raise_for_status()
             return jsonify({'status': 'success'})
+        except SignInRequired:
+            raise
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     else:
         try:
-            user_token = request.headers.get('X-Plex-Token')
-            if not user_token:
-                return jsonify({'error': 'Unauthorized'}), 401
-
             try:
                 plex = get_plex()
                 item = plex.fetchItem(int(movie_id))
@@ -434,27 +497,34 @@ def get_cast(movie_id):
 @main_bp.route('/room/create', methods=['POST'])
 def create_room():
     backend = session.get('backend', 'plex')
-    pairing_code = str(random.randint(1000, 9999))
-    device_id = None
-    if backend == 'jellyfin':
-        user_id = request.headers.get('X-Jellyfin-User-ID')
-        user_token = request.headers.get('X-Jellyfin-Token')
-        device_id = jellyfin_device_id()
-    else:
-        user_id = request.headers.get('X-Plex-User-ID') or ''
-        user_token = request.headers.get('X-Plex-Token')
+    user_id, user_token, device_id = signed_in_user(backend)
+    sweep_idle_rooms()
 
     try:
         movie_list = fetch_movies(user_id=user_id, user_token=user_token, device_id=device_id)
-    except JellyfinAuthError as e:
-        return reauth_response(e)
+    except SignInRequired:
+        raise
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+    # 4-digit codes: retry on a clash instead of failing with a 500.
+    movie_json = json.dumps(movie_list)
+    pairing_code = None
     with get_db() as conn:
-        conn.execute(
-            'INSERT INTO rooms (pairing_code, movie_data, ready, current_genre, solo_mode, backend) VALUES (?, ?, ?, ?, ?, ?)',
-            (pairing_code, json.dumps(movie_list), 0, 'All', 0, backend)
-        )
+        for _ in range(50):
+            candidate = str(random.randint(1000, 9999))
+            try:
+                conn.execute(
+                    'INSERT INTO rooms (pairing_code, movie_data, ready, current_genre, solo_mode, backend, last_active) '
+                    'VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (candidate, movie_json, 0, 'All', 0, backend, time.time())
+                )
+                pairing_code = candidate
+                break
+            except sqlite3.IntegrityError:
+                continue
+    if pairing_code is None:
+        return jsonify({'error': 'Too many sessions are open right now. Please try again in a moment.'}), 503
     session['active_room'] = pairing_code
     session['my_user_id'] = 'host_' + secrets.token_hex(8)
     session['solo_mode'] = False
@@ -467,7 +537,8 @@ def go_solo():
     if not code:
         return jsonify({'error': 'No active room'}), 400
     with get_db() as conn:
-        conn.execute('UPDATE rooms SET ready = 1, solo_mode = 1 WHERE pairing_code = ?', (code,))
+        conn.execute('UPDATE rooms SET ready = 1, solo_mode = 1, last_active = ? WHERE pairing_code = ?',
+                     (time.time(), code))
     session['solo_mode'] = True
     announce_room_update(code, {'ready': True, 'solo': True})
     return jsonify({'status': 'solo'})
@@ -475,16 +546,9 @@ def go_solo():
 
 @main_bp.route('/room/join', methods=['POST'])
 def join_room():
-    code = request.json.get('code')
+    code = str((request.json or {}).get('code') or '')
     joiner_backend = session.get('backend', 'plex')
-    joiner_device_id = None
-    if joiner_backend == 'jellyfin':
-        joiner_uid = request.headers.get('X-Jellyfin-User-ID')
-        joiner_token = request.headers.get('X-Jellyfin-Token')
-        joiner_device_id = jellyfin_device_id()
-    else:
-        joiner_uid = request.headers.get('X-Plex-User-ID') or ''
-        joiner_token = request.headers.get('X-Plex-Token')
+    joiner_uid, joiner_token, joiner_device_id = signed_in_user(joiner_backend)
 
     with get_db() as conn:
         room = conn.execute('SELECT * FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
@@ -497,8 +561,8 @@ def join_room():
             try:
                 joiner_movies = fetch_movies(genre_name=room['current_genre'], user_id=joiner_uid,
                                              user_token=joiner_token, device_id=joiner_device_id)
-            except JellyfinAuthError as e:
-                return reauth_response(e)
+            except SignInRequired:
+                raise
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
             host_movies = json.loads(room['movie_data'])
@@ -510,7 +574,8 @@ def join_room():
 
             random.shuffle(final_joint_list)
             
-            conn.execute('UPDATE rooms SET movie_data = ?, ready = 1 WHERE pairing_code = ?', (json.dumps(final_joint_list), code))
+            conn.execute('UPDATE rooms SET movie_data = ?, ready = 1, last_active = ? WHERE pairing_code = ?',
+                         (json.dumps(final_joint_list), time.time(), code))
             session['active_room'] = code
             session['my_user_id'] = 'guest_' + secrets.token_hex(8)
             session['solo_mode'] = False
@@ -523,18 +588,30 @@ def join_room():
 def swipe():
     code = session.get('active_room')
     uid = session.get('my_user_id')
-    data = request.json
-    mid, title, thumb = str(data.get('movie_id')), data.get('title'), data.get('thumb')
-    plex_id = data.get('plex_id')
+    data = request.json or {}
+    mid = str(data.get('movie_id') or '')
+    direction = 'right' if data.get('direction') == 'right' else 'left'
 
     if not code:
         return jsonify({'match': False})
+    if not valid_movie_id(mid):
+        return jsonify({'error': 'Unknown movie'}), 400
+    # Who swiped comes from the sign-in, not from the request body: matches and
+    # homescreen sync are written for this id using the admin credentials.
+    plex_id, _, _ = signed_in_user()
+    # Title and poster are shown to both players later, so only plain text and a
+    # poster URL of our own proxy are stored.
+    title = str(data.get('title') or '')[:300]
+    thumb = str(data.get('thumb') or '')
+    if not thumb.startswith('/proxy?'):
+        thumb = ''
 
     with get_db() as conn:
         conn.execute('INSERT INTO swipes (room_code, movie_id, user_id, direction, plex_id) VALUES (?, ?, ?, ?, ?)',
-                     (code, mid, uid, data.get('direction'), plex_id))
+                     (code, mid, uid, direction, plex_id))
+        touch_room(conn, code)
 
-        if data.get('direction') == 'right':
+        if direction == 'right':
             room = conn.execute('SELECT solo_mode FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
             if room and room['solo_mode']:
                 conn.execute(
@@ -636,15 +713,7 @@ def room_stream():
 def get_movies():
     code = session.get('active_room')
     genre = request.args.get('genre')
-    backend = current_backend()
-    device_id = None
-    if backend == 'jellyfin':
-        user_id = request.headers.get('X-Jellyfin-User-ID')
-        user_token = request.headers.get('X-Jellyfin-Token')
-        device_id = jellyfin_device_id()
-    else:
-        user_id = request.headers.get('X-Plex-User-ID')
-        user_token = request.headers.get('X-Plex-Token')
+    user_id, user_token, device_id = signed_in_user()
 
     if not code:
         return jsonify([])
@@ -652,14 +721,14 @@ def get_movies():
         with get_db() as conn:
             if genre:
                 new_list = fetch_movies(genre, user_id=user_id, user_token=user_token, device_id=device_id)
-                conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ? WHERE pairing_code = ?',
-                             (json.dumps(new_list), genre, code))
+                conn.execute('UPDATE rooms SET movie_data = ?, current_genre = ?, last_active = ? WHERE pairing_code = ?',
+                             (json.dumps(new_list), genre, time.time(), code))
                 announce_room_update(code, {'genre': genre})
                 return jsonify(new_list)
             room = conn.execute('SELECT movie_data FROM rooms WHERE pairing_code = ?', (code,)).fetchone()
             return Response(room['movie_data'], mimetype='application/json') if room else jsonify([])
-    except JellyfinAuthError as e:
-        return reauth_response(e)
+    except SignInRequired:
+        raise
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -673,7 +742,7 @@ def genres_route():
 def get_matches():
     code = session.get('active_room')
     view = request.args.get('view')
-    plex_id = request.headers.get('X-Plex-User-ID') or request.headers.get('X-Jellyfin-User-ID')
+    plex_id, _, _ = signed_in_user()
     with get_db() as conn:
         if view == 'history':
             rows = conn.execute('SELECT title, thumb, movie_id FROM matches WHERE status = "archived" AND plex_id = ?', (plex_id,)).fetchall()
@@ -684,8 +753,10 @@ def get_matches():
 
 @main_bp.route('/matches/delete', methods=['POST'])
 def delete_match():
-    mid = str(request.json.get('movie_id'))
-    plex_id = request.headers.get('X-Plex-User-ID') or request.headers.get('X-Jellyfin-User-ID')
+    mid = str((request.json or {}).get('movie_id') or '')
+    if not valid_movie_id(mid):
+        return jsonify({'error': 'Unknown movie'}), 400
+    plex_id, _, _ = signed_in_user()
     with get_db() as conn:
         conn.execute('DELETE FROM matches WHERE movie_id = ? AND plex_id = ?', (mid, plex_id))
     sync_homescreen_remove(plex_id, mid)
@@ -696,7 +767,7 @@ def delete_match():
 def delete_all_matches():
     code = session.get('active_room')
     view = (request.json or {}).get('view')
-    plex_id = request.headers.get('X-Plex-User-ID') or request.headers.get('X-Jellyfin-User-ID')
+    plex_id, _, _ = signed_in_user()
     with get_db() as conn:
         if view == 'history':
             rows = conn.execute('SELECT movie_id FROM matches WHERE status = "archived" AND plex_id = ?', (plex_id,)).fetchall()
@@ -712,10 +783,10 @@ def delete_all_matches():
 @main_bp.route('/homescreen/status')
 def homescreen_status():
     backend = current_backend()
-    user_id = request.headers.get('X-Plex-User-ID') if backend == 'plex' else request.headers.get('X-Jellyfin-User-ID')
     module = homescreen_module(backend)
-    if not user_id or not module:
+    if not module:
         return jsonify({'available': False})
+    user_id, _, _ = signed_in_user(backend)
     if backend == 'plex':
         plex_homescreen.ensure_user_known(user_id)
         plex_homescreen.cleanup_expired_async(user_id)
@@ -725,11 +796,11 @@ def homescreen_status():
 @main_bp.route('/homescreen/toggle', methods=['POST'])
 def homescreen_toggle():
     backend = current_backend()
-    user_id = request.headers.get('X-Plex-User-ID') if backend == 'plex' else request.headers.get('X-Jellyfin-User-ID')
     module = homescreen_module(backend)
-    if not user_id or not module:
+    if not module:
         return jsonify({'error': 'Login required'}), 400
-    enabled = bool(request.json.get('enabled'))
+    user_id, _, _ = signed_in_user(backend)
+    enabled = bool((request.json or {}).get('enabled'))
     module.set_homescreen_enabled(user_id, enabled)
     return jsonify({'status': 'ok', 'enabled': enabled})
 
@@ -738,8 +809,10 @@ def homescreen_toggle():
 def undo_swipe():
     code = session.get('active_room')
     uid = session.get('my_user_id')
-    mid = str(request.json.get('movie_id'))
-    plex_id = request.headers.get('X-Plex-User-ID') or request.headers.get('X-Jellyfin-User-ID')
+    mid = str((request.json or {}).get('movie_id') or '')
+    if not valid_movie_id(mid):
+        return jsonify({'error': 'Unknown movie'}), 400
+    plex_id, _, _ = signed_in_user()
     with get_db() as conn:
         conn.execute('DELETE FROM swipes WHERE room_code = ? AND movie_id = ? AND user_id = ?', (code, mid, uid))
         conn.execute('DELETE FROM matches WHERE room_code = ? AND movie_id = ? AND status = "active" AND plex_id = ?', (code, mid, plex_id))

@@ -1,6 +1,8 @@
+import hashlib
 import json
 import re
 import secrets
+import time
 import requests
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount
@@ -220,8 +222,100 @@ def fetch_plex_movies(genre_name=None, user_token=None):
         })
     return movie_list
 
-class JellyfinAuthError(Exception):
+class SignInRequired(Exception):
+    """The request has no usable sign-in: the browser must sign in again."""
+
+    def __init__(self, message='Please sign in again.'):
+        super().__init__(message)
+
+
+class JellyfinAuthError(SignInRequired):
     """Jellyfin rejected a user's access token (signed out, expired or revoked)."""
+
+
+class PlexAuthError(SignInRequired):
+    """Plex rejected a user's access token."""
+
+
+# --- Who is signed in ------------------------------------------------------
+# The browser used to tell the server its user id, and the server believed it,
+# then acted on it with the admin credentials (favourites, match history...).
+# Instead the server now asks Jellyfin or Plex who a token belongs to. Answers
+# are cached briefly so this costs one upstream call per user per few minutes.
+IDENTITY_TTL = 300
+_identity_cache = {}
+_JF_USER_ID_RE = re.compile(r'^[0-9a-f]{32}$')
+_PLEX_USER_ID_RE = re.compile(r'^\d{1,20}$')
+
+
+def _identity_key(kind, token):
+    return kind + ':' + hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def _identity_cached(key):
+    hit = _identity_cache.get(key)
+    if hit and hit[1] > time.time():
+        return hit[0]
+    return None
+
+
+def _identity_store(key, user_id):
+    now = time.time()
+    if len(_identity_cache) > 1000:
+        for k in [k for k, v in list(_identity_cache.items()) if v[1] <= now]:
+            _identity_cache.pop(k, None)
+        if len(_identity_cache) > 1000:
+            _identity_cache.clear()
+    _identity_cache[key] = (user_id, now + IDENTITY_TTL)
+    return user_id
+
+
+def jellyfin_user_id(token, device_id=None):
+    """Return the Jellyfin user id that owns `token`, or raise JellyfinAuthError."""
+    key = _identity_key('jf', token)
+    cached = _identity_cached(key)
+    if cached:
+        return cached
+    r = requests.get(f"{jellyfin_url()}/Users/Me", headers=_jf_headers(token, device_id), timeout=10)
+    if r.status_code in (401, 403):
+        raise JellyfinAuthError('Your Jellyfin sign-in has expired. Please sign in again.')
+    r.raise_for_status()
+    user_id = str((r.json() or {}).get('Id') or '').replace('-', '').lower()
+    if not _JF_USER_ID_RE.match(user_id):
+        raise JellyfinAuthError('Jellyfin did not say who this sign-in belongs to. Please sign in again.')
+    return _identity_store(key, user_id)
+
+
+def plex_user_id(token, claimed_id=None):
+    """Return the Plex account id that owns `token`, or raise PlexAuthError.
+
+    Account tokens are resolved through plex.tv. A Plex Home profile switch can
+    leave the browser holding a server-only token that plex.tv does not know; that
+    token is accepted only if this Plex server accepts it, and then the browser's
+    own claimed id is used, since only plex.tv can name the account.
+    """
+    key = _identity_key('plex', token)
+    cached = _identity_cached(key)
+    if cached:
+        return cached
+    try:
+        r = requests.get('https://plex.tv/api/v2/user', timeout=10, headers={
+            'X-Plex-Token': token, 'X-Plex-Client-Identifier': CLIENT_ID, 'Accept': 'application/json',
+        })
+        if r.status_code == 200:
+            user_id = str((r.json() or {}).get('id') or '')
+            if _PLEX_USER_ID_RE.match(user_id):
+                return _identity_store(key, user_id)
+    except requests.RequestException:
+        pass
+    r = requests.get(f"{plex_url()}/library/sections", timeout=10,
+                     headers={'X-Plex-Token': token, 'Accept': 'application/json'})
+    if r.status_code in (401, 403):
+        raise PlexAuthError('Your Plex sign-in has expired. Please sign in again.')
+    r.raise_for_status()
+    claimed = str(claimed_id or '')
+    user_id = claimed if _PLEX_USER_ID_RE.match(claimed) else 'token-' + key[-16:]
+    return _identity_store(key, user_id)
 
 
 # Jellyfin keeps one access token per user per DeviceId: signing in again from the
@@ -324,14 +418,13 @@ def fetch_jellyfin_movies(genre_name=None, user_id=None, user_token=None, device
     elif genre_name and genre_name != "All":
         params['Genres'] = genre_name
 
-    if user_id and user_token:
-        url = f"{jellyfin_url()}/Users/{user_id}/Items"
-        headers = _jf_headers(user_token, device_id)
-    else:
-        url = f"{jellyfin_url()}/Items"
-        headers = _jf_headers()
-
-    r = requests.get(url, headers=headers, params=params, timeout=15)
+    if not (user_id and user_token):
+        raise JellyfinAuthError('Please sign in with Jellyfin.')
+    # /Users/{id}/Items is no longer in Jellyfin's API (12.x); /Items?userId= is
+    # its replacement and applies that user's library access and parental rules.
+    params['userId'] = user_id
+    r = requests.get(f"{jellyfin_url()}/Items", headers=_jf_headers(user_token, device_id),
+                     params=params, timeout=15)
     if r.status_code == 401 and user_token:
         raise JellyfinAuthError('Your Jellyfin sign-in has expired. Please sign in again.')
     r.raise_for_status()

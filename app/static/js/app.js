@@ -472,6 +472,11 @@
             lastSeenMatchTs = Date.now() / 1000;
             const res = await fetch('/movies', { headers: getMoviesHeaders() });
             if (await handleExpiredSignIn(res)) return;
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(`Unable to load movies: ${err.error || res.status}`);
+                return;
+            }
             movieStack = await res.json();
             document.getElementById('branding').classList.add('hidden');
             document.getElementById('controls-area').classList.add('hidden');
@@ -504,7 +509,9 @@
             const headers = getMoviesHeaders();
             const url = asHistory ? '/matches?view=history' : '/matches';
             const res = await fetch(url, { headers: headers });
-            const data = await res.json();
+            if (await handleExpiredSignIn(res)) return;
+            const body = await res.json().catch(() => []);
+            const data = Array.isArray(body) ? body : [];
             const list = document.getElementById('matches-list');
             const emptyLabel = asHistory ? 'history' : isSoloMode ? 'shortlist' : 'matches';
             list.innerHTML = data.length ? '' : `<p class="empty">No ${emptyLabel} yet</p>`;
@@ -515,8 +522,8 @@
                 card.style.animationDelay = `${Math.min(i, 12) * 45}ms`;
                 let openBtn;
                 if (getBackend() === 'plex') {
-                    const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${m.movie_id}`;
-                    openBtn = `<a href="${plexLink}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>`;
+                    const plexLink = `https://app.plex.tv/desktop/#!/server/${serverId}/details?key=%2Flibrary%2Fmetadata%2F${encodeURIComponent(m.movie_id)}`;
+                    openBtn = `<a href="${escapeHtml(plexLink)}" class="plex-open-btn" target="_blank" rel="noopener noreferrer">OPEN IN PLEX</a>`;
                 } else {
                     openBtn = ``;
                 }
@@ -535,8 +542,8 @@
                                 ${m.year ? `<span class="stat-badge">${escapeHtml(m.year)}</span>` : ''}
                             </div>
                             ${openBtn}
-                            <button class="mini-btn" onclick="addToWatchlist(event, '${m.movie_id}')">SAVE TO WATCHLIST</button>
-                            <button class="mini-btn danger" onclick="deleteMatch(event, '${m.movie_id}')">DELETE</button>
+                            <button class="mini-btn" data-movie-id="${escapeHtml(m.movie_id)}" onclick="addToWatchlist(event, this.dataset.movieId)">SAVE TO WATCHLIST</button>
+                            <button class="mini-btn danger" data-movie-id="${escapeHtml(m.movie_id)}" onclick="deleteMatch(event, this.dataset.movieId)">DELETE</button>
                         </div>
                     </div>
                 `;
@@ -682,7 +689,7 @@
                             ${m.year ? `<span class="stat-badge">${escapeHtml(m.year)}</span>` : ''}
                         </div>
                         <div id="vid-${m.id}" class="trailer-box"></div>
-                        <button class="trailer-btn" onclick="watchTrailer(event, '${m.id}', this)">WATCH TRAILER</button>
+                        <button class="trailer-btn" data-movie-id="${escapeHtml(m.id)}" onclick="watchTrailer(event, this.dataset.movieId, this)">WATCH TRAILER</button>
                         <div class="back-content"><p>${escapeHtml(m.summary) || 'No description available.'}</p></div>
                         <div id="cast-${m.id}" class="cast-row"></div>
                         <div class="flip-hint">Tap to flip back</div>
@@ -926,9 +933,9 @@
                         body: JSON.stringify({ 
                             movie_id: card.dataset.id, title: card.dataset.title, thumb: card.dataset.thumb, direction: dir,
                             plex_id: getUserId()
-                        }) 
+                        })
                     })
-                    .then(r => r.json()).then(data => { 
+                    .then(async r => (await handleExpiredSignIn(r)) ? {} : r.json()).then(data => {
                         if (data.match) { 
                             presentMatchNotification(data);
                         } 
@@ -1092,7 +1099,7 @@
                     plex_id: getUserId()
                 })
             })
-            .then(r => r.json())
+            .then(async r => (await handleExpiredSignIn(r)) ? {} : r.json())
             .then(data => {
                 if (data.match) {
                     presentMatchNotification(data);

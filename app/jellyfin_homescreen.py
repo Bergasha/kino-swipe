@@ -58,8 +58,10 @@ def _untrack(user_id, movie_id):
 def _set_favorite(user_id, movie_id, favorite):
     method = requests.post if favorite else requests.delete
     try:
+        # /Users/{id}/FavoriteItems/{item} is no longer in Jellyfin's API (12.x).
         r = method(
-            f"{jellyfin_url()}/Users/{user_id}/FavoriteItems/{movie_id}",
+            f"{jellyfin_url()}/UserFavoriteItems/{movie_id}",
+            params={'userId': user_id},
             headers=_jf_headers(), timeout=10,
         )
         r.raise_for_status()

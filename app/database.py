@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import time
 from contextlib import contextmanager
 from gevent.queue import Queue
 
@@ -92,6 +93,11 @@ def init_db():
             conn.execute('ALTER TABLE rooms ADD COLUMN last_match_data TEXT')
         if 'backend' not in room_cols:
             conn.execute('ALTER TABLE rooms ADD COLUMN backend TEXT DEFAULT "plex"')
+        if 'last_active' not in room_cols:
+            conn.execute('ALTER TABLE rooms ADD COLUMN last_active REAL')
+        # Rooms from before last_active existed get a fresh clock, so they are
+        # expired by the normal idle rule instead of all at once on upgrade.
+        conn.execute('UPDATE rooms SET last_active = ? WHERE last_active IS NULL', (time.time(),))
 
         cursor = conn.execute("PRAGMA table_info(library_cache)")
         cache_cols = [col[1] for col in cursor.fetchall()]
@@ -106,3 +112,32 @@ def init_db():
             conn.execute('ALTER TABLE library_cache_new RENAME TO library_cache')
 
         conn.execute('DELETE FROM swipes WHERE room_code NOT IN (SELECT pairing_code FROM rooms)')
+
+    expire_idle_rooms()
+
+
+ROOM_IDLE_SECONDS = 24 * 3600
+
+
+def expire_idle_rooms(idle_seconds=ROOM_IDLE_SECONDS):
+    """Close rooms nobody has used for a day.
+
+    Rooms were only removed when someone pressed Quit, so abandoned ones (each
+    holding a full copy of the library) piled up and made 4-digit code clashes
+    ever more likely. Expiring does what Quit does: matches move to history.
+    """
+    cutoff = time.time() - idle_seconds
+    with db_session() as conn:
+        codes = [r['pairing_code'] for r in conn.execute(
+            'SELECT pairing_code FROM rooms WHERE last_active < ?', (cutoff,)
+        ).fetchall()]
+        for code in codes:
+            conn.execute('DELETE FROM swipes WHERE room_code = ?', (code,))
+            conn.execute('UPDATE matches SET status = "archived", room_code = "HISTORY" '
+                         'WHERE room_code = ? AND status = "active"', (code,))
+            conn.execute('DELETE FROM rooms WHERE pairing_code = ?', (code,))
+    for code in codes:
+        announce_room_update(code, {'closed': True})
+    if codes:
+        print(f"[rooms] Closed {len(codes)} room(s) idle for over {idle_seconds // 3600}h", flush=True)
+    return len(codes)
